@@ -130,7 +130,7 @@ bool ReadingStore::addReading(double voltage, double frequency, double apparent_
  * where <module_id> is the ID of the module associated with the ReadingStore object, and <voltage_measurement>,
  * <frequency_measurement>, <apparent_power_measurement>, <phase_angle_measurement>, <energy_usage_measurement>,
  * and <timestamp> are the corresponding measurement values for each reading stored in the ReadingStore object.
- *
+ * 
  * @return The serialized readings as a JSON string.
  */
 const std::string ReadingStore::getDataPacket()
