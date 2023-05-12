@@ -1,26 +1,28 @@
 #ifndef MQTT_CLIENT_H
 #define MQTT_CLIENT_H
 
+#include <../config.h>
 #include <Arduino.h>
 #include <Preferences.h>
 #include <PubSubClient.h>
 #include <ArduinoJson.h>
-#include <TinyGsmClient.h>
+#include <TinyGSM.h>
+
 #include <string>
 #include <iostream>
 #include <sstream> // for ostringstream
-
-#include <../config.h>
+#include <vector>
 
 #include <MessageSerializer.h>
 #include <ReadingStore.h>
 
 void taskMQTT(void * parameters);
+void callbackMQTT(char* topic, byte* payload, unsigned int len);
 
 class MQTTClient : private MessageSerializer
 {
     public:
-        MQTTClient();
+        MQTTClient(TinyGsmClient * client);
         ~MQTTClient();
 
         void begin();
@@ -38,18 +40,27 @@ class MQTTClient : private MessageSerializer
         void setIngressTopics(std::vector<std::string> new_values);
         
         void sendMessage(std::string message);
+
+        static std::vector<std::string> * mqtt_rx_buffer;
     
     private:
         std::vector<std::string> mqtt_details;
+        uint16_t broker_port = 0;
+
         TaskHandle_t handleMQTT;
+        TinyGsmClient * gsm_client = nullptr;
         PubSubClient * mqtt_client = nullptr;
 
         void writeMQTTDetails();
         void fillMQTTDetails();
 
-        friend void taskMQTT(void * parameters);
-};
+        void connectMQTT();
 
+        friend void taskMQTT(void * parameters);
+        friend class PubSubClient;
+        friend void callbackMQTT(char* topic, byte* payload, unsigned int len);
+        
+};
 
 
 #endif

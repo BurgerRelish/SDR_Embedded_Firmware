@@ -5,6 +5,7 @@ constexpr const char* MQTT_DETAILS_PREFIX = "details";
 
 /**
  * @note The MQTT details are stored in the following order:
+ * 0 - Broker URL
  * 1 - Device Name
  * 2 - Username
  * 3 - Password
@@ -12,19 +13,24 @@ constexpr const char* MQTT_DETAILS_PREFIX = "details";
  * 5+ - Subscribe Topics
 */
 
-constexpr size_t BROKER = 0;
+constexpr size_t BROKER_URL = 0;
+constexpr const char* BROKER_PORT = "broker_port";
 constexpr size_t CLIENT_DEVICE_NAME = 1;
 constexpr size_t CLIENT_USERNAME = 2;
 constexpr size_t CLIENT_PASSWORD = 3;
 constexpr size_t CLIENT_EGRESS_TOPIC = 4;
 
 
-MQTTClient::MQTTClient()
+MQTTClient::MQTTClient(TinyGsmClient * client)
 {
+    gsm_client = client;
+
     auto mqtt_store = new Preferences;
     mqtt_store -> begin(MQTT_STORAGE_NVS_PATH);
 
     size_t number_of_topics = mqtt_store -> getUInt(MQTT_DETAILS_LOOKUP); // Get the number of topics in storage.
+
+    broker_port = mqtt_store -> getUInt(BROKER_PORT);
 
     if (number_of_topics < CLIENT_EGRESS_TOPIC + 1) number_of_topics = CLIENT_EGRESS_TOPIC + 1;
 
@@ -265,14 +271,29 @@ void MQTTClient::writeMQTTDetails()
     return;
 }
 
+void MQTTClient::connectMQTT()
+{
+    for (int i = 0; i < mqtt_details.size(); i++) if (mqtt_details.at(i).empty()) throw SDRException("Not all MQTT Details are configured.");
+
+    if(mqtt_client == nullptr) mqtt_client = new PubSubClient(mqtt_details.at(BROKER_URL).c_str(), broker_port, callbackMQTT, *(gsm_client) ); // Init PubSubClient
+    if(! mqtt_client -> connected()) mqtt_client -> connect(mqtt_details.at(CLIENT_DEVICE_NAME).c_str(), mqtt_details.at(CLIENT_USERNAME).c_str(), mqtt_details.at(CLIENT_USERNAME).c_str());
+    
+    return;
+}
+
+void callbackMQTT(char* topic, byte* payload, unsigned int len)
+{
+
+    return;
+}
+
 
 void taskMQTT(void * parent_class)
 {
     auto parent = (MQTTClient *) parent_class;
 
-    if(parent -> mqtt_client == nullptr) parent -> mqtt_client = new PubSubClient();
+    parent -> connectMQTT();
 
-    
     while(true)
     {
         vTaskDelay(100 / portTICK_PERIOD_MS);
@@ -281,3 +302,4 @@ void taskMQTT(void * parent_class)
     vTaskDelete(NULL);
     return; 
 }
+
