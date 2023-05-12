@@ -7,7 +7,7 @@
 #include <string>
 #include <stdlib.h>
 
-#define BROTLI_DECODER_BUFFER_SIZE 4096
+#include <../config.h>
 
 class MessageSerializer
 {
@@ -15,12 +15,8 @@ class MessageSerializer
         MessageSerializer();
         ~MessageSerializer();
 
-        const std::string compressString(std::string message);
-        const std::string decompressString(std::string message);
-
-    private:
-
-    protected:
+        std::string compressString(const std::string * message);
+        std::string decompressString(const std::string * message);
 
 };
 

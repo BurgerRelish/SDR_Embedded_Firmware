@@ -2,20 +2,12 @@
 #define READINGSTORE_H
 
 #include <Arduino.h>
-#include <rom/miniz.h>
-#include <string>
+#include <../config.h>
 
 struct Reading
 {
-    double voltage = 0;
-    double frequency = 0;
-    double apparent_power = 0;
-    double phase_angle = 0;
-    double energy_usage = 0;
-
-    uint32_t timestamp = 0;
-
-    Reading * previous_reading = NULL;
+    std::string message;
+    Reading * previous_reading = nullptr;
 };
 
 /**
@@ -31,16 +23,16 @@ struct Reading
 class ReadingStore
 {
     public:
-        ReadingStore(std::string db_module_id);
+        explicit ReadingStore(std::string db_module_id);
         ~ReadingStore();
         
         bool addReading(double voltage, double frequency, double apparent_power, double phase_angle, double energy_usage);
-        const std::string getModuleID();
-        const std::string getDataPacket();
+        std::string getModuleID() const;
+        std::string getDataPacket();
         bool clean();
 
     private:
-        struct Reading * reading_store_pointer = NULL;
+        struct Reading * reading_store_pointer = nullptr;
         std::string db_module_id;
 };
 

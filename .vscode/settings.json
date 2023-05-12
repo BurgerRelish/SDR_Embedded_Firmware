@@ -40,5 +40,6 @@
         "cinttypes": "cpp",
         "utility": "cpp",
         "typeinfo": "cpp"
-    }
+    },
+    "sonarlint.pathToCompileCommands": "${workspaceFolder}/compile_commands.json"
 }

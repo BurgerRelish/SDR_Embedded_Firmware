@@ -1,14 +1,14 @@
 #include <ReadingStore.h>
+
+#include <string>
+#include <iostream>
+#include <sstream> // for ostringstream
 #include <time.h>
 
-
-ReadingStore::ReadingStore(std::string db_module_id)
-{
-    ReadingStore::db_module_id = db_module_id;
-}
+ReadingStore::ReadingStore(const std::string db_module_id) : db_module_id(db_module_id) {}
 
 /**
- * @brief Destructor for the ReadingStore object.
+ * @brief Destructor for the ReadingStore object.= 
  *
  * This destructor frees all of the readings stored in the ReadingStore object. It iterates over the linked list of
  * readings, starting with the most recent reading and working backwards, freeing each reading and updating the pointer
@@ -18,11 +18,11 @@ ReadingStore::ReadingStore(std::string db_module_id)
  */
 ReadingStore::~ReadingStore()
 {
-    while(reading_store_pointer != NULL) // Free all stored readings
+    while(reading_store_pointer != nullptr) // Free all stored readings
     {
         struct Reading * next = reading_store_pointer -> previous_reading;
 
-        free(reading_store_pointer);
+        delete reading_store_pointer;
 
         reading_store_pointer = next;
     }
@@ -35,7 +35,7 @@ ReadingStore::~ReadingStore()
  * @brief Get the ID of the DB metering module associated with this ReadingStore object.
  * @return const std::string The ID of the database module.
  */
-const std::string ReadingStore::getModuleID()
+std::string ReadingStore::getModuleID() const
 {
     return db_module_id;
 }
@@ -52,11 +52,11 @@ const std::string ReadingStore::getModuleID()
  */
 bool ReadingStore::clean()
 {
-    while(reading_store_pointer != NULL) // Free all stored readings
+    while(reading_store_pointer != nullptr) // Free all stored readings
     {
         struct Reading * next = reading_store_pointer -> previous_reading;
 
-        free(reading_store_pointer);
+        delete reading_store_pointer;
 
         reading_store_pointer = next;
     }
@@ -83,7 +83,9 @@ bool ReadingStore::addReading(double voltage, double frequency, double apparent_
 {
     time_t now;
     struct tm time_info;
-    struct Reading* new_reading = (Reading *) malloc(sizeof(Reading));
+
+    auto new_reading = new Reading;
+    std::ostringstream retval;
 
     if(!getLocalTime(&time_info))
     {
@@ -93,12 +95,16 @@ bool ReadingStore::addReading(double voltage, double frequency, double apparent_
 
     time(&now);
 
-    new_reading -> timestamp = (uint32_t) now;
-    new_reading -> voltage = voltage;
-    new_reading -> frequency = frequency;
-    new_reading -> apparent_power = apparent_power;
-    new_reading -> phase_angle = phase_angle;
-    new_reading -> energy_usage = energy_usage;
+    retval 
+    << "{\"V\":" << voltage << ","
+    << "\"F\":" << frequency << ","
+    << "\"S\":" << apparent_power << ","
+    << "\"PA\":" << phase_angle << ","
+    << "\"E\":" << energy_usage << ","
+    << "\"TS\":" << now
+    << "}";
+
+    new_reading -> message = retval.str();
 
     new_reading -> previous_reading = reading_store_pointer;
 
@@ -133,67 +139,37 @@ bool ReadingStore::addReading(double voltage, double frequency, double apparent_
  * 
  * @return The serialized readings as a JSON string.
  */
-const std::string ReadingStore::getDataPacket()
+std::string ReadingStore::getDataPacket()
 {
     ESP_LOGI("Serializing Reading for Module %s", db_module_id.c_str());
 
-    std::string ret = "";
+    std::ostringstream retval;
 
-    ret.append("{\"DID\":\"");
-    ret.append(db_module_id);
-    ret.append("\",\"R\":[");
+    retval
+    << R"({"DID":")" << db_module_id << "\","
+    << R"("R":[)";
 
-    while(1) // Create JSON array of readings
+    while(true) // Create JSON array of readings
     {
-        char buffer[12] = {0};
+        retval << reading_store_pointer -> message;
 
-        ret.append("{\"V\":"); // Append Voltage Measurement
-        sprintf(buffer, "%3.3f", reading_store_pointer -> voltage);
-        ret.append(buffer);
+        auto next_pointer = reading_store_pointer -> previous_reading; // Get location of previous reading and free the serialized reading.
+        
+        delete reading_store_pointer;
 
-        ret.append(",\"F\":"); // Append Frequency Measurement
-        memset(buffer, 0, sizeof(buffer));
-        sprintf(buffer, "%3.3f", reading_store_pointer -> frequency);
-        ret.append(buffer);
-
-        ret.append(",\"S\":"); // Append Apparent Power Measurement
-        memset(buffer, 0, sizeof(buffer));
-        sprintf(buffer, "%3.3f", reading_store_pointer -> apparent_power);
-        ret.append(buffer);
-
-        ret.append(",\"A\":"); // Append Phase Angle Measurement
-        memset(buffer, 0, sizeof(buffer));
-        sprintf(buffer, "%3.3f", reading_store_pointer -> phase_angle);
-        ret.append(buffer);
-
-        ret.append(",\"E\":"); // Append Energy Usage Measurement
-        memset(buffer, 0, sizeof(buffer)); 
-        sprintf(buffer, "%3.3f", reading_store_pointer -> energy_usage);
-        ret.append(buffer);
-
-        ret.append(",\"T\":"); // Append Timestamp
-        memset(buffer, 0, sizeof(buffer)); 
-        sprintf(buffer, "%d", reading_store_pointer -> timestamp);
-        ret.append(buffer);
-
-        ret.append("}"); // Close Reading
-
-        struct Reading * next_pointer = reading_store_pointer -> previous_reading; // Get location of previous reading and free the serialized reading.
-        free(reading_store_pointer);
-
-        if(next_pointer == NULL) // If there are no more readings to append, break;
+        if(next_pointer == nullptr) // If there are no more readings to append, break;
         {
-            reading_store_pointer = NULL;
+            reading_store_pointer = nullptr;
             break;
         }
         else // Otherwise continue to serialize readings.
         {
             reading_store_pointer = next_pointer;
-            ret.append(",");
+            retval << ",";
         }
     }
 
-    ret.append("]}");
+    retval << "]}";
 
-    return ret;
+    return retval.str();
 }
