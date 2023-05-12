@@ -1,13 +1,12 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define TINY_GSM_MODEM_SARAR4
+#include <Arduino.h>
 
-
-#include <memory>
+#define USE_GSM
 
 constexpr size_t BROTLI_DECODER_BUFFER_SIZE = 4096;
-constexpr char * MQTT_STORAGE_NVS_PATH = "/Connectivity/mqtt_nvs";
+constexpr const char * MQTT_STORAGE_NVS_PATH = "/Connectivity/mqtt_nvs";
 
 
 class SDRException : public std::exception

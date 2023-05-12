@@ -1,5 +1,7 @@
 #include <MQTTClient.h>
 
+constexpr const char* TAG = "MQTTClient";
+
 constexpr const char* MQTT_DETAILS_LOOKUP = "num_values";
 constexpr const char* MQTT_DETAILS_PREFIX = "details";
 
@@ -20,45 +22,70 @@ constexpr size_t CLIENT_USERNAME = 2;
 constexpr size_t CLIENT_PASSWORD = 3;
 constexpr size_t CLIENT_EGRESS_TOPIC = 4;
 
+std::vector<std::string> * MQTTClient::mqtt_rx_buffer = nullptr;
+std::vector<std::string> * MQTTClient::mqtt_tx_buffer = nullptr;
+StaticSemaphore_t MQTTClient::MQTT_rx_queue_buffer;
+SemaphoreHandle_t MQTTClient::MQTT_rx_queue_semaphore = nullptr;
+StaticSemaphore_t MQTTClient::MQTT_tx_queue_buffer;
+SemaphoreHandle_t MQTTClient::MQTT_tx_queue_semaphore = nullptr;
+TaskHandle_t MQTTClient::handleMQTT = nullptr;
 
-MQTTClient::MQTTClient(TinyGsmClient * client)
+std::vector<std::string> * MQTTClient::mqtt_details = nullptr;
+Client * MQTTClient::network_client = nullptr;
+PubSubClient * MQTTClient::mqtt_client = nullptr;
+
+MQTTClient::MQTTClient()
 {
-    gsm_client = client;
+    if(network_client == nullptr) throw SDRException("No networking client present.");
 
-    auto mqtt_store = new Preferences;
-    mqtt_store -> begin(MQTT_STORAGE_NVS_PATH);
+    recallMQTTDetails();
+}
 
-    size_t number_of_topics = mqtt_store -> getUInt(MQTT_DETAILS_LOOKUP); // Get the number of topics in storage.
+MQTTClient::MQTTClient(Client * client)
+{
+    network_client = client;
 
-    broker_port = mqtt_store -> getUInt(BROKER_PORT);
-
-    if (number_of_topics < CLIENT_EGRESS_TOPIC + 1) number_of_topics = CLIENT_EGRESS_TOPIC + 1;
-
-    std::ostringstream current_topic;
-
-    for(int i = 0; i < number_of_topics; i++) // Load MQTT Details from NVS.
-    {
-        current_topic.clear();
-        current_topic << MQTT_DETAILS_PREFIX << i;
-
-        mqtt_details.push_back(
-            std::string( 
-                mqtt_store -> getString(
-                    current_topic.str().c_str()
-                ).c_str()
-            )
-        );
-    }
-
-    delete mqtt_store;
+    recallMQTTDetails();
 
     return;
+}
+
+MQTTClient::~MQTTClient()
+{
 }
 
 
 void MQTTClient::begin()
 {
+    if(mqtt_details->size() < 5) throw SDRException("Not all MQTT Parameters are present.");
+    if(network_client == nullptr) throw SDRException("No Networking Client is present.");
 
+    initBuffers();
+
+    if(MQTT_rx_queue_semaphore == nullptr)
+    {
+        MQTT_rx_queue_semaphore = xSemaphoreCreateBinaryStatic(&MQTT_rx_queue_buffer); // Create rx buffer semaphore
+        xSemaphoreGive(MQTT_rx_queue_semaphore);
+    }
+
+    if (MQTT_tx_queue_semaphore == nullptr)
+    {
+        MQTT_tx_queue_semaphore = xSemaphoreCreateBinaryStatic(&MQTT_tx_queue_buffer); // Create tx buffer semaphore
+        xSemaphoreGive(MQTT_tx_queue_semaphore);
+    }
+
+    if (handleMQTT == nullptr)
+    {
+        xTaskCreatePinnedToCore( // Create the MQTT core task on core 1.
+            taskMQTT,
+            "MQTTClient RTOS Task",
+            32000,
+            this,
+            tskIDLE_PRIORITY,
+            &handleMQTT,
+            1
+        );
+    }
 
     return;
 }
@@ -71,7 +98,7 @@ void MQTTClient::begin()
  */
 std::string MQTTClient::getDeviceName()
 {
-    return mqtt_details.at(CLIENT_DEVICE_NAME);
+    return mqtt_details -> at(CLIENT_DEVICE_NAME);
 }
 
 /**
@@ -82,7 +109,7 @@ std::string MQTTClient::getDeviceName()
  */
 std::string MQTTClient::getUsername()
 {
-    return mqtt_details.at(CLIENT_USERNAME);
+    return mqtt_details -> at(CLIENT_USERNAME);
 }
 
 /**
@@ -93,7 +120,7 @@ std::string MQTTClient::getUsername()
  */
 std::string MQTTClient::getPassword()
 {
-    return mqtt_details.at(CLIENT_PASSWORD);
+    return mqtt_details -> at(CLIENT_PASSWORD);
 }
 
 /**
@@ -103,7 +130,7 @@ std::string MQTTClient::getPassword()
  */
 std::string MQTTClient::getEgressTopic()
 {
-    return mqtt_details.at(CLIENT_EGRESS_TOPIC);
+    return mqtt_details -> at(CLIENT_EGRESS_TOPIC);
 }
 
 /**
@@ -118,7 +145,7 @@ std::vector<std::string> MQTTClient::getIngressTopics()
 {
     std::vector<std::string> ret;
 
-    for (size_t i = CLIENT_EGRESS_TOPIC + 1; i < mqtt_details.size(); i++) ret.push_back(mqtt_details.at(i));
+    for (size_t i = CLIENT_EGRESS_TOPIC + 1; i < mqtt_details -> size(); i++) ret.push_back(mqtt_details -> at(i));
 
     return ret;
 }
@@ -136,7 +163,7 @@ void MQTTClient::setDeviceName(std::string new_value)
 {
     try
     {
-        mqtt_details.at(CLIENT_DEVICE_NAME) = new_value;
+        mqtt_details -> at(CLIENT_DEVICE_NAME) = new_value;
     }   
     catch (std::out_of_range &e)
     { 
@@ -159,7 +186,7 @@ void MQTTClient::setUsername(std::string new_value)
 {
     try
     {
-        mqtt_details.at(CLIENT_USERNAME) = new_value;
+        mqtt_details -> at(CLIENT_USERNAME) = new_value;
     }   
     catch (std::out_of_range &e)
     { 
@@ -182,7 +209,7 @@ void MQTTClient::setPassword(std::string new_value)
 {
     try
     {
-        mqtt_details.at(CLIENT_PASSWORD) = new_value;
+        mqtt_details -> at(CLIENT_PASSWORD) = new_value;
     }   
     catch (std::out_of_range &e)
     { 
@@ -205,7 +232,7 @@ void MQTTClient::setEgressTopic(std::string new_value)
 {
     try
     {
-        mqtt_details.at(CLIENT_EGRESS_TOPIC) = new_value;
+        mqtt_details -> at(CLIENT_EGRESS_TOPIC) = new_value;
     }   
     catch (std::out_of_range &e)
     { 
@@ -229,9 +256,9 @@ void MQTTClient::setIngressTopics(std::vector<std::string> new_values)
 {
     try
     {
-        mqtt_details.resize(CLIENT_EGRESS_TOPIC + 1);
+        mqtt_details -> resize(CLIENT_EGRESS_TOPIC + 1);
 
-        for (size_t i = 0; i < new_values.size(); i++) mqtt_details.push_back(new_values.at(i));
+        for (size_t i = 0; i < new_values.size(); i++) mqtt_details -> push_back(new_values.at(i));
     }
     catch(std::out_of_range &e)
     {
@@ -255,15 +282,15 @@ void MQTTClient::writeMQTTDetails()
     auto mqtt_store = new Preferences;
     mqtt_store -> begin(MQTT_STORAGE_NVS_PATH);
 
-    mqtt_store -> putUInt(MQTT_DETAILS_LOOKUP, mqtt_details.size());
+    mqtt_store -> putUInt(MQTT_DETAILS_LOOKUP, mqtt_details -> size());
 
-    for (size_t i = 0; i <= mqtt_details.size(); i++)
+    for (size_t i = 0; i <= mqtt_details -> size(); i++)
     {
         current_topic.clear();
 
         current_topic << MQTT_DETAILS_PREFIX << i;
 
-        mqtt_store -> putString(current_topic.str().c_str(), String(mqtt_details.at(i).c_str()));
+        mqtt_store -> putString(current_topic.str().c_str(), String(mqtt_details -> at(i).c_str()));
     }
 
     delete mqtt_store;
@@ -273,33 +300,123 @@ void MQTTClient::writeMQTTDetails()
 
 void MQTTClient::connectMQTT()
 {
-    for (int i = 0; i < mqtt_details.size(); i++) if (mqtt_details.at(i).empty()) throw SDRException("Not all MQTT Details are configured.");
+    for (int i = 0; i < mqtt_details -> size(); i++) if (mqtt_details -> at(i).empty()) throw SDRException("Not all MQTT Details are configured.");
 
-    if(mqtt_client == nullptr) mqtt_client = new PubSubClient(mqtt_details.at(BROKER_URL).c_str(), broker_port, callbackMQTT, *(gsm_client) ); // Init PubSubClient
-    if(! mqtt_client -> connected()) mqtt_client -> connect(mqtt_details.at(CLIENT_DEVICE_NAME).c_str(), mqtt_details.at(CLIENT_USERNAME).c_str(), mqtt_details.at(CLIENT_USERNAME).c_str());
+    if(mqtt_client == nullptr) mqtt_client = new PubSubClient(mqtt_details -> at(BROKER_URL).c_str(), broker_port, callbackMQTT, *(network_client) ); // Init PubSubClient
+    if(! mqtt_client -> connected()) mqtt_client -> connect(mqtt_details -> at(CLIENT_DEVICE_NAME).c_str(), mqtt_details -> at(CLIENT_USERNAME).c_str(), mqtt_details -> at(CLIENT_USERNAME).c_str());
     
     return;
 }
 
+/**
+ * The function receives an MQTT message, converts the payload to a string, and pushes it to the rx buffer
+ * while taking and giving the rx buffer semaphore.
+ * 
+ * @param topic The topic of the MQTT message received.
+ * @param payload A pointer to the message payload received over MQTT.
+ * @param len len is an unsigned integer that represents the length of the payload received in the MQTT
+ * message.
+ * 
+ * @return void.
+ */
 void callbackMQTT(char* topic, byte* payload, unsigned int len)
 {
+    ESP_LOGI(TAG, "Recieved MQTT Message");
+
+    auto xHigherPriorityTaskWoken = pdFALSE; // Take RX Buffer Semaphore.
+    xSemaphoreTakeFromISR(MQTTClient::MQTT_rx_queue_semaphore, &xHigherPriorityTaskWoken);
+
+    std::string message(static_cast<char*>(static_cast<void*>(payload)), len);  // Convert payload to std::string
+    MQTTClient::mqtt_rx_buffer->push_back(message);  // Push message to mqtt_rx_buffer
+
+    ESP_LOGD(TAG, "Recieved Message \"%s\" on Topic \"%s\"\n", message.c_str(), topic);
+
+    xSemaphoreGiveFromISR(MQTTClient::MQTT_rx_queue_semaphore, &xHigherPriorityTaskWoken); // Give the semaphore back.
 
     return;
 }
 
 
+void MQTTClient::initBuffers()
+{
+    if (mqtt_rx_buffer == nullptr) mqtt_rx_buffer = new std::vector<std::string>;
+    if (mqtt_tx_buffer == nullptr) mqtt_tx_buffer = new std::vector<std::string>;
+}
+
+void MQTTClient::recallMQTTDetails()
+{
+    if (mqtt_details == nullptr) mqtt_details = new std::vector<std::string>; // Only recall details from NVS on first run.
+    else return;
+
+    auto mqtt_store = new Preferences;
+    mqtt_store -> begin(MQTT_STORAGE_NVS_PATH);
+
+    size_t number_of_topics = mqtt_store -> getUInt(MQTT_DETAILS_LOOKUP); // Get the number of topics in storage.
+
+    broker_port = mqtt_store -> getUInt(BROKER_PORT);
+
+    if (number_of_topics < CLIENT_EGRESS_TOPIC + 1) number_of_topics = CLIENT_EGRESS_TOPIC + 1;
+
+    std::ostringstream current_topic;
+
+    for(int i = 0; i < number_of_topics; i++) // Load MQTT Details from NVS.
+    {
+        current_topic.clear();
+        current_topic << MQTT_DETAILS_PREFIX << i;
+
+        mqtt_details -> push_back(
+            std::string( 
+                mqtt_store -> getString(
+                    current_topic.str().c_str()
+                ).c_str()
+            )
+        );
+    }
+
+    delete mqtt_store;
+}
+
 void taskMQTT(void * parent_class)
 {
+    ESP_LOGI(TAG, "RTOS Task Started.");
+
     auto parent = (MQTTClient *) parent_class;
 
-    parent -> connectMQTT();
+    try
+    {
+        parent -> connectMQTT(); // Connect MQTT Broker
+    }
+    catch(const SDRException &e)
+    {
+        ESP_LOGE(TAG, "Failed to start MQTT Client, RTOS task aborting! Exception: %s\n", e.what());
+        vTaskDelete(nullptr);
+
+        return;
+    }
+
+    auto connection_time = xTaskGetTickCount();
+
+    while(! MQTTClient::mqtt_client -> connected()) // Wait while we connect to MQTT Broker.
+    {
+        vTaskDelay(50 / portTICK_PERIOD_MS);
+
+        if (xTaskGetTickCount() - connection_time > (30000 / portTICK_PERIOD_MS))
+        {
+            ESP_LOGE(TAG, "Timeout connecting to MQTT broker, RTOS task aborting!\n");
+            vTaskDelete(nullptr);
+            return;
+        }
+    }
+
+    ESP_LOGI(TAG, "RTOS task setup completed!");
 
     while(true)
     {
+
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 
-    vTaskDelete(NULL);
+    vTaskDelete(nullptr);
     return; 
 }
 

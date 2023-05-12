@@ -1,5 +1,6 @@
 #include "MessageSerializer.h"
 
+
 /**
  * @brief Compresses a string using the Brotli Algorithm.
  * Dynamically allocates a temporary buffer to store the compressed string. Uses the 
