@@ -3,8 +3,7 @@
 
 void setup()
 {
-    auto SDRUnit = new App;
-    SDRUnit -> begin();
+    begin();
 }
 
 void loop(){/*RTOS does not use the main loop.*/}

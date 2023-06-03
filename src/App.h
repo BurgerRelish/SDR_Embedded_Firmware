@@ -5,14 +5,14 @@
 #include <../config.h>
 
 #include <../lib/Communication/MQTTClient.h>
+/* RTOS */
+void mainAppTask(void* pvParameters);
 
-class App
-{
-    public:
-        void begin();
+/* Device Initialization Commands */
 
-    private:
-        MQTTClient * mqtt_client = nullptr;
-};
+void begin();
+
+
+
 
 #endif
