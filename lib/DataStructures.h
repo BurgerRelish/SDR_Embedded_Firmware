@@ -5,55 +5,85 @@
 #include <string>
 #include <vector>
 
-enum ResultDestination{none, app, control, ast};
-enum CommandType{direct, timed};
+enum Command{DIRECT_ON, DIRECT_OFF, SCHEDULE_ON, SCHEDULE_OFF, STATUS_REQUEST, PUBLISH_REQUEST, EXEMPT};
 
 /* Main App Task Message Structure */
-enum AppMessageType {ReadingPacket, CommandPacket, ASTNode};
-
+enum AppMessageType{ReadingPacket, CommandPacket, ASTNode, ReInitAST, ReInitControl, ReInitComms};
 struct AppQueueMessage{
     enum AppMessageType type;
     void * data;
 };
 
 struct ReadingPacket{
-    double* voltage;
-    double* frequency;
+    struct ModuleMetaData* module;
 
-    double* active_power;
-    double* reactive_power;
-    double* apparent_power;
-    double* power_factor;
+    double voltage;
+    double frequency;
 
-    double* kwh_usage;
+    double active_power;
+    double reactive_power;
+    double apparent_power;
+    double power_factor;
+
+    double kwh_usage;
+    uint64_t timestamp;
 };
 
 struct CommandPacket{
+    enum Command action;
+    uint8_t* priority;
+    struct ASTNode* parameters;
+};
 
+struct ReadingStorePacket{
+    struct ReadingStorePacket* next_reading;
+
+    double voltage;
+    double frequency;
+
+    double active_power;
+    double reactive_power;
+    double apparent_power;
+    double power_factor;
+
+    double kwh_usage;
+    uint64_t timestamp;
 };
 
 /* Comms Task Message Structure */
-enum CommsMessageType{http, publish};
-
+enum CommsMessageType{HTTPMessage, MQTTMessage, CLIENT};
 struct CommsQueueMessage{
     enum CommsMessageType type;
-    enum ResultDestination destination;
     void * data;
 };
 
-/* AST Task Message Structure */
-enum ASTMessageAction{append, replace};
+enum HTTPMethod{GET, PUT, POST, DELETE};
+struct CommsHTTPMessage{
+    std::string* url;
+    int* port;
 
-struct ASTQueueMessage{
-    enum ASTMessageAction action;
-    uint8_t priority;
-    std::string* command;
+    enum HTTPMethod method;
+    std::string* header;
+    std::string* body;
 };
 
-enum Action{DIRECT_ON, DIRECT_OFF, SCHEDULE_ON, SCHEDULE_OFF, STATUS_REQUEST, PUBLISH_REQUEST};
+struct CommsMQTTMessage{
+    std::string* topic;
+    std::string* message;
+};
+
+/* AST Task Message Structure */
+enum MessageAction{APPEND, REPLACE, CLEAR};
+struct ASTQueueMessage{
+    enum MessageAction action;
+    uint8_t priority;
+    std::string* data;
+};
+
+
 struct ASTCommand{
     uint8_t priority;
-    enum Action action;
+    enum Command action;
     struct ASTNode* parameters;
     
     struct ASTNode* next_command;
@@ -74,6 +104,12 @@ struct ASTLogicalOperator{
     struct ASTNode* right;
 };
 
+enum ArithmeticOperator{ADD, SUBTRACT, MULTIPLY, DIVIDE};
+struct ASTArithmetic{
+    enum ArithmeticOperator arithmetic_operator;
+    struct ASTNode* left;
+    struct ASTNode* right;
+};
 
 enum Identifiers{
     total_active_power, total_reactive_power, total_apparent_power,
@@ -82,12 +118,16 @@ enum Identifiers{
     module_id, module_tag_list, module_priority,
     time, switch_time 
 };
-
 struct ASTIdentifier{
-    enum Identifiers identifier;
+ enum Identifiers identifier;
 };
 
-enum NodeType{command, compare, logical_operator, identifier, literal, parameter};
+struct ASTParameter{
+    struct ASTNode* next;
+    struct ASTNode* value;
+};
+
+enum NodeType{COMMAND, COMPARE, LOGICAL, IDENTIFIER, LITERAL, PARAMETER, ARITHMETIC};
 struct ASTNode{
     enum NodeType type;
     union {
@@ -95,16 +135,22 @@ struct ASTNode{
         struct ASTCompare compare;
         struct ASTLogicalOperator logical_operator;
         struct ASTIdentifier identifier;
+        struct ASTParameter parameter;
+        struct ASTArithmetic arithmetic;
         double literal;
     } data;
 };
 
 /* Control Task Message Structure */
-enum ControlMessageType{startRead, ModuleMetaData};
-
+enum ControlMessageType{startRead, setState};
 struct ControlQueueMessage{
     enum ControlMessageType type;
     void * data;
+};
+
+struct setState{
+    struct ModuleMetaData* module;
+    bool state;
 };
 
 struct ModuleMetaData{
@@ -112,11 +158,14 @@ struct ModuleMetaData{
     std::vector<std::string> * tags;
     uint8_t * priority;
 
-    uint64_t * switch_time;
-    bool * state;
+    uint64_t switch_time;
+    bool state;
 
-    uint8_t * mux_address;
-    uint8_t * mux_io_multiplier;
+    uint8_t mux_address;
+    uint8_t mux_io_offset;
+
+    struct ModuleMetaData* next_module;
+    struct ReadingStorePacket* storage;
 };
 
 #endif

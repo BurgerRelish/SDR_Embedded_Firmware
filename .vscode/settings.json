@@ -50,5 +50,6 @@
         "string_view": "cpp",
         "iostream": "cpp"
     },
-    "sonarlint.pathToCompileCommands": "${workspaceFolder}/compile_commands.json"
+    "sonarlint.pathToCompileCommands": "${workspaceFolder}/compile_commands.json",
+    "docwriter.style": "Auto-detect"
 }
