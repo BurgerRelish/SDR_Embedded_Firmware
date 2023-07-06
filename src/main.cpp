@@ -1,9 +1,15 @@
 #include <Arduino.h>
-#include <App.h>
+#include "Lexer.h"
 
-void setup()
-{
-    begin();
+void setup() {
+  // put your setup code here, to run once:
+  delay(100);
+  ps_string str = "x+y";
+  Lexer tokenizer(str);
+  tokenizer.tokenize();
 }
 
-void loop(){/*RTOS does not use the main loop.*/}
+void loop() {
+  // put your main code here, to run repeatedly:
+  delay(250);
+}
