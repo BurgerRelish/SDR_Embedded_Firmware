@@ -5,6 +5,7 @@
 */
 
 #include <stdlib.h>
+#include <esp_heap_caps.h>
 
 #include "./platform.h"
 #include "../../types.h"
@@ -13,12 +14,13 @@
 void *BrotliDefaultAllocFunc(void *opaque, size_t size)
 {
   BROTLI_UNUSED(opaque);
-  return malloc(size);
+  return heap_caps_malloc(size, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+  //return malloc(size);
 }
 
 /* Default brotli_free_func */
 void BrotliDefaultFreeFunc(void *opaque, void *address)
 {
   BROTLI_UNUSED(opaque);
-  free(address);
+  heap_caps_free(address);
 }

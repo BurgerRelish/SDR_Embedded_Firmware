@@ -117,15 +117,19 @@ class SDRUnit: public TagSearch {
     bool power_status;
     int number_of_modules;
 
+    ps_string unit_id_;
+
     public:
-    SDRUnit(const int module_count, const std::vector<std::string>& tag_list) : 
+    SDRUnit(const std::string unit_id, const int module_count, const std::vector<std::string>& tag_list) : 
     number_of_modules(module_count),
     total_active_power(0),
     total_reactive_power(0),
     total_apparent_power(0),
     power_status(false),
     TagSearch(tag_list)
-    {}
+    {
+        unit_id_ <<= unit_id;
+    }
     
     double& totalActivePower() {
         return total_active_power;
@@ -147,6 +151,10 @@ class SDRUnit: public TagSearch {
         return number_of_modules;
     }
 
+    const ps_string& id() {
+        return unit_id_;
+    }
+
 };
 
 
@@ -155,8 +163,10 @@ class Module : public TagSearch {
     ps_stack<Reading> readings;
 
     ps_string module_id;
-    ps_vector<ps_string> module_tags;
     int circuit_priority;
+
+    bool relay_status;
+    uint64_t switch_time;
 
     uint8_t i2c_address = 0;
     uint8_t io_offset = 0;
@@ -166,17 +176,15 @@ class Module : public TagSearch {
     TagSearch(tag_list),
     i2c_address(address),
     io_offset(offset),
-    circuit_priority(priority)
+    circuit_priority(priority),
+    switch_time(0),
+    relay_status(false)
     {
         module_id <<= id; // Copy ID to PSRAM.
     }
 
     const ps_string& id() {
         return module_id;
-    }
-
-    const ps_vector<ps_string>& tagList() {
-        return module_tags;
     }
 
     const int& priority() {
@@ -191,11 +199,24 @@ class Module : public TagSearch {
         return io_offset;
     }
 
+    const bool& status() {
+        return relay_status;
+    }
+
+    const uint64_t& switchTime() {
+        return switch_time;
+    }
+
     /**
      * @brief Adds a new reading to the module stack.
     */
     void addReading(Reading& reading) {
         readings.push(reading);
+
+        if((reading.status != relay_status) || (switch_time == 0)) {
+            switch_time = reading.timestamp;
+            relay_status = reading.status;
+        }
     }
 
     /**

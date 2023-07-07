@@ -9,9 +9,12 @@
 #include <vector>
 #include <queue>
 #include <unordered_map>
+
 #include "ps_string.h"
 #include "ps_stack.h"
 #include "ps_vector.h"
+
+#include "Semantics.h"
 
 enum TokenType {
     LEFT_PARENTHESES, // (
@@ -30,5 +33,43 @@ struct Token {
     TokenType type;
     ps_string lexeme;
 };
+
+enum VarType{
+    DOUBLE,
+    BOOL,
+    INT,
+    UINT64_T,
+    PS_STRING,
+    ARRAY_VAR
+};
+
+
+/* SDR Unit Identifer Names */
+const std::unordered_map<std::string, VarType> vartype_lookup {
+    /* Global Variables */
+    {TOTAL_ACTIVE_POWER, DOUBLE},
+    {TOTAL_REACTIVE_POWER, DOUBLE},
+    {TOTAL_APPARENT_POWER, DOUBLE},
+    {POWER_STATUS, BOOL},
+    {UNIT_ID, PS_STRING},
+    {MODULE_COUNT, INT},
+    {UNIT_TAG_LIST, ARRAY_VAR},
+    {CURRENT_TIME, UINT64_T},
+
+    /* Module Variables */
+    {ACTIVE_POWER, DOUBLE},
+    {REACTIVE_POWER, DOUBLE},
+    {APPARENT_POWER, DOUBLE},
+    {VOLTAGE, DOUBLE},
+    {FREQUENCY, DOUBLE},
+    {POWER_FACTOR, DOUBLE},
+    {SWITCH_TIME, BOOL},
+    {CIRCUIT_PRIORITY, INT},
+    {MODULE_ID, PS_STRING},
+    {MODULE_TAG_LIST, ARRAY_VAR},
+    {SWITCH_TIME, UINT64_T},
+    {SWITCH_STATUS, BOOL}
+};
+
 
 #endif // SDR_LANGUAGE_H
