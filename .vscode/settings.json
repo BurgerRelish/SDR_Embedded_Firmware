@@ -50,6 +50,7 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "list": "cpp",
-        "stack": "cpp"
+        "stack": "cpp",
+        "queue": "cpp"
     }
 }

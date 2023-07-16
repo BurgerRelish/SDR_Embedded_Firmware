@@ -3,8 +3,6 @@
 #ifndef SDR_LANGUAGE_H
 #define SDR_LANGUAGE_H 1 
 
-#define DEBUG_RULE_ENGINE
-
 #include <string>
 #include <vector>
 #include <queue>
@@ -34,13 +32,19 @@ struct Token {
     ps_string lexeme;
 };
 
+struct Command {
+    int priority;
+    ps_stack<Token> command;
+};
+
 enum VarType{
     DOUBLE,
     BOOL,
     INT,
     UINT64_T,
     PS_STRING,
-    ARRAY_VAR
+    ARRAY_VAR,
+    INVALID_VAR
 };
 
 
@@ -68,7 +72,8 @@ const std::unordered_map<std::string, VarType> vartype_lookup {
     {MODULE_ID, PS_STRING},
     {MODULE_TAG_LIST, ARRAY_VAR},
     {SWITCH_TIME, UINT64_T},
-    {SWITCH_STATUS, BOOL}
+    {SWITCH_STATUS, BOOL},
+    {"INVALID_VAR", INVALID_VAR}
 };
 
 

@@ -9,6 +9,9 @@
 #include "ps_vector.h"
 #include "ps_stack.h"
 #include "ps_string.h"
+#include <Preferences.h>
+#include <iostream>
+#include <sstream>
 
 class SDRException : public std::exception {
 public:
@@ -35,22 +38,227 @@ struct Reading {
     double reactive_power;
     double apparent_power;
     double power_factor;
-    bool status;
+    double kwh_usage;
     uint64_t timestamp;
+};
+
+struct StatusChange {
+    bool state;
+    uint64_t timestamp;
+};
+
+class RuleStore {
+    private:
+        ps_vector<Rule> rule_store;
+        ps_string _nvs_tag;
+
+        void loadRules() {
+            Preferences nvs;
+
+            nvs.begin(_nvs_tag.c_str());
+            uint32_t rule_count = nvs.getUInt("/count", 0);
+            std::ostringstream path;
+
+            for (size_t i = 0; i < rule_count; i++) {
+                Rule new_rule;
+
+                path << "/p/" << i;
+                new_rule.priority = nvs.getUInt(path.str().c_str());
+                path.clear();
+
+                path << "/e/" << i;
+                new_rule.expression = nvs.getString(path.str().c_str()).c_str();
+                path.clear();
+
+                path << "/c/" << i;
+                new_rule.command = nvs.getString(path.str().c_str()).c_str();
+                path.clear();
+
+                rule_store.push_back(new_rule);        
+            }
+
+            nvs.end();         
+        }
+
+        void saveRules() {
+            Preferences nvs;
+
+            nvs.begin(_nvs_tag.c_str());
+            std::ostringstream path;
+
+            nvs.putUInt("/count", rule_store.size());
+
+            for (size_t i = 0; i < rule_store.size(); i++) {
+                Rule rule = rule_store.at(i);
+
+                path << "/p/" << i;
+                nvs.putInt(path.str().c_str(), rule.priority);
+                path.clear();
+
+                path << "/e/" << i;
+                nvs.putString(path.str().c_str(), rule.expression.c_str());
+                path.clear();
+
+                path << "/c/" << i;
+                nvs.putString(path.str().c_str(), rule.command.c_str());
+                path.clear();
+            }
+
+            nvs.end();
+        }
+    
+    public:
+        RuleStore(const ps_string& nvs_tag): _nvs_tag(nvs_tag) {
+            loadRules();
+        }
+
+        const ps_vector<Rule>& getRules() {
+            return rule_store;
+        }
+
+        void clearRules() {
+            rule_store.clear();
+
+            Preferences nvs;
+            nvs.begin(_nvs_tag.c_str());
+            nvs.clear();
+            nvs.end();
+        }
+
+        void replaceRules(Rule rule) {
+            clearRules();
+            rule_store.push_back(rule);
+            saveRules();
+        }
+
+        void replaceRules(ps_vector<Rule> rules) {
+            clearRules();
+            rule_store = rules;
+            saveRules();
+        }
+
+        void replaceRules(size_t number, Rule rule) {
+            rule_store.at(number) = rule;
+            saveRules();
+        }
+
+        void appendRule(Rule rule) {
+            rule_store.push_back(rule);
+            saveRules();
+        }
+
+        void appendRule(ps_vector<Rule> rules) {
+            for (size_t i = 0; i < rules.size(); i++) {
+                rule_store.push_back(rules.at(i));
+            }
+
+            saveRules();
+        }
 };
 
 class TagSearch {
     private:
     ps_vector<ps_string> class_tags;
+    ps_string _nvs_path;
+
+    void loadTags() {
+        Preferences nvs;
+        nvs.begin(_nvs_path.c_str());
+        std::ostringstream path;
+
+        size_t tag_count = nvs.getUInt("/count");
+
+        for (size_t i = 0; i < tag_count; i++) {
+            path << "/tag/" << i;
+            ps_string tag = nvs.getString(path.str().c_str()).c_str();
+            class_tags.push_back(tag);
+            path.clear();
+        }
+
+        nvs.end();
+    }
+
+    void saveTags() {
+        Preferences nvs;
+        nvs.begin(_nvs_path.c_str());
+        std::ostringstream path;
+
+        nvs.putUInt("/count", class_tags.size());
+
+        for (size_t i = 0; i < class_tags.size(); i++) {
+            path << "/tag/" << i;
+            nvs.putString(path.str().c_str(), class_tags.at(i).c_str());
+            path.clear();
+        }
+
+        nvs.end();
+    }
 
     public:
-    TagSearch(const std::vector<std::string>& tag_list) {
+    TagSearch(const std::vector<std::string>& tag_list, const ps_string& nvs_path) {
+        clearTags();
+
         ps_string temp;
         for (size_t i = 0; i < tag_list.size(); i++) { // Copy tag list to PSRAM.
             temp <<= tag_list.at(i);
             class_tags.push_back(temp);
             temp.clear();
         }
+
+        saveTags();
+    }
+
+    TagSearch(const ps_vector<ps_string>& tag_list, const ps_string& nvs_path) {
+        clearTags();
+        class_tags = tag_list;
+        saveTags();
+    }
+
+    TagSearch(const ps_string& nvs_path) {
+        loadTags();
+    }
+
+    const ps_vector<ps_string>& getTags() {
+        return class_tags;
+    }
+
+    void clearTags() {
+        Preferences nvs;
+        nvs.begin(_nvs_path.c_str());
+
+        class_tags.clear();
+        nvs.clear();
+
+        nvs.end();
+    }
+
+    void appendTag(const ps_string& tag) {
+        class_tags.push_back(tag);
+        saveTags();
+    }
+
+    void appendTag(const ps_vector<ps_string>& tags) {
+        for (size_t i = 0; i < tags.size(); i++) {
+            class_tags.push_back(tags.at(i));
+        }
+        saveTags();
+    }
+
+    void replaceTag(const ps_string& tag) {
+        clearTags();
+        class_tags.push_back(tag);
+        saveTags();
+    }
+
+    void replaceTag(const ps_vector<ps_string>& tags) {
+        clearTags();
+        class_tags = tags;
+        saveTags();
+    }
+
+    void replaceTag(ps_string& tag, size_t loc) {
+        class_tags.at(loc) = tag;
+        saveTags();
     }
 
     /**
@@ -59,6 +267,7 @@ class TagSearch {
      * @param n The minimum number of matching tags before a true is returned.
      * @returns True if matching tags >= n, else false.
     */
+
     const bool tagMinQuantifierSearch(const ps_vector<ps_string>& tag_list, const size_t n) const {
         if ((class_tags.size() < n) || (tag_list.size() < n)) return false; // Not enough tags for a true outcome.
 
@@ -104,12 +313,12 @@ class TagSearch {
      * @return True if the two vectors match, else false.
     */
     const bool tagEqualityComparison(const ps_vector<ps_string>& tag_list) const {
-        return tagMinQuantifierSearch(tag_list, tag_list.size());
+        return tagMinQuantifierSearch(tag_list, class_tags.size());
     }
 
 };
 
-class SDRUnit: public TagSearch {
+class SDRUnit: public TagSearch, public RuleStore {
     private:
     double total_active_power;
     double total_reactive_power;
@@ -120,13 +329,14 @@ class SDRUnit: public TagSearch {
     ps_string unit_id_;
 
     public:
-    SDRUnit(const std::string unit_id, const int module_count, const std::vector<std::string>& tag_list) : 
+    SDRUnit(const std::string unit_id, const int module_count, const std::vector<std::string>& tag_list, const ps_string& nvs_tag) : 
     number_of_modules(module_count),
     total_active_power(0),
     total_reactive_power(0),
     total_apparent_power(0),
     power_status(false),
-    TagSearch(tag_list)
+    TagSearch(tag_list, nvs_tag),
+    RuleStore(nvs_tag)
     {
         unit_id_ <<= unit_id;
     }
@@ -157,10 +367,10 @@ class SDRUnit: public TagSearch {
 
 };
 
-
-class Module : public TagSearch {
+class Module : public TagSearch, public RuleStore {
     private:
     ps_stack<Reading> readings;
+    ps_stack<StatusChange> _status;
 
     ps_string module_id;
     int circuit_priority;
@@ -172,8 +382,9 @@ class Module : public TagSearch {
     uint8_t io_offset = 0;
 
     public:
-    Module(const std::string& id, const std::vector<std::string>& tag_list, const int& priority, const uint8_t& address, const uint8_t& offset) :
-    TagSearch(tag_list),
+    Module(const std::string& id, const std::vector<std::string>& tag_list, const int& priority, const uint8_t& address, const uint8_t& offset, const ps_string& nvs_tag) :
+    TagSearch(tag_list, nvs_tag),
+    RuleStore(nvs_tag),
     i2c_address(address),
     io_offset(offset),
     circuit_priority(priority),
@@ -207,16 +418,25 @@ class Module : public TagSearch {
         return switch_time;
     }
 
+    bool statusChanged() {
+        return (_status.size() > 0);
+    }
+
+    ps_stack<StatusChange>& getStatusChanges() {
+        return _status;
+    }
+
+    void newStatusChange(StatusChange new_status) {
+        _status.push(new_status);
+        relay_status = new_status.state;
+        switch_time = new_status.timestamp;
+    }   
+
     /**
      * @brief Adds a new reading to the module stack.
     */
-    void addReading(Reading& reading) {
+    void addReading(const Reading& reading) {
         readings.push(reading);
-
-        if((reading.status != relay_status) || (switch_time == 0)) {
-            switch_time = reading.timestamp;
-            relay_status = reading.status;
-        }
     }
 
     /**
@@ -226,7 +446,7 @@ class Module : public TagSearch {
         return readings.top();
     }
 
-    ps_stack<Reading>& readingStack() {
+    ps_stack<Reading>& getReadings() {
         return readings;
     }
 };

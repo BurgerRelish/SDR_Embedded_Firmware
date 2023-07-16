@@ -1,22 +1,27 @@
 #ifndef MESSAGE_SERIALIZER_H
 #define MESSAGE_SERIALIZER_H
 
-#include <Arduino.h>
-#include <../config.h>
-
-#include <../brotli/decode.h>
-#include <../brotli/encode.h>
-#include <string>
 #include <stdlib.h>
+#include "../sdr_containers.h"
+#include "ps_string.h"
+#include "ps_vector.h"
 
-
+#include <ArduinoJson.h>
+#include "json_allocator.h"
 
 class MessageSerializer
 {
-    public:
-        std::string compressString(const std::string * message);
-        std::string decompressString(const std::string * message);
+    private:
+        JsonDoc document;
+        const SDRUnit* _unit;
+        const ps_vector<Module*> _modules;
 
+        ps_string compressString(const ps_string& message);
+    public:
+        MessageSerializer(const SDRUnit* unit, const ps_vector<Module*> modules);
+        ps_string serializeReadings();
+        ps_string serializeUpdateRequest(const ps_vector<Module*> modules);
+        ps_string serializeNotification(ps_string notification);
 };
 
 #endif

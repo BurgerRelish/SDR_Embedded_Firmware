@@ -1,15 +1,10 @@
 #include <Arduino.h>
-#include "Lexer.h"
+#include "sentry_task.h"
 
 void setup() {
   // put your setup code here, to run once:
-  delay(100);
-  ps_string str = "x+y";
-  Lexer tokenizer(str);
-  tokenizer.tokenize();
+  startSentryTask();
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  delay(250);
 }

@@ -1,12 +1,13 @@
 #include "Lexer.h"
-
 #ifdef DEBUG_RULE_ENGINE
-#include <esp32-hal-log.h>
+#include "esp_timer.h"
+#include "esp32-hal-log.h"
+#define TAG_RULE_ENGINE "RULE_ENGINE"
 #endif
 
 ps_queue<Token> Lexer::tokenize() {
     #ifdef DEBUG_RULE_ENGINE
-    ESP_LOGD("LEXER", "Expression: \"%s\"", expression_.c_str());
+    ESP_LOGD(TAG_RULE_ENGINE, "Lexer started.");
     uint64_t start_time = esp_timer_get_time();
     #endif
 
@@ -35,28 +36,30 @@ ps_queue<Token> Lexer::tokenize() {
             token_list.push(handleComparisonOperator());
         } else if(isalnum(cur_char) || cur_char == '_'){
             token_list.push(handleIdentifier());
-        } else if (cur_char == ',') {
-            Token token;
-            token.type = SEPARATOR;
-            token.lexeme = ",";
-            token_list.push(token);
+        } else if (isSeparator(cur_char)) {
+            token_list.push(handleSeparator());
         }else {
             throw std::invalid_argument("Unknown value in expression.");
         }
     }
 
     #ifdef DEBUG_RULE_ENGINE
-    ESP_LOGD("LEXER", "Complete. [Took %uus]", (uint64_t)esp_timer_get_time() - start_time);
+    uint64_t tot_time = esp_timer_get_time() - start_time;
     
     ps_string debug;
     ps_queue<Token> debugQueue = token_list;
 
     while(!debugQueue.empty()) {
         debug += debugQueue.front().lexeme;
-        debug += " ";
+        debug += ps_string(" ");
         debugQueue.pop();
     }
-    ESP_LOGD("LEXER", "Generated Tokens: %s", debug.c_str());
+    ESP_LOGD(TAG_RULE_ENGINE, "\n==== Lexical Analysis Complete ====");
+    log_printf("- Processing Time: %uus\n", tot_time);
+    log_printf("- Expression: \'%s\'\n", expression_.c_str());
+    log_printf("- Tokens: \'%s\'\n", debug.c_str());
+    log_printf("===================================\r\n");
+    
     #endif
 
     return token_list;
@@ -68,21 +71,22 @@ bool Lexer::isWhitespace(const char ch) const{
 
 
 bool Lexer::isArithmeticOperator(const char ch) const{
-    return (ch == '+' || ch == '-' || ch == '/' || ch == '*' || ch == '^' || ch == '%');
+    return (ch == ARITHMETIC_ADD[0] || ch == ARITHMETIC_SUBTRACT[0] || ch == ARITHMETIC_DIVIDE[0]
+            || ch == ARITHMETIC_MULTIPLY[0] || ch == ARITHMETIC_POWER[0] || ch == ARITHMETIC_MODULUS[0]);
 }
 
 
 bool Lexer::isBooleanOperator(const char ch) const{
-    return (ch == '&' || ch == '!' || ch == '|');
+    return (ch == BOOLEAN_AND[0] || ch == BOOLEAN_NOT[0] || ch == BOOLEAN_OR[0]);
 }
 
 bool Lexer::isComparisonOperator(const char ch) const {
-    return (ch == '<' || ch == '=' || ch == '>' || ch == '!');
+    return (ch == COMPARISON_EQUAL[0] || ch == COMPARISON_GREATER_THAN[0] || ch == COMPARISON_LESSER_THAN[0] || ch == COMPARISON_NOT_EQUAL[0]);
 }
 
 
 bool Lexer::isStringLiteral(const char ch) const{
-    return ch == '\"';
+    return ch == STRING_LITERAL_QUOTATION[0];
 }
 
 
@@ -99,6 +103,9 @@ bool Lexer::isArray(const char ch) const {
     return ch == '[';
 }
 
+bool Lexer::isSeparator(const char ch) const {
+    return (ch == ARRAY_SEPARATOR[0] || ch == COMMAND_SEPARATOR[0]);
+}
 
 Token Lexer::handleBooleanOperator() {
     Token token;
@@ -133,7 +140,7 @@ Token Lexer::handleBooleanOperator() {
         }
         break;
     case '!':
-        if (next_char == '!' || isalnum(next_char) || next_char == '(') {
+        if (next_char == '!' || isWhitespace(next_char) || isalnum(next_char) || next_char == '_' || next_char == '(') {
             token.lexeme = "!";
             index++;
         } else if (next_char == '=') {
@@ -248,8 +255,6 @@ Token Lexer::handleArray() {
 
     if (index > expression_.size()) throw std::invalid_argument("Array was not closed.");
 
-    index++; // Skip closing bracket
-
     return token;
 }
 
@@ -297,6 +302,17 @@ Token Lexer::handleComparisonOperator() {
             index++;
             break;
     }
+
+    return token;
+}
+
+Token Lexer::handleSeparator() {
+    Token token;
+
+    
+    token.type = SEPARATOR;
+    token.lexeme += (expression_[index]);
+    index++;
 
     return token;
 }

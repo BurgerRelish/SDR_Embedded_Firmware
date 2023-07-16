@@ -75,6 +75,7 @@ private:
 
     bool isComparisonOperator(const char ch) const;
     bool isArray(const char ch) const;
+    bool isSeparator(const char ch) const;
 
     /**
      * @brief Convert a boolean operator to a token.
@@ -114,6 +115,7 @@ private:
 
     Token handleArray();
     Token handleComparisonOperator();
+    Token handleSeparator();
 
 };
 

@@ -8,7 +8,7 @@
 #include "ArraySeparator.h"
 #include "ShuntingYard.h"
 #include "Lexer.h"
-#include "sdr_containers.h"
+#include "../sdr_containers.h"
 #include "ps_queue.h"
 #include "Language.h"
 
@@ -35,11 +35,12 @@ class Evaluator {
     bool applyBooleanOperator(Token& lhs, Token& rhs, Token& operator_token);
     double applyArithmeticOperator(Token& lhs, Token& rhs, Token& operator_token);
     bool applyComparisonOperator(Token& lhs, Token& rhs, Token& operator_token);
+    bool applyComparisonOperatorUint64(Token& lhs, Token& rhs, Token& operator_token);
     bool applyArrayComparison(Token& lhs, Token& rhs, Token& operator_token);
-
+    bool applyStringComparison(Token& lhs, Token& rhs, Token& operator_token);
     /* Variable Resolution */
 
-    const VarType& getVarType(ps_string& search_str);
+    const VarType& getVarType(const Token& search_token);
 
     const double getDouble(Token& token);
     const bool getBool(Token& token);
