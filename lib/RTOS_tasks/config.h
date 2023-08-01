@@ -36,11 +36,16 @@ enum SentryTaskState {
     STATUS_GOOD,
     STATUS_NO_COMMS,
     STATUS_DISCONNECT_SCHEDULED,
-    STATUS_RECONNECT_SCHEDULED
+    STATUS_RECONNECT_SCHEDULED,
+    RE_RESTART_READY,
+    COMMS_RESTART_READY,
+    CTRL_RESTART_READY
+
 };
 
 struct SentryQueueMessage {
     SentryTaskState new_state;
+    void* data;
 };
 
 xQueueHandle SentryQueue = NULL;
@@ -59,7 +64,8 @@ constexpr uint8_t RULE_ENGINE_PRIORITY = 3;
 
 enum RuleEngineMessageType {
     MODULE_CLASS_PTR,
-    GLOBAL_CLASS_PTR
+    GLOBAL_CLASS_PTR,
+    RE_PREPARE_RESTART
 };
 
 struct RuleEngineQueueMessage {
@@ -84,7 +90,8 @@ enum CommsMessageType {
     PUBLISH_READINGS,
     PUBLISH_STATUS,
     REQUEST_UPDATE,
-    NOTIFY
+    NOTIFY_MSG,
+    COMMS_PREPARE_RESTART
 };
 
 struct CommsQueueMessage {
@@ -106,9 +113,10 @@ constexpr uint8_t CONTROL_QUEUE_SIZE = 10;
 constexpr uint8_t CONTROL_PRIORITY = 2;
 
 enum ControlMessageType {
-    READ_MODULES,
-    ON,
-    OFF
+    CTRL_READ_MODULES,
+    CTRL_ON,
+    CTRL_OFF,
+    CTRL_PREPARE_RESTART
 };
 
 struct ControlQueueMessage {

@@ -36,8 +36,8 @@
 
 #define UPDATE_UNIT "UPDUNIT" // (int offset_s, int window_s)
 
-#define PUBLISH_STATUS "PUBSTAT" // (int offset_s, int window_s)
-#define PUBLISH_MODULE_READINGS "PUBREAD" // (int offset_s, int window_s)
+#define PUBLISH_STATUS_SM "PUBSTAT" // (int offset_s, int window_s)
+#define PUBLISH_MODULE_READINGS_SM "PUBREAD" // (int offset_s, int window_s)
 #define PUBLISH_ALL_READINGS "PUBALL" // (int offset_s, int window_s)
 
 #define DISABLE_RULE_ENGINE "DS_ENGINE" // (int time_s)
