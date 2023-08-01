@@ -2,12 +2,14 @@
 #define MESSAGE_SERIALIZER_H
 
 #include <stdlib.h>
-#include "../sdr_containers.h"
 #include "ps_string.h"
 #include "ps_vector.h"
 
 #include <ArduinoJson.h>
 #include "json_allocator.h"
+
+#include "../sdr_containers/SDRModule.h"
+#include "../sdr_containers/SDRUnit.h"
 
 class MessageSerializer
 {

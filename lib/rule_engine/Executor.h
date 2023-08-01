@@ -4,7 +4,7 @@
 #define EXECUTOR_H
 
 #include "../sdr_containers.h"
-#include "ps_priority_queue.h"
+#include "../data_containers/ps_priority_queue.h"
 #include "Language.h"
 #include "Semantics.h"
 
@@ -45,10 +45,10 @@ class Executor {
             }
         }
 
-        void PUBSTAT();
-        void REQUPD();
-        void PUBREAD();
-        void NOTIFY(ps_string& message);
+        void PUBSTAT(int window);
+        void REQUPD(int window);
+        void PUBREAD(int window);
+        void COMMS_NOTIFY(ps_string& message);
 
     public:
         Executor(xQueueHandle _comms_queue, xQueueHandle _control_queue, xQueueHandle _rule_engine_queue):

@@ -1,4 +1,4 @@
-#include "SingleWire.h"
+#include "SingleWireLL.h"
 
 static void swi_delay_us(uint64_t us)
 {
@@ -22,19 +22,19 @@ inline uint64_t swi_micros() {
 }
 
 void ARDUINO_ISR_ATTR rcvISR(void* parent) {
-    ((SingleWire*) parent) -> receiveRequested();
+    ((SingleWireLL*) parent) -> receiveRequested();
 }
 
-SingleWire::SingleWire(gpio_num_t interface_pin) : pin(interface_pin), wait_receive(false) {
+SingleWireLL::SingleWireLL(gpio_num_t interface_pin) : pin(interface_pin), wait_receive(false) {
     attachISR();
 } 
 
-SingleWire::SingleWire(uint8_t interface_pin) : wait_receive(false) {
+SingleWireLL::SingleWireLL(uint8_t interface_pin) : wait_receive(false) {
     pin = static_cast<gpio_num_t>(interface_pin);
     attachISR();
 } 
 
-bool SingleWire::send(uint8_t val, uint32_t timeout_us) {
+bool SingleWireLL::send(uint8_t val, uint32_t timeout_us) {
     if (wait_receive) return false; // Dont send when there is a receive pending.
     detachISR();
 
@@ -88,7 +88,7 @@ bool SingleWire::send(uint8_t val, uint32_t timeout_us) {
     return !retval;
 }
 
-int SingleWire::receive() {
+int SingleWireLL::receive() {
     if (!wait_receive) return -1;
     detachISR();
     cli();
@@ -131,7 +131,7 @@ int SingleWire::receive() {
     return (int) retval;
 }
 
-bool SingleWire::awaitReceive(uint32_t timeout_us) {
+bool SingleWireLL::awaitReceive(uint32_t timeout_us) {
     uint64_t end_tm = swi_micros() + timeout_us;
 
     while(!wait_receive) {
@@ -141,16 +141,16 @@ bool SingleWire::awaitReceive(uint32_t timeout_us) {
     return true;
 }
 
-void SingleWire::attachISR(){
+void SingleWireLL::attachISR(){
     pinMode(pin, INPUT);
     attachInterruptArg(digitalPinToInterrupt(pin), rcvISR, this, FALLING);
 }
 
-void ARDUINO_ISR_ATTR SingleWire::detachISR(){
+void ARDUINO_ISR_ATTR SingleWireLL::detachISR(){
     detachInterrupt(digitalPinToInterrupt(pin));
 }
 
-void ARDUINO_ISR_ATTR SingleWire::receiveRequested() {
+void ARDUINO_ISR_ATTR SingleWireLL::receiveRequested() {
     wait_receive = true;
     detachISR();
 }

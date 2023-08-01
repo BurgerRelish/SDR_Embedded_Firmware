@@ -1,7 +1,6 @@
 #ifndef RTOS_STRUCTURE_H
 #define RTOS_STRUCTURE_H
 
-
 #include "stdint.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -87,11 +86,11 @@ constexpr uint8_t COMMS_QUEUE_SIZE = 10;
 constexpr uint8_t COMMS_PRIORITY = 4;
 
 enum CommsMessageType {
-    PUBLISH_READINGS,
-    PUBLISH_STATUS,
-    REQUEST_UPDATE,
+    MSG_PUBLISH_READINGS,
+    MSG_PUBLISH_STATUS,
+    MSG_REQUEST_UPDATE,
     NOTIFY_MSG,
-    COMMS_PREPARE_RESTART
+    MSG_COMMS_PREPARE_RESTART
 };
 
 struct CommsQueueMessage {

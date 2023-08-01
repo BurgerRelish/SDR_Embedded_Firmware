@@ -27,24 +27,17 @@
 #define SWITCH_STATUS "MS"
 
 /* Commands */
-#define DIRECT_ON "DON" // (int min_on_s)
-#define DIRECT_OFF "DOFF" // (int min_off_s)
-#define SCHEDULE_ON "ON" // (int offset_s, int window_s, int min_on_s)
-#define SCHEDULE_OFF "OFF" // (int offset_s, int window_s, int min_off_s)
-#define ALL_ON "ALL_ON" // (int offset_s, int window_s, int min_on_s)
-#define ALL_OFF "ALL_OFF" // (int offset_s, int window_s, int min_off_s)
+#define MOD_ON "ON" // ()
+#define MOD_OFF "OFF" // ()
 
-#define UPDATE_UNIT "UPDUNIT" // (int offset_s, int window_s)
+#define RE_CLR_QUEUE "CLRQUE" // ()
+#define RE_DELAY "DELAY" // ()
 
-#define PUBLISH_STATUS_SM "PUBSTAT" // (int offset_s, int window_s)
-#define PUBLISH_MODULE_READINGS_SM "PUBREAD" // (int offset_s, int window_s)
-#define PUBLISH_ALL_READINGS "PUBALL" // (int offset_s, int window_s)
+#define REQUEST_UPDATE "REQUPD" // ()
+#define PUBLISH_READINGS "PUBREAD" // ()
+#define NOTIFY "NOTIFY" // ()
 
-#define DISABLE_RULE_ENGINE "DS_ENGINE" // (int time_s)
-
-#define RESET_UNIT "RESET" // ()
 #define RESTART_UNIT "RESTART" // ()
-
 
 /* Operators */
 #define BOOLEAN_AND "&&"

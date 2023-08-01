@@ -8,9 +8,9 @@
 #include <queue>
 #include <unordered_map>
 
-#include "ps_string.h"
-#include "ps_stack.h"
-#include "ps_vector.h"
+#include "../data_containers/ps_string.h"
+#include "../data_containers/ps_stack.h"
+#include "../data_containers/ps_vector.h"
 
 #include "Semantics.h"
 

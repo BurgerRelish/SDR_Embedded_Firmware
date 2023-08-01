@@ -7,7 +7,7 @@
 #define PERIOD_US 100 
 #define MASTER_TIMEOUT_US 100000 // 100ms Timeout.
 
-class SingleWire {
+class SingleWireLL {
     private:
     gpio_num_t pin;
     volatile bool wait_receive;
@@ -16,8 +16,8 @@ class SingleWire {
     void ARDUINO_ISR_ATTR detachISR();
 
     public:
-    SingleWire(gpio_num_t interface_pin);
-    SingleWire(uint8_t interface_pin);
+    SingleWireLL(gpio_num_t interface_pin);
+    SingleWireLL(uint8_t interface_pin);
 
     bool send(uint8_t val, uint32_t timeout_us);
     int receive();
