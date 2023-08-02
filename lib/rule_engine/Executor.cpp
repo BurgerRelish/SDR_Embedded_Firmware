@@ -92,8 +92,8 @@ void Executor::load_next_command() {
 
 void Executor::ON() {
     ControlQueueMessage ctrl_message;
-    ctrl_message.type = CTRL_OFF;
-    ctrl_message.data = nullptr;
+    ctrl_message.type = CTRL_ON;
+    ctrl_message.data = (void*) cmd_origin.module;
     auto ctrl_result = xQueueSendToBack(control_queue, (void *) &ctrl_message, 100 / portTICK_PERIOD_MS);
 
     if (ctrl_result != pdTRUE) {
@@ -105,7 +105,7 @@ void Executor::ON() {
 void Executor::OFF() {
     ControlQueueMessage ctrl_message;
     ctrl_message.type = CTRL_OFF;
-    ctrl_message.data = nullptr;
+    ctrl_message.data = (void*) cmd_origin.module;
     auto ctrl_result = xQueueSendToBack(control_queue, (void *) &ctrl_message, 100 / portTICK_PERIOD_MS);
 
     if (ctrl_result != pdTRUE) {
@@ -164,7 +164,9 @@ void Executor::DELAY() {
 void Executor::PUBSTAT(int window) {
     CommsQueueMessage msg;
     msg.type = MSG_PUBLISH_STATUS;
-    msg.data = nullptr;
+    auto data_ptr = (int*) heap_caps_malloc(sizeof(int), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    *data_ptr = window;
+    msg.data = data_ptr;
 
     auto status = xQueueSendToBack(comms_queue, (void*) &msg, 100 / portTICK_PERIOD_MS);
     
@@ -179,7 +181,9 @@ void Executor::REQUPD(int window) {
     CommsQueueMessage msg;
     msg.type = MSG_REQUEST_UPDATE;
 
-    msg.data = nullptr;
+    auto data_ptr = (int*) heap_caps_malloc(sizeof(int), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    *data_ptr = window;
+    msg.data = data_ptr;
 
     auto status = xQueueSendToBack(comms_queue, (void*) &msg, 100 / portTICK_PERIOD_MS);
     
