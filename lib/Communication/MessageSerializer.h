@@ -24,6 +24,7 @@ class MessageSerializer
         ps_string serializeReadings();
         ps_string serializeUpdateRequest(const ps_vector<Module*> modules);
         ps_string serializeNotification(ps_string notification);
+
 };
 
 #endif

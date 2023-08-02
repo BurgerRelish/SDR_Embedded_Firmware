@@ -9,14 +9,14 @@
 
 class MessageDeserializer {
     private:
-        JsonDoc document;
+        JsonDoc document = JsonDoc(1024);
 
         void deserialize_json(const ps_string& message);
         ps_string decompressString(const ps_string& message);
 
     public:
     MessageDeserializer(const ps_string& message);
-
+    
     ps_string operator[] (const ps_string&);
 
 };

@@ -32,8 +32,20 @@ struct Token {
     ps_string lexeme;
 };
 
+union Origin {
+    SDRUnit* unit;
+    Module* module;
+};
+
+enum OriginType {
+    ORIG_UNIT,
+    ORIG_MOD
+};
+
 struct Command {
     int priority;
+    OriginType type;
+    Origin origin;
     ps_stack<Token> command;
 };
 

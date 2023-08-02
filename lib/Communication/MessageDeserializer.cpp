@@ -27,19 +27,24 @@ MessageDeserializer::MessageDeserializer(const ps_string& message) : document(Js
 
 
 void MessageDeserializer::deserialize_json(const ps_string& message) {
-    JsonDoc temp_doc(JSON_DOCUMENT_SIZE);
+    try {
+        JsonDoc temp_doc(JSON_DOCUMENT_SIZE);
 
-    deserializeJson(temp_doc, message.c_str());
+        deserializeJson(temp_doc, message.c_str());
 
-    temp_doc.shrinkToFit(); // Release unused memory back to allocator.
+        temp_doc.shrinkToFit(); // Release unused memory back to allocator.
 
-    ps_string decompress_str;
-    if (temp_doc["enc"] == "br") {
-        decompress_str <<= temp_doc["msg"];
-        deserializeJson(document,  decompressString(decompress_str).c_str());
-    } else {
-        ESP_LOGI(TAG_MESSAGE_DESERIALIZER, "Deserialized Message: %s", temp_doc["msg"]);
-        deserializeJson(document, temp_doc["msg"]);
+        ps_string decompress_str;
+        if (temp_doc["enc"] == "br") {
+            decompress_str <<= temp_doc["msg"];
+            deserializeJson(document,  decompressString(decompress_str).c_str());
+        } else {
+            ESP_LOGI(TAG_MESSAGE_DESERIALIZER, "Deserialized Message: %s", temp_doc["msg"]);
+            deserializeJson(document, temp_doc["msg"]);
+        }
+    } catch (std::exception &e) {
+        ESP_LOGI(TAG_MESSAGE_DESERIALIZER, "Direct message.");
+        deserializeJson(document, message);
     }
     
     document.shrinkToFit(); // Release unused memory back to allocator.

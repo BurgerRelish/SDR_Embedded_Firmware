@@ -61,6 +61,8 @@ void Executor::loopExecutor() {
 void Executor::load_next_command() {
     if (current_command.empty()){ // Load a new rule command from the priority list.
         current_command = command_list.top().command;
+        cmd_origin = command_list.top().origin;
+        cmd_origin_type = command_list.top().type;
         command_list.pop();
     }
 
@@ -176,6 +178,7 @@ void Executor::PUBSTAT(int window) {
 void Executor::REQUPD(int window) {
     CommsQueueMessage msg;
     msg.type = MSG_REQUEST_UPDATE;
+
     msg.data = nullptr;
 
     auto status = xQueueSendToBack(comms_queue, (void*) &msg, 100 / portTICK_PERIOD_MS);
@@ -190,7 +193,9 @@ void Executor::REQUPD(int window) {
 void Executor::PUBREAD(int window) {
     ControlQueueMessage msg;
     msg.type = CTRL_READ_MODULES;
-    msg.data = nullptr;
+    auto data_ptr = (int*) heap_caps_malloc(sizeof(int), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+    *data_ptr = window;
+    msg.data = data_ptr;
 
     auto status = xQueueSendToBack(control_queue, (void*) &msg, 100 / portTICK_PERIOD_MS);
 

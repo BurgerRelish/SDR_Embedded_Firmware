@@ -5,9 +5,15 @@
 #include <WiFi.h>
 #include <Preferences.h>
 #include <string>
+#include <sstream>
+#include <HTTPClient.h>
 
 #include "pin_map.h"
 #include "VariableDelay.h"
+#include "../device_identifiers.h"
+#include "../data_containers/ps_string.h"
+#include "../Communication/MessageDeserializer.h"
+#include "../sdr_containers/SDRUnit.h"
 
 #define TARGET_LOOP_FREQUENCY 30
 
@@ -41,6 +47,20 @@ void initMQTT();
 /* ====================== */
 
 
+/* Dynamic Setup */
+struct unitSetupParameters {
+    ps_string broker_url;
+    ps_string broker_port;
+    ps_string mqtt_password;
+    ps_string mqtt_ingress_topic;
+    ps_string mqtt_area_topic;
+    ps_string mqtt_device_topic;
+};
+
+bool checkSetup();
+unitSetupParameters fetchUnitParameters();
+/* ============= */
+
 /* Status LED Functions */
 CRGB status_led[1];
 uint8_t gHue = 0;
@@ -68,6 +88,12 @@ void sentryTaskFunction(void* pvParameters) {
     setStatic((180/360) * 255); // Init the status led and set to light blue.
 
     connect();
+
+    if(!checkSetup()) {
+        ESP_LOGI("DEVICE", "Attempting to fetch setup parameters.");
+        auto params = fetchUnitParameters(SETUP_API_URL, SETUP_API_PORT, UNIT_UID, UNIT_SETUP_KEY);
+        
+    }
 
     VariableDelay vd(SENTRY_TASK_NAME, TARGET_LOOP_FREQUENCY); // Create a new variable delay class to set target frequency.
     while(1) {
@@ -185,6 +211,49 @@ void storeGSMCredentials(String apn, String pin) {
     nvs.putString("apn", apn);
     nvs.putString("pin", pin);
     nvs.end();
+}
+
+bool checkSetup() {
+    nvs.begin("/SETUP");
+    auto retval = nvs.getBool("SETUP");
+    nvs.end();
+
+    return retval;
+}
+
+unitSetupParameters fetchUnitParameters(const char* api_url, uint32_t api_port, const char* uid, const char* key) {
+    HTTPClient client;
+    std::ostringstream url;
+
+    url << "http://" << api_url << ":" << api_port << "/setup/&uid=" << uid << "&key=" << key;
+    ESP_LOGI("HTTP", "GETting Unit Parameters");
+    log_printf("URL: %s\n", url.str().c_str());
+
+    client.setURL(url.str().c_str());
+    auto response_code = client.GET();
+
+    if (response_code != 200) { // HTTP 200 - OK
+        ESP_LOGE("HTTP", "Error in HTTP GET request: %d", response_code);
+        client.end();
+        return;
+    }
+    
+    ps_string response_str = client.getString().c_str();
+    log_printf("Got response: %s\n", response_str.c_str());
+
+    client.end();
+
+    MessageDeserializer params(response_str);
+    unitSetupParameters ret;
+
+    ret.broker_port = params["port"];
+    ret.broker_url = params["url"];
+    ret.mqtt_ingress_topic = params["itopic"];
+    ret.mqtt_device_topic = params["dtopic"];
+    ret.mqtt_area_topic = params["itopic"];
+    ret.mqtt_password = params["pass"];
+
+    return ret;
 }
 
 

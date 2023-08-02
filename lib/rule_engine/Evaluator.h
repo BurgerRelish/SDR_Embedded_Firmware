@@ -8,7 +8,8 @@
 #include "ArraySeparator.h"
 #include "ShuntingYard.h"
 #include "Lexer.h"
-#include "../sdr_containers.h"
+#include "../sdr_containers/SDRUnit.h"
+#include "../sdr_containers/SDRModule.h"
 #include "ps_queue.h"
 #include "Language.h"
 

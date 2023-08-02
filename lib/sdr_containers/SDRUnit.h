@@ -32,6 +32,18 @@ class SDRUnit: public TagSearch, public RuleStore {
     {
         unit_id_ <<= unit_id;
     }
+
+    SDRUnit(const std::string unit_id, const ps_string& nvs_tag) : 
+    number_of_modules(0),
+    total_active_power(0),
+    total_reactive_power(0),
+    total_apparent_power(0),
+    power_status(false),
+    TagSearch(nvs_tag),
+    RuleStore(nvs_tag)
+    {
+        unit_id_ <<= unit_id;
+    }
     
     double& totalActivePower() {
         return total_active_power;
@@ -49,7 +61,7 @@ class SDRUnit: public TagSearch, public RuleStore {
         return power_status;
     }
 
-    const int& moduleCount() {
+    int& moduleCount() {
         return number_of_modules;
     }
 

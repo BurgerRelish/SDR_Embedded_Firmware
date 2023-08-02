@@ -8,6 +8,8 @@
 #include "freertos/queue.h"
 #include "esp32-hal.h"
 
+#include "../data_containers/ps_string.h"
+
 /* Connectivity */
 #define DEFAULT_WIFI_SSID "Spencer WiFi"
 /* Debugging */

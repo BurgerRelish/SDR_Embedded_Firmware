@@ -3,7 +3,8 @@
 #ifndef EXECUTOR_H
 #define EXECUTOR_H
 
-#include "../sdr_containers.h"
+#include "../sdr_containers/SDRUnit.h"
+#include "../sdr_containers/SDRModule.h"
 #include "../data_containers/ps_priority_queue.h"
 #include "Language.h"
 #include "Semantics.h"
@@ -11,6 +12,8 @@
 class Executor {
     private:
         ps_priority_queue<Command> command_list;
+        OriginType cmd_origin_type;
+        Origin cmd_origin;
         ps_stack<Token> current_command;
         
         ps_string command_name;
@@ -58,6 +61,9 @@ class Executor {
         next_command(false)
         {}
 
+        void addCommand(Command cmd) {
+            command_list.push(cmd);
+        };
         void loopExecutor();
 };
 
