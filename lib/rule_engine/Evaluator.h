@@ -12,8 +12,9 @@
 #include "../sdr_containers/SDRModule.h"
 #include "ps_queue.h"
 #include "Language.h"
+#include "VariableLookup.h"
 
-class Evaluator {
+class Evaluator : private VariableLookup {
     private:
     struct LexedRule{
         int priority;
@@ -21,12 +22,13 @@ class Evaluator {
         ps_queue<Token> commands;
     };
 
-    Module& module_class;
-    SDRUnit& global_class;
+    Module* module_class;
+    SDRUnit* global_class;
+    OriginType origin;
 
     ps_vector<LexedRule> rules;
 
-    void generateRules(ps_queue<Rule>& rule_input);
+    void generateRules(const ps_vector<Rule>& rule_input);
     ps_queue<Token> lexExpression(ps_string& expr);
 
     bool evaluateRPN(ps_queue<Token>&);
@@ -39,35 +41,22 @@ class Evaluator {
     bool applyComparisonOperatorUint64(Token& lhs, Token& rhs, Token& operator_token);
     bool applyArrayComparison(Token& lhs, Token& rhs, Token& operator_token);
     bool applyStringComparison(Token& lhs, Token& rhs, Token& operator_token);
-    /* Variable Resolution */
-
-    const VarType& getVarType(const Token& search_token);
-
-    const double getDouble(Token& token);
-    const bool getBool(Token& token);
-    const int getInt(Token& token);
-    const uint64_t getUint64(Token& token);
-    const ps_string getString(Token& token);
-
-    void retrieveVar(const ps_string& var, double& val);
-    void retrieveVar(const ps_string& var, bool& val);
-    void retrieveVar(const ps_string& var, int& val);
-    void retrieveVar(const ps_string& var, uint64_t& val);
-    void retrieveVar(const ps_string& var, ps_string& val);
-
-    double toDouble(ps_string& str);
 
     public:
-    Evaluator(SDRUnit& global_vars, Module& module_vars, ps_queue<Rule>& rule_input) :
+    Evaluator(SDRUnit* global_vars, Module* module_vars, OriginType _origin) :
     global_class(global_vars),
-    module_class(module_vars)
+    module_class(module_vars),
+    origin(_origin),
+    VariableLookup(global_class, module_class)
     {
-        generateRules(rule_input);
+        if (origin == ORIG_MOD) {
+            generateRules(module_class -> getRules());
+        } else {
+            generateRules(global_class -> getRules());
+        }
     }
 
-    ps_queue<Token> evaluate();
-    
-
+    Command evaluate();
 };
 
 #endif // EVALUATOR_H

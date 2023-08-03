@@ -66,24 +66,24 @@ void Executor::load_next_command() {
         command_list.pop();
     }
 
-    if(current_command.top().type == SEPARATOR) {
+    if(current_command.front().type == SEPARATOR) {
         current_command.pop();
     }
 
     /* Load command name */
-    command_name = current_command.top().lexeme;
+    command_name = current_command.front().lexeme;
     current_command.pop();
 
     /* Load command parameters */
     parameters.clear();
     while(!current_command.empty()) {
-        if(current_command.top().type == RIGHT_PARENTHESES) {
+        if(current_command.front().type == RIGHT_PARENTHESES) {
             current_command.pop();
             break;
         }
 
-        if (current_command.top().type == SEPARATOR) current_command.pop();
-        parameters.push_back(current_command.top());
+        if (current_command.front().type == SEPARATOR) current_command.pop();
+        parameters.push_back(current_command.front());
         current_command.pop();
     }
 

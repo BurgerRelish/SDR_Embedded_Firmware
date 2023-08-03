@@ -15,6 +15,8 @@
 #include "../Communication/MessageDeserializer.h"
 #include "../sdr_containers/SDRUnit.h"
 
+#include "../hardware_interface/InterfaceMaster.h"
+
 #define TARGET_LOOP_FREQUENCY 30
 
 void sentryTaskFunction(void* pvParameters);
@@ -72,15 +74,18 @@ void updateRainbow();
 void setStatic(const uint8_t hue);
 /* ==================== */
 
-void startSentryTask() {
-    xTaskCreate(
+bool startSentryTask() {
+    if(xTaskCreate(
         sentryTaskFunction,
         SENTRY_TASK_NAME,
         SENTRY_TASK_STACK,
         NULL,
         SENTRY_PRIORITY,
         &SentryTask
-        );
+        ) == pdTRUE) return true;
+    
+    ESP_LOGE("SENTRY", "Failed to start sentry task.");
+    return false;
 }
 
 void sentryTaskFunction(void* pvParameters) {
@@ -92,14 +97,13 @@ void sentryTaskFunction(void* pvParameters) {
     if(!checkSetup()) {
         ESP_LOGI("DEVICE", "Attempting to fetch setup parameters.");
         auto params = fetchUnitParameters(SETUP_API_URL, SETUP_API_PORT, UNIT_UID, UNIT_SETUP_KEY);
-        
     }
 
     VariableDelay vd(SENTRY_TASK_NAME, TARGET_LOOP_FREQUENCY); // Create a new variable delay class to set target frequency.
-    while(1) {
-        updateRainbow();
+    vd.addCallback(updateRainbow, 33);
 
-        vd.delay(); // Wait for remainder of frame to reach target frequency.
+    while(1) {
+        vd.loop();
     }
 }
 

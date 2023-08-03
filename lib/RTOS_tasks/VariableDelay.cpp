@@ -24,3 +24,25 @@ void VariableDelay::delay() {
     
     return;
 }
+
+void VariableDelay::addCallback(std::function<void()> callback_fn, uint32_t target_interval_ms) {
+    callbackFN fn;
+    fn.callback = callback_fn;
+    fn.target_interval = target_interval_ms;
+    fn.last_time = 0;
+    callbacks.push_back(fn);
+    return;
+}
+
+void VariableDelay::loop() {
+    for(callbackFN &fn : callbacks) {
+        uint32_t elapsed_time = ((esp_timer_get_time() / 1000) - fn.last_time);
+
+        if (elapsed_time > fn.target_interval) {
+            fn.callback();
+            fn.last_time = esp_timer_get_time() / 1000;
+        }
+    }
+
+    vTaskDelay(1 / portTICK_PERIOD_MS);
+}

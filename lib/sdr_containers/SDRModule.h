@@ -28,6 +28,7 @@ struct StatusChange {
     uint64_t timestamp;
 };
 
+
 class Module : public TagSearch, public RuleStore {
     private:
     ps_stack<Reading> readings;

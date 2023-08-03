@@ -3,6 +3,6 @@
 #ifndef RULE_ENGINE_TASK_H
 #define RULE_ENGINE_TASK_H
 
-void startRuleEngineTask();
+bool startRuleEngineTask();
 
 #endif

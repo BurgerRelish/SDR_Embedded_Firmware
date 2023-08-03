@@ -6,6 +6,7 @@
 #include "../sdr_containers/SDRUnit.h"
 #include "../sdr_containers/SDRModule.h"
 #include "../data_containers/ps_priority_queue.h"
+#include "../data_containers/ps_queue.h"
 #include "Language.h"
 #include "Semantics.h"
 
@@ -14,7 +15,7 @@ class Executor {
         ps_priority_queue<Command> command_list;
         OriginType cmd_origin_type;
         Origin cmd_origin;
-        ps_stack<Token> current_command;
+        ps_queue<Token> current_command;
         
         ps_string command_name;
         ps_vector<Token> parameters;
@@ -64,6 +65,14 @@ class Executor {
         void addCommand(Command cmd) {
             command_list.push(cmd);
         };
+
+        void addCommands(ps_queue<Command> commands) {
+            while(!commands.empty()) {
+                command_list.push(commands.front());
+                commands.pop();
+            }
+        }
+
         void loopExecutor();
 };
 

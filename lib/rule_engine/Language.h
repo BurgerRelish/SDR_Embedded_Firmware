@@ -8,6 +8,9 @@
 #include <queue>
 #include <unordered_map>
 
+#include "../sdr_containers/SDRUnit.h"
+#include "../sdr_containers/SDRModule.h"
+
 #include "../data_containers/ps_string.h"
 #include "../data_containers/ps_stack.h"
 #include "../data_containers/ps_vector.h"
@@ -46,7 +49,7 @@ struct Command {
     int priority;
     OriginType type;
     Origin origin;
-    ps_stack<Token> command;
+    ps_queue<Token> command;
 };
 
 enum VarType{

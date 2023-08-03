@@ -1,0 +1,6 @@
+{
+    "type":"wifi",
+    "enc":"WPA2",
+    "ssid":"Routy",
+    "pass":"0609660733"
+}
