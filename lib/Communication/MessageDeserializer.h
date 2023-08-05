@@ -9,7 +9,7 @@
 
 class MessageDeserializer {
     private:
-        JsonDoc document = JsonDoc(1024);
+        DynamicPSRAMJsonDocument document;
 
         void deserialize_json(const ps_string& message);
         ps_string decompressString(const ps_string& message);

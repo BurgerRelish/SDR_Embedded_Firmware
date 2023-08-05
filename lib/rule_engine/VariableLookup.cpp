@@ -195,17 +195,18 @@ void VariableLookup::retrieveVar(const ps_string& var, double& val) {
     var_name <<= var;
 
     static const std::unordered_map<std::string, std::function<double()>> varMap = {
-        {TOTAL_ACTIVE_POWER, [this](){ return unit->totalActivePower(); }},
-        {TOTAL_REACTIVE_POWER, [this](){ return unit->totalReactivePower(); }},
-        {TOTAL_APPARENT_POWER, [this](){ return unit->totalApparentPower(); }},
-        {ACTIVE_POWER, [this](){ return module->latestReading().active_power; }},
-        {REACTIVE_POWER, [this](){ return module->latestReading().reactive_power; }},
-        {APPARENT_POWER, [this](){ return module->latestReading().apparent_power; }},
-        {VOLTAGE, [this](){ return module->latestReading().voltage; }},
-        {FREQUENCY, [this](){ return module->latestReading().frequency; }},
-        {POWER_FACTOR, [this](){ return module->latestReading().power_factor; }}
+        {TOTAL_ACTIVE_POWER, [this](){ return unit.totalActivePower(); }},
+        {TOTAL_REACTIVE_POWER, [this](){ return unit.totalReactivePower(); }},
+        {TOTAL_APPARENT_POWER, [this](){ return unit.totalApparentPower(); }},
+        {ACTIVE_POWER, [this](){ return module.latestReading().active_power; }},
+        {REACTIVE_POWER, [this](){ return module.latestReading().reactive_power; }},
+        {APPARENT_POWER, [this](){ return module.latestReading().apparent_power; }},
+        {VOLTAGE, [this](){ return module.latestReading().voltage; }},
+        {FREQUENCY, [this](){ return module.latestReading().frequency; }},
+        {POWER_FACTOR, [this](){ return module.latestReading().power_factor; }}
     };
 
+    
     auto it = varMap.find(var_name);
     if (it != varMap.end()) {
         val = it->second();
@@ -219,8 +220,8 @@ void VariableLookup::retrieveVar(const ps_string& var, bool& val) {
     var_name <<= var;
 
     static const std::unordered_map<std::string, std::function<bool()>> varMap = {
-        {SWITCH_STATUS, [this](){ return module->status(); }},
-        {POWER_STATUS, [this](){ return unit->powerStatus(); }}
+        {SWITCH_STATUS, [this](){ return module.status(); }},
+        {POWER_STATUS, [this](){ return unit.powerStatus(); }}
     };
 
     auto it = varMap.find(var_name);
@@ -238,8 +239,8 @@ void VariableLookup::retrieveVar(const ps_string& var, int& val) {
     var_name <<= var;
 
     static const std::unordered_map<std::string, std::function<int()>> varMap = {
-        {CIRCUIT_PRIORITY, [this](){ return module->priority(); }},
-        {MODULE_COUNT, [this](){ return unit->moduleCount(); }}
+        {CIRCUIT_PRIORITY, [this](){ return module.priority(); }},
+        {MODULE_COUNT, [this](){ return unit.moduleCount(); }}
     };
 
     auto it = varMap.find(var_name);
@@ -256,7 +257,7 @@ void VariableLookup::retrieveVar(const ps_string& var, uint64_t& val) {
 
     static const std::unordered_map<std::string, std::function<uint64_t()>> varMap = {
         {CURRENT_TIME, [this](){ return (uint64_t) time(nullptr); }},
-        {SWITCH_TIME, [this](){ return unit->moduleCount(); }}
+        {SWITCH_TIME, [this](){ return unit.moduleCount(); }}
     };
 
     auto it = varMap.find(var_name);
@@ -269,9 +270,9 @@ void VariableLookup::retrieveVar(const ps_string& var, uint64_t& val) {
 
 void VariableLookup::retrieveVar(const ps_string& var, ps_string& val) {
     if (var == MODULE_ID) {
-        val = module->id();
+        val = module.id();
     } else if (var == UNIT_ID) {
-        val = unit->id();
+        val = unit.id();
     } else throw std::invalid_argument("Invalid variable of type \'ps_string\' requested.");
 
     return;

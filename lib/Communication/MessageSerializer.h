@@ -14,7 +14,7 @@
 class MessageSerializer
 {
     private:
-        JsonDoc document;
+        DynamicPSRAMJsonDocument document;
         const SDRUnit* _unit;
         const ps_vector<Module*> _modules;
 

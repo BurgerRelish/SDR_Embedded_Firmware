@@ -9,9 +9,12 @@
 #include "esp32-hal.h"
 
 #include "../data_containers/ps_string.h"
+#define deltaHue 1
+#define BRIGHTNESS 25
 
-/* Connectivity */
-#define DEFAULT_WIFI_SSID "Spencer WiFi"
+#define WIFI_HOSTNAME "SmartDemand Unit"
+#define WIFI_TIMEOUT_MS 120000
+
 /* Debugging */
 #define DEBUG_SENTRY
 
@@ -25,8 +28,6 @@
 
 /* Sentry Task */
 #define SENTRY_TASK_NAME "SENTRY"
-
-xTaskHandle SentryTask = NULL;
 
 constexpr uint32_t SENTRY_TASK_STACK = 32768;
 constexpr uint8_t SENTRY_QUEUE_SIZE = 10;
@@ -49,15 +50,8 @@ struct SentryQueueMessage {
     void* data;
 };
 
-xQueueHandle SentryQueue = NULL;
-
 /* Rule Engine Task */
 #define RULE_ENGINE_TASK_NAME "RULE_ENGINE"
-
-xTaskHandle RuleEngine_Task = NULL;
-
-xSemaphoreHandle RuleEngine_Mutex = NULL;
-xSemaphoreHandle RuleEngineTaskSemaphore = NULL;
 
 constexpr uint32_t RULE_ENGINE_TASK_STACK = 32768;
 constexpr uint8_t RULE_ENGINE_QUEUE_SIZE = 10;
@@ -74,14 +68,8 @@ struct RuleEngineQueueMessage {
     void* data;
 };
 
-xQueueHandle RuleEngine_Queue = NULL;
-
 /* Communications Task */
 #define COMMS_TASK_NAME "COMMS"
-
-xTaskHandle CommsTask = NULL;
-
-xSemaphoreHandle CommsTaskSemaphore = NULL;
 
 constexpr uint32_t COMMS_TASK_STACK = 32768;
 constexpr uint8_t COMMS_QUEUE_SIZE = 10;
@@ -100,14 +88,8 @@ struct CommsQueueMessage {
     void* data;
 };
 
-xQueueHandle CommsQueue = NULL;
-
 /* Module Control Task */
 #define CONTROL_TASK_NAME "CONTROL"
-
-xTaskHandle ControlTask = NULL;
-
-xSemaphoreHandle ControlTaskSemaphore = NULL;
 
 constexpr uint32_t CONTROL_TASK_STACK = 32768;
 constexpr uint8_t CONTROL_QUEUE_SIZE = 10;
@@ -124,7 +106,5 @@ struct ControlQueueMessage {
     ControlMessageType type;
     void* data;
 };
-
-xQueueHandle ControlQueue = NULL;
 
 #endif

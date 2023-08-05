@@ -1,5 +1,5 @@
 #include "Executor.h"
-#include "../RTOS_tasks/config.h"
+#include "../config.h"
 
 #define EXECUTOR_TAG "EXECUTOR"
 
@@ -60,10 +60,12 @@ void Executor::loopExecutor() {
 
 void Executor::load_next_command() {
     if (current_command.empty()){ // Load a new rule command from the priority list.
-        current_command = command_list.top().command;
-        cmd_origin = command_list.top().origin;
-        cmd_origin_type = command_list.top().type;
-        command_list.pop();
+        while (current_command.empty()) {
+            current_command = command_list.top().command;
+            cmd_origin = command_list.top().origin;
+            cmd_origin_type = command_list.top().type;
+            command_list.pop();
+        }
     }
 
     if(current_command.front().type == SEPARATOR) {
@@ -93,7 +95,7 @@ void Executor::load_next_command() {
 void Executor::ON() {
     ControlQueueMessage ctrl_message;
     ctrl_message.type = CTRL_ON;
-    ctrl_message.data = (void*) cmd_origin.module;
+    ctrl_message.data = (void*) cmd_origin;
     auto ctrl_result = xQueueSendToBack(control_queue, (void *) &ctrl_message, 100 / portTICK_PERIOD_MS);
 
     if (ctrl_result != pdTRUE) {
@@ -105,7 +107,7 @@ void Executor::ON() {
 void Executor::OFF() {
     ControlQueueMessage ctrl_message;
     ctrl_message.type = CTRL_OFF;
-    ctrl_message.data = (void*) cmd_origin.module;
+    ctrl_message.data = (void*) cmd_origin;
     auto ctrl_result = xQueueSendToBack(control_queue, (void *) &ctrl_message, 100 / portTICK_PERIOD_MS);
 
     if (ctrl_result != pdTRUE) {

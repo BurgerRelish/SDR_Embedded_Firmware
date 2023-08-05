@@ -7,67 +7,17 @@
 
 
 bool MQTTClient::storeParams(){
-    JsonDoc document = JsonDoc(1024);
-
-    document["username"].set(_username.c_str());
-    document["password"].set(_password.c_str());
-    document["server"].set(_server.c_str());
-    document["port"].set(_port);
-    auto topic_list = document.createNestedArray("topics");
-
-    for (size_t i = 0; i < _topics.size(); i++) {
-        topic_list.add(_topics.at(i).c_str());
-    }
-
-    ps_string output;
-    serializeJson(document, output);
-    
-    LITTLEFS.begin(true);
-    auto file = LITTLEFS.open("/mqtt/params.txt", "w", true);
-    auto result = file.print(output.c_str());
-    file.close();
-    LITTLEFS.end();
-
-    return (result == output.length());
+    return true;
 }
 
 bool MQTTClient::recallParams(){
-    LITTLEFS.begin(true);
-    auto file = LITTLEFS.open("/mqtt/params.txt", "r", false);
-    if (!file) return false;
-
-    ps_string input;
-    while(file.available()) {
-        input += (char) file.read();
-    }
-
-    file.close();
-    LITTLEFS.end();
-
-    JsonDoc document = JsonDoc(1024);
-    if (deserializeJson(document, input).code() != 0) return false;
-
-    _username.clear();
-    _username <<= document["username"];
-    _password <<= document["password"];
-    _server <<= document["server"];
-    _port = document["port"];
-
-    auto array = document["topics"].as<JsonArray>();
-    _topics.clear();
-    for (JsonVariant v : array) {
-        _topics.push_back(v.as<ps_string>());
-    }
 
     return true;
 }
 
 bool MQTTClient::deleteParams() {
-    LITTLEFS.begin(true);
-    auto ret = LITTLEFS.remove("/mqtt/params.txt");
-    LITTLEFS.end();
 
-    return ret;
+    return true;
 }
 
 bool MQTTClient::ready() {
@@ -94,8 +44,7 @@ bool MQTTClient::begin() {
         mqtt_client -> subscribe(_topics.at(i).c_str());
     }
 
-    
-    
+    return true;
 }
 
 void MQTTClient::mqtt_callback(char* topic, uint8_t* payload, uint32_t length) {

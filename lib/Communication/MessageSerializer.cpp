@@ -13,7 +13,7 @@
 #define TAG_MESSAGE_SERIALIZER "MESSAGE_SERIALIZER"
 #endif
 
-MessageSerializer::MessageSerializer(const SDRUnit* unit, const ps_vector<Module*> modules) : _unit(unit), _modules(modules), document(JsonDoc(JSON_DOCUMENT_SIZE)) {}
+MessageSerializer::MessageSerializer(const SDRUnit* unit, const ps_vector<Module*> modules) : _unit(unit), _modules(modules), document(DynamicJsonDocument(JSON_DOCUMENT_SIZE)) {}
 
 /**
  * @brief Serializes all readings and status updates for all modules into a JSON packet, compresses it using brotli, and places it into

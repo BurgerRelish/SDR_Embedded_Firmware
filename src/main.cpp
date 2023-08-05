@@ -1,8 +1,13 @@
 #include <Arduino.h>
-#include "sentry_task.h"
+#include "../../lib/SDRApp.h"
+
+using namespace SDR;
+
+AppClass app;
 
 void setup() {
-  startSentryTask();
+  app = AppClass();
+  app.begin();
 }
 
 void loop() {}

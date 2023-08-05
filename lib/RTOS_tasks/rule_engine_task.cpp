@@ -6,6 +6,8 @@
 
 #include "../Persistence.h"
 
+#include "../SDRApp.h"
+
 #define TARGET_LOOP_FREQUENCY 10
 
 SDRUnit* unit = nullptr;
@@ -17,24 +19,12 @@ Executor* executor;
 void handleREMessage();
 void evaluateRE();
 
-void ruleEngineTaskFunction(void* pvParameters);
+void ruleEngineTaskFunction(void* global_class) {
+    auto app = (SDR::AppClass*) global_class;
+    xSemaphoreTake(app -> control_task_semaphore, portMAX_DELAY);
+    xSemaphoreGive(app -> control_task_semaphore);
 
-bool startRuleEngineTask() {
-    if (xTaskCreate(
-        ruleEngineTaskFunction,
-        RULE_ENGINE_TASK_NAME,
-        RULE_ENGINE_TASK_STACK,
-        NULL,
-        RULE_ENGINE_PRIORITY,
-        &RuleEngine_Task
-        ) == pdTRUE) return true;
-
-    ESP_LOGE("RE", "Failed to start RE task.");
-    return false;
-}
-
-void ruleEngineTaskFunction(void* pvParameters) {
-    VariableDelay vd(RULE_ENGINE_TASK_NAME, TARGET_LOOP_FREQUENCY); // Create a new variable delay class to set target frequency.
+    VariableDelay vd("RULE_ENGINE_TASK_NAME", TARGET_LOOP_FREQUENCY); // Create a new variable delay class to set target frequency.
     
     vd.addCallback(handleREMessage, 50);
 
@@ -43,11 +33,14 @@ void ruleEngineTaskFunction(void* pvParameters) {
         vTaskDelay(5 / portTICK_PERIOD_MS);
     }
 
-    executor = new Executor(CommsQueue, ControlQueue, RuleEngine_Queue);
+    executor = new Executor(app -> comms_task_queue, app -> control_task_queue, app -> rule_engine_task_queue);
     vd.addCallback(evaluateRE, 1000);
     vd.addCallback([]() {return executor -> loopExecutor();}, 100);
     
     while(1) {
+        xSemaphoreTake(app -> control_task_semaphore, portMAX_DELAY);
+        xSemaphoreGive(app -> control_task_semaphore);
+        
         vd.loop();
         vTaskDelay(5 / portTICK_PERIOD_MS);
     }

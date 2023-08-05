@@ -8,18 +8,16 @@
 #include <sstream>
 #include <HTTPClient.h>
 
-#include "pin_map.h"
+#include "../SDRApp.h"
+
 #include "VariableDelay.h"
-#include "../device_identifiers.h"
 #include "../data_containers/ps_string.h"
 #include "../Communication/MessageDeserializer.h"
 #include "../sdr_containers/SDRUnit.h"
 
 #include "../hardware_interface/InterfaceMaster.h"
 
-#define TARGET_LOOP_FREQUENCY 30
-
-void sentryTaskFunction(void* pvParameters);
+#define TARGET_LOOP_FREQUENCY 10
 
 /* NVS Functions */
 Preferences nvs;
@@ -74,56 +72,68 @@ void updateRainbow();
 void setStatic(const uint8_t hue);
 /* ==================== */
 
-bool startSentryTask() {
-    if(xTaskCreate(
-        sentryTaskFunction,
-        SENTRY_TASK_NAME,
-        SENTRY_TASK_STACK,
-        NULL,
-        SENTRY_PRIORITY,
-        &SentryTask
-        ) == pdTRUE) return true;
-    
-    ESP_LOGE("SENTRY", "Failed to start sentry task.");
-    return false;
+void checkTaskStatus(TaskHandle_t task);
+
+void sentryPrintInfo(SDR::AppClass* app) {
+    ESP_LOGI("SENTRY", "==== Task Information ====");
+    log_printf("Sentry - State: %d, High Watermark: %u\n",eTaskGetState(app -> sentry_task_handle), uxTaskGetStackHighWaterMark2(app -> sentry_task_handle));
+    log_printf("Comms - State: %d, High Watermark: %u\n",eTaskGetState(app -> comms_task_handle), uxTaskGetStackHighWaterMark2(app -> comms_task_handle));
+    log_printf("Control - State: %d, High Watermark: %u\n",eTaskGetState(app -> control_task_handle), uxTaskGetStackHighWaterMark2(app -> control_task_handle));
+    log_printf("Rule Engine - State: %d, High Watermark: %u\n",eTaskGetState(app -> rule_engine_task_handle), uxTaskGetStackHighWaterMark2(app -> rule_engine_task_handle));
 }
 
-void sentryTaskFunction(void* pvParameters) {
-    initFastLED();
-    setStatic((180/360) * 255); // Init the status led and set to light blue.
+void sentryTaskFunction(void* global_class) {
+    try {
+        auto app = (SDR::AppClass*) global_class;
+        /* Allow other RTOS tasks to start. */
+        xSemaphoreGive(app -> control_task_semaphore);
+        xSemaphoreGive(app -> rule_engine_task_semaphore);
+        xSemaphoreGive(app -> comms_task_semaphore);
 
-    connect();
+        VariableDelay vd(SENTRY_TASK_NAME, TARGET_LOOP_FREQUENCY); // Create a new variable delay class to set target frequency.
+        vd.addCallback([app](){sentryPrintInfo(app);}, 2500);
 
-    if(!checkSetup()) {
-        ESP_LOGI("DEVICE", "Attempting to fetch setup parameters.");
-        auto params = fetchUnitParameters(SETUP_API_URL, SETUP_API_PORT, UNIT_UID, UNIT_SETUP_KEY);
+        while(1) {
+            if(!app -> updateStatusLED()) ESP_LOGE("SENTRY", "Failed to update Status LED.");
+
+            checkTaskStatus(app -> comms_task_handle);
+            checkTaskStatus(app -> control_task_handle);
+            checkTaskStatus(app -> rule_engine_task_handle);
+            
+            vd.loop();
+            vd.delay();
+        }
+    } catch (SDR::Exception &e) {
+        ESP_LOGE("SENTRY", "SDR Exception: %s", e.what());
+    } catch (std::exception &e) {
+        ESP_LOGE("SENTRY", "Exception: %s", e.what());
     }
 
-    VariableDelay vd(SENTRY_TASK_NAME, TARGET_LOOP_FREQUENCY); // Create a new variable delay class to set target frequency.
-    vd.addCallback(updateRainbow, 33);
-
-    while(1) {
-        vd.loop();
-    }
+    vTaskDelete(NULL);
 }
 
+void checkTaskStatus(TaskHandle_t task) {
+    auto status = eTaskGetState(task);
 
-void initFastLED() {
-    FastLED.addLeds<WS2812, STATUS_LED_PIN, GRB>(status_led, 1);
-    FastLED.setBrightness(BRIGHTNESS);
-}
-
-void updateRainbow() {
-    status_led[0] = CHSV(gHue, 240, 255);
-    FastLED.show();
-    gHue += deltaHue;
-}
-
-void setStatic(const uint8_t hue) {
-    if(hue != gHue) {
-        gHue = hue;
-        status_led[0] = CHSV(gHue, 240, 255);
-        FastLED.show();
+    switch (status) {
+        case eRunning:
+            // Task is currently running
+            break;
+        case eReady:
+            // Task is ready to run but not currently executing
+            break;
+        case eBlocked:
+            // Task is blocked, waiting for a resource or event
+            break;
+        case eSuspended:
+            // Task is suspended
+            break;
+        case eDeleted:
+            // Task has been deleted
+            break;
+        case eInvalid:
+            // Task handle is invalid or task does not exist
+            break;
     }
 }
 
@@ -168,7 +178,7 @@ void initWiFi() {
 
     if(ssid.isEmpty()) {
         ESP_LOGI(SENTRY_TASK_NAME, "No stored WiFi credentials, using default.");
-        ssid = DEFAULT_WIFI_SSID;
+        ssid = "DEFAULT_WIFI_SSID";
 
         storeWiFiCredentials(ssid, String());
     } 

@@ -1,7 +1,7 @@
 #pragma once
 
 #ifndef SDR_LANGUAGE_H
-#define SDR_LANGUAGE_H 1 
+#define SDR_LANGUAGE_H
 
 #include <string>
 #include <vector>
@@ -14,6 +14,7 @@
 #include "../data_containers/ps_string.h"
 #include "../data_containers/ps_stack.h"
 #include "../data_containers/ps_vector.h"
+#include "../data_containers/ps_queue.h"
 
 #include "Semantics.h"
 
@@ -35,21 +36,11 @@ struct Token {
     ps_string lexeme;
 };
 
-union Origin {
-    SDRUnit* unit;
-    Module* module;
-};
+
 
 enum OriginType {
     ORIG_UNIT,
     ORIG_MOD
-};
-
-struct Command {
-    int priority;
-    OriginType type;
-    Origin origin;
-    ps_queue<Token> command;
 };
 
 enum VarType{

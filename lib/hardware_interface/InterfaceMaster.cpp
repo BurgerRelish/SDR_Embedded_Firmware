@@ -25,11 +25,12 @@ int InterfaceMaster::init_swi(SingleWireLL* interface) {
 
 bool InterfaceMaster::send(uint8_t interface, uint8_t device_address, std::string message) {
     auto serial = (interface) ? serial_1 : serial_0;
-
     if (device_address > (interface) ? end_address_1 : end_address_0) return false;
 
+    digitalWrite((interface) ? dir_1 : dir_0, HIGH);
     auto ret = serial -> printf("{%3.u|%s}", device_address, message.c_str());
-    
+    digitalWrite((interface) ? dir_1 : dir_0, LOW);
+
     return ret;
 }
 
@@ -38,7 +39,9 @@ bool InterfaceMaster::send(uint8_t interface, uint8_t device_address, uint8_t co
 
     if (device_address > (interface) ? end_address_1 : end_address_0) return false;
 
+    digitalWrite((interface) ? dir_1 : dir_0, HIGH);
     auto ret = serial -> printf("{%3.u|%3.u}", device_address, command_number);
+    digitalWrite((interface) ? dir_1 : dir_0, LOW);
     
     return ret;
 }

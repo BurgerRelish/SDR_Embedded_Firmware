@@ -9,7 +9,7 @@
 #define TAG_MESSAGE_DESERIALIZER "MESSAGE_DESERIALIZER"
 #endif
 
-MessageDeserializer::MessageDeserializer(const ps_string& message) : document(JsonDoc(JSON_DOCUMENT_SIZE)) {
+MessageDeserializer::MessageDeserializer(const ps_string& message) : document(DynamicPSRAMJsonDocument(JSON_DOCUMENT_SIZE)) {
     
 #ifdef DEBUG_COMPRESSION
     uint64_t start_time = esp_timer_get_time();
@@ -28,7 +28,7 @@ MessageDeserializer::MessageDeserializer(const ps_string& message) : document(Js
 
 void MessageDeserializer::deserialize_json(const ps_string& message) {
     try {
-        JsonDoc temp_doc(JSON_DOCUMENT_SIZE);
+        DynamicPSRAMJsonDocument temp_doc(JSON_DOCUMENT_SIZE);
 
         deserializeJson(temp_doc, message.c_str());
 

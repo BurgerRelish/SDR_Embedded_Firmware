@@ -51,6 +51,10 @@
         "typeinfo": "cpp",
         "list": "cpp",
         "stack": "cpp",
-        "queue": "cpp"
-    }
+        "queue": "cpp",
+        "port.h": "c",
+        "shared_dictionary.h": "c",
+        "types.h": "c"
+    },
+    "docwriter.style": "Doxygen"
 }

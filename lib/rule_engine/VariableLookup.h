@@ -9,10 +9,7 @@
 
 
 class VariableLookup {
-    private:
-    SDRUnit* unit = nullptr;
-    Module* module = nullptr;
-    
+    private:    
     void retrieveVar(const ps_string& var, double& val);
     void retrieveVar(const ps_string& var, bool& val);
     void retrieveVar(const ps_string& var, int& val);
@@ -21,9 +18,11 @@ class VariableLookup {
     double toDouble(ps_string& str);
     
     public:
-    VariableLookup(SDRUnit* _unit, Module* _module) : unit(_unit), module(_module) {}
-    VariableLookup(SDRUnit* _unit) : unit(_unit), module(nullptr) {}
+    SDRUnit& unit;
+    Module& module;
 
+    VariableLookup(SDRUnit& _unit, Module& _module) : unit(_unit), module(_module) {}
+    
     const VarType& getVarType(const Token& search_token);
 
     const double getDouble(Token& token);

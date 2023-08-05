@@ -3,7 +3,6 @@
 #ifndef TAG_SEARCH_H
 #define TAG_SEARCH_H
 
-#include <Preferences.h>
 #include <stdint.h>
 #include <string>
 #include <iostream>
@@ -18,41 +17,14 @@ class TagSearch {
     ps_string _nvs_path;
 
     void loadTags() {
-        Preferences nvs;
-        nvs.begin(_nvs_path.c_str());
-        std::ostringstream path;
-
-        size_t tag_count = nvs.getUInt("/count");
-
-        for (size_t i = 0; i < tag_count; i++) {
-            path << "/tag/" << i;
-            ps_string tag = nvs.getString(path.str().c_str()).c_str();
-            class_tags.push_back(tag);
-            path.clear();
-        }
-
-        nvs.end();
     }
 
     void saveTags() {
-        Preferences nvs;
-        nvs.begin(_nvs_path.c_str());
-        std::ostringstream path;
-
-        nvs.putUInt("/count", class_tags.size());
-
-        for (size_t i = 0; i < class_tags.size(); i++) {
-            path << "/tag/" << i;
-            nvs.putString(path.str().c_str(), class_tags.at(i).c_str());
-            path.clear();
-        }
-
-        nvs.end();
     }
 
     public:
     TagSearch(const std::vector<std::string>& tag_list, const ps_string& nvs_path) {
-        clearTags();
+        //clearTags();
 
         ps_string temp;
         for (size_t i = 0; i < tag_list.size(); i++) { // Copy tag list to PSRAM.
@@ -61,17 +33,17 @@ class TagSearch {
             temp.clear();
         }
 
-        saveTags();
+        //saveTags();
     }
 
     TagSearch(const ps_vector<ps_string>& tag_list, const ps_string& nvs_path) {
-        clearTags();
+        //clearTags();
         class_tags = tag_list;
-        saveTags();
+        //saveTags();
     }
 
     TagSearch(const ps_string& nvs_path) {
-        loadTags();
+        //loadTags();
     }
 
     const ps_vector<ps_string>& getTags() {
@@ -79,13 +51,7 @@ class TagSearch {
     }
 
     void clearTags() {
-        Preferences nvs;
-        nvs.begin(_nvs_path.c_str());
-
         class_tags.clear();
-        nvs.clear();
-
-        nvs.end();
     }
 
     void appendTag(const ps_string& tag) {

@@ -32,6 +32,15 @@ void Evaluator::generateRules(const ps_vector<Rule>& rule_input) {
 }
 
 Command Evaluator::evaluate() {
+    if (esp_timer_get_time() < delay_end_time) {
+        Command ret;
+        ret.type = origin;
+        ret.priority = 99999;
+        ret.command = ps_queue<Token>();
+        ret.origin = this;
+        return ret;
+    }
+
     #ifdef DEBUG_RULE_ENGINE
     uint64_t start_time = esp_timer_get_time();
     #endif
@@ -83,13 +92,7 @@ Command Evaluator::evaluate() {
     Command ret;
     ret.command = commands;
     ret.type = origin;
-
-    if (origin == ORIG_MOD) {
-        ret.origin.module = module_class;
-    } else {
-        ret.origin.unit = global_class;
-    }
-
+    ret.origin = this;
     ret.priority = highest_priority;
 
     return ret;
@@ -370,15 +373,15 @@ bool Evaluator::applyArrayComparison(Token& lhs, Token& rhs, Token& operator_tok
 
     if (operator_token.lexeme == ARRAY_TAG_EQUALITY_COMPARISON) {
         if (arr_name.lexeme == UNIT_TAG_LIST) {
-            retval = global_class->tagEqualityComparison(search_array);
+            retval = unit.tagEqualityComparison(search_array);
         } else if (arr_name.lexeme == MODULE_TAG_LIST) {
-            retval = module_class->tagEqualityComparison(search_array);
+            retval = module.tagEqualityComparison(search_array);
         } else throw std::invalid_argument("Unknown array name."); 
     } else if (operator_token.lexeme == ARRAY_TAG_SUBSET_COMPARISON) {
         if (arr_name.lexeme == UNIT_TAG_LIST) {
-            retval = global_class->tagSubsetComparison(search_array);
+            retval = unit.tagSubsetComparison(search_array);
         } else if (arr_name.lexeme == MODULE_TAG_LIST) {
-            retval = module_class->tagSubsetComparison(search_array);
+            retval = module.tagSubsetComparison(search_array);
         } else throw std::invalid_argument("Unknown array name."); 
     } else throw std::invalid_argument("Unknown array comparison.");
 

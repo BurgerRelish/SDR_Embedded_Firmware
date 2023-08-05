@@ -6,20 +6,22 @@
 #include <FS.h>
 #include <LittleFS.h>
 #include <string>
+#include <ArduinoJson.h>
+
 #include "../data_containers/ps_string.h"
 #include "../Communication/json_allocator.h"
 
 class Persistence {
     private:
-        static int count;
         std::string path;
+        fs::LittleFSFS& _file_system;
+        static uint8_t count;
     public:
-        JsonDoc document;
+        DynamicPSRAMJsonDocument document;
         
-        Persistence(const char* path_to_file) : path(path_to_file) {
-            document = JsonDoc(1024);
-            if (count++ == 0) LITTLEFS.begin();
-            auto file = LITTLEFS.open(path_to_file, "r", true);
+        Persistence(fs::LittleFSFS& file_system, const char* path_to_file) : _file_system(file_system), path(path_to_file), document(DynamicPSRAMJsonDocument(1024)) {
+            if (count++ == 0) file_system.begin();
+            auto file = file_system.open(path.c_str(), "r", true);
 
             if (file.available()) {
                 deserializeJson(document, file);
@@ -32,14 +34,14 @@ class Persistence {
         }
 
         ~Persistence() {
-            auto file = LITTLEFS.open(path.c_str(), "w", true);
+            auto file = _file_system.open(path.c_str(), "w", true);
             serializeJson(document, file);
 
             file.close();
-            if (--count == 0) LITTLEFS.end();
+            if (--count == 0) _file_system.end();
         }
-}
+};
 
-int Persistence::count = 0;
+uint8_t Persistence::count = 0;
 
 #endif

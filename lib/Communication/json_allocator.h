@@ -20,17 +20,25 @@ struct JsonPSRAMAllocator {
         return p;
     }
 
-    void* deallocate(void* p) {
-#ifdef BOARD_HAS_PSRAM
-    heap_caps_free(p);
-#else
-    free(p);
-#endif
+    void deallocate(void* p) {
+    #ifdef BOARD_HAS_PSRAM
+        heap_caps_free(p);
+    #else
+        free(p);
+    #endif
+    }
+
+    void* reallocate(void* p, size_t n) {
+        auto ret = heap_caps_realloc(p, n, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+
+        if (ret == NULL) {
+            ret = realloc(p, n);
+        }
+
+        return ret;
     }
 };
 
 typedef BasicJsonDocument<JsonPSRAMAllocator> DynamicPSRAMJsonDocument;
-
-using JsonDoc = DynamicPSRAMJsonDocument;
 
 #endif

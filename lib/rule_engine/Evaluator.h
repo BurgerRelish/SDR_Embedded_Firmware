@@ -14,6 +14,8 @@
 #include "Language.h"
 #include "VariableLookup.h"
 
+struct Command;
+
 class Evaluator : private VariableLookup {
     private:
     struct LexedRule{
@@ -22,9 +24,9 @@ class Evaluator : private VariableLookup {
         ps_queue<Token> commands;
     };
 
-    Module* module_class;
-    SDRUnit* global_class;
     OriginType origin;
+
+    uint64_t delay_end_time = 0;
 
     ps_vector<LexedRule> rules;
 
@@ -43,20 +45,32 @@ class Evaluator : private VariableLookup {
     bool applyStringComparison(Token& lhs, Token& rhs, Token& operator_token);
 
     public:
-    Evaluator(SDRUnit* global_vars, Module* module_vars, OriginType _origin) :
-    global_class(global_vars),
-    module_class(module_vars),
+    Evaluator(SDRUnit& global_vars, Module& module_vars, OriginType _origin) :
     origin(_origin),
-    VariableLookup(global_class, module_class)
+    VariableLookup(global_vars, module_vars)
     {
         if (origin == ORIG_MOD) {
-            generateRules(module_class -> getRules());
+            generateRules(module.getRules());
         } else {
-            generateRules(global_class -> getRules());
+            generateRules(unit.getRules());
         }
+
+        
     }
 
     Command evaluate();
+
+    void setDelay(uint32_t delay_s) {
+        delay_end_time = esp_timer_get_time() + (((uint64_t)delay_s) * 1000000);
+    }
+};
+
+
+struct Command {
+    int priority;
+    OriginType type;
+    Evaluator* origin;
+    ps_queue<Token> command;
 };
 
 #endif // EVALUATOR_H

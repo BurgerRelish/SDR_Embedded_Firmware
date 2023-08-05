@@ -9,12 +9,13 @@
 #include "../data_containers/ps_queue.h"
 #include "Language.h"
 #include "Semantics.h"
+#include "Evaluator.h"
 
 class Executor {
     private:
         ps_priority_queue<Command> command_list;
         OriginType cmd_origin_type;
-        Origin cmd_origin;
+        Evaluator* cmd_origin;
         ps_queue<Token> current_command;
         
         ps_string command_name;
