@@ -3,6 +3,8 @@
 #ifndef EXECUTOR_H
 #define EXECUTOR_H
 
+#include <memory>
+
 #include "../sdr_containers/SDRUnit.h"
 #include "../sdr_containers/SDRModule.h"
 #include "../data_containers/ps_priority_queue.h"
@@ -15,7 +17,7 @@ class Executor {
     private:
         ps_priority_queue<Command> command_list;
         OriginType cmd_origin_type;
-        Evaluator* cmd_origin;
+        std::shared_ptr<Evaluator> cmd_origin;
         ps_queue<Token> current_command;
         
         ps_string command_name;

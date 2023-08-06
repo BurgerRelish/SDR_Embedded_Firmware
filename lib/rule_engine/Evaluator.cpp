@@ -37,7 +37,7 @@ Command Evaluator::evaluate() {
         ret.type = origin;
         ret.priority = 99999;
         ret.command = ps_queue<Token>();
-        ret.origin = this;
+        ret.origin = shared_from_this();
         return ret;
     }
 
@@ -92,7 +92,7 @@ Command Evaluator::evaluate() {
     Command ret;
     ret.command = commands;
     ret.type = origin;
-    ret.origin = this;
+    ret.origin = shared_from_this();
     ret.priority = highest_priority;
 
     return ret;
@@ -373,15 +373,15 @@ bool Evaluator::applyArrayComparison(Token& lhs, Token& rhs, Token& operator_tok
 
     if (operator_token.lexeme == ARRAY_TAG_EQUALITY_COMPARISON) {
         if (arr_name.lexeme == UNIT_TAG_LIST) {
-            retval = unit.tagEqualityComparison(search_array);
+            retval = unit->tagEqualityComparison(search_array);
         } else if (arr_name.lexeme == MODULE_TAG_LIST) {
-            retval = module.tagEqualityComparison(search_array);
+            retval = module->tagEqualityComparison(search_array);
         } else throw std::invalid_argument("Unknown array name."); 
     } else if (operator_token.lexeme == ARRAY_TAG_SUBSET_COMPARISON) {
         if (arr_name.lexeme == UNIT_TAG_LIST) {
-            retval = unit.tagSubsetComparison(search_array);
+            retval = unit->tagSubsetComparison(search_array);
         } else if (arr_name.lexeme == MODULE_TAG_LIST) {
-            retval = module.tagSubsetComparison(search_array);
+            retval = module->tagSubsetComparison(search_array);
         } else throw std::invalid_argument("Unknown array name."); 
     } else throw std::invalid_argument("Unknown array comparison.");
 

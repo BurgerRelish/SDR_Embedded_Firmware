@@ -1,5 +1,5 @@
 #include "Executor.h"
-#include "../config.h"
+#include "../SDR/config.h"
 
 #define EXECUTOR_TAG "EXECUTOR"
 
@@ -95,7 +95,7 @@ void Executor::load_next_command() {
 void Executor::ON() {
     ControlQueueMessage ctrl_message;
     ctrl_message.type = CTRL_ON;
-    ctrl_message.data = (void*) cmd_origin;
+    ctrl_message.data = (void*) cmd_origin.get();
     auto ctrl_result = xQueueSendToBack(control_queue, (void *) &ctrl_message, 100 / portTICK_PERIOD_MS);
 
     if (ctrl_result != pdTRUE) {
@@ -107,7 +107,7 @@ void Executor::ON() {
 void Executor::OFF() {
     ControlQueueMessage ctrl_message;
     ctrl_message.type = CTRL_OFF;
-    ctrl_message.data = (void*) cmd_origin;
+    ctrl_message.data = (void*) cmd_origin.get();
     auto ctrl_result = xQueueSendToBack(control_queue, (void *) &ctrl_message, 100 / portTICK_PERIOD_MS);
 
     if (ctrl_result != pdTRUE) {

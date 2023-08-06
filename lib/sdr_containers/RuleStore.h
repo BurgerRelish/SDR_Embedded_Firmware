@@ -29,7 +29,7 @@ class RuleStore {
         }
     
     public:
-        RuleStore(const ps_string& nvs_tag): _nvs_tag(nvs_tag) {
+        RuleStore() {
             //loadRules();
         }
 

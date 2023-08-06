@@ -1,8 +1,11 @@
 #include "SDRApp.h"
 #include "HardwareSerial.h"
 #include <LITTLEFS.h>
+#include "../data_containers/ps_smart_ptr.h"
 
-void SDR::AppClass::initRTOS() {
+namespace SDR {
+
+void AppClass::initRTOS() {
     /* Create Task Semaphores */
     sentry_task_semaphore = xSemaphoreCreateBinary();
     control_task_semaphore = xSemaphoreCreateBinary();
@@ -17,20 +20,11 @@ void SDR::AppClass::initRTOS() {
     /* Create Global Variable Mutexes */
     unit_mutex = xSemaphoreCreateMutex();
     modules_mutex = xSemaphoreCreateMutex();
-    evaluators_mutex = xSemaphoreCreateMutex();
+    fs_mutex = xSemaphoreCreateMutex();
 
     xSemaphoreGive(unit_mutex);
     xSemaphoreGive(modules_mutex);
-    xSemaphoreGive(evaluators_mutex);
-
-    /* Create Global Variable Binary Semaphores */
-    executor_binary_semaphore = xSemaphoreCreateBinary();
-    interface_binary_semaphore = xSemaphoreCreateBinary();
-    mqtt_client_binary_semaphore = xSemaphoreCreateBinary();
-
-    xSemaphoreGive(executor_binary_semaphore);
-    xSemaphoreGive(interface_binary_semaphore);
-    xSemaphoreGive(mqtt_client_binary_semaphore);
+    xSemaphoreGive(fs_mutex);
 
     /* Create Task Queues */
     xQueueCreate(SENTRY_QUEUE_SIZE, sizeof(SentryQueueMessage));
@@ -76,51 +70,37 @@ void SDR::AppClass::initRTOS() {
         &rule_engine_task_handle
     ) != pdTRUE) ESP_LOGE("SETUP", "Failed to start Rule Engine Task.");
 
-}   
+} 
 
-bool SDR::AppClass::begin() {
+void AppClass::deinitRTOS() {
+    return;
+}
+
+bool AppClass::begin() {
+    file_system = ps::make_shared<fs::LittleFSFS>();
+    file_system -> begin();
+
+    modules = ps::make_shared<ps_vector<std::shared_ptr<Module>>>();
+    
     initRTOS();
     return true;
 }
 
-SDR::VarGuard<SDRUnit*> SDR::AppClass::get_unit(){
-    auto ret = VarGuard<SDRUnit*>(unit_mutex);
-    ret.data() = unit;
+VarGuard<SDRUnit> AppClass::get_unit(){
+    auto ret = VarGuard<SDRUnit>(unit_mutex);
+    ret = unit;
     return ret;
 }
 
-SDR::VarGuard<ps_vector<Module*>> SDR::AppClass::get_modules(){
-    auto ret = VarGuard<ps_vector<Module*>>(modules_mutex);
-    ret.data() = modules;
+VarGuard<ps_vector<std::shared_ptr<Module>>> AppClass::get_modules(){
+    auto ret = VarGuard<ps_vector<std::shared_ptr<Module>>>(modules_mutex);
+    ret = modules;
     return ret;
 }
 
-SDR::VarGuard<ps_vector<Evaluator*>> SDR::AppClass::get_evaluators(){
-    auto ret = VarGuard<ps_vector<Evaluator*>>(evaluators_mutex);
-    ret.data() = evaluators;
+VarGuard<fs::LittleFSFS> AppClass::get_fs() {
+    auto ret = VarGuard<fs::LittleFSFS>(fs_mutex);
+    ret = file_system;
     return ret;
 }
-
-SDR::VarGuard<Executor*> SDR::AppClass::get_executor(){
-    auto ret = VarGuard<Executor*>(executor_binary_semaphore);
-    ret.data() = executor;
-    return ret;
-}
-
-SDR::VarGuard<MQTTClient*> SDR::AppClass::get_mqtt_client(){
-    auto ret = VarGuard<MQTTClient*>(mqtt_client_binary_semaphore);
-    ret.data() = mqtt_client;
-    return ret;
-}
-
-SDR::VarGuard<InterfaceMaster*> SDR::AppClass::get_interface(){
-    auto ret = VarGuard<InterfaceMaster*>(interface_binary_semaphore);
-    ret.data() = interface;
-    return ret;
-}
-
-SDR::VarGuard<fs::LittleFSFS> SDR::AppClass::get_fs() {
-    auto ret = VarGuard<fs::LittleFSFS>(fs_binary_semaphore);
-    ret.data() = LittleFS;
-    return ret;
 }

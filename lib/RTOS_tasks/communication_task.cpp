@@ -1,6 +1,7 @@
 #include "communication_task.h"
 
-#include "../SDRApp.h"
+#include "SDRApp.h"
+#include <memory>
 
 #include "config.h"
 #include "VariableDelay.h"
@@ -10,7 +11,7 @@
 #include "../Communication/MessageDeserializer.h"
 #include "../Communication/MQTTClient.h"
 
-#include "../Persistence.h"
+#include "Persistence.h"
 
 MQTTClient* mqtt_client;
 MessageSerializer* serializer;
@@ -20,13 +21,17 @@ void handleCommsMessage();
 void handleMQTTMessage(MessageDeserializer* data);
 
 void commsTaskFunction(void* global_class) {
-    auto app = (SDR::AppClass*) global_class;
+    std::shared_ptr<SDR::AppClass> app;
+    {
+        auto appClass = static_cast<SDR::AppClass*>(global_class);
+        app = appClass -> get_shared_ptr();
+    }
+
     xSemaphoreTake(app -> control_task_semaphore, portMAX_DELAY);
     xSemaphoreGive(app -> control_task_semaphore);
-
-    MQTTClient mqtt_client;
+    app -> setStatusLEDState(STATUS_LED_CONNECTING);
+    //MQTTClient mqtt_client;
     WiFiClient wifi_client;
-
 
     WiFi.setAutoReconnect(true);
     WiFi.setHostname(WIFI_HOSTNAME);
@@ -35,7 +40,7 @@ void commsTaskFunction(void* global_class) {
     {
         auto filesys = app -> get_fs();
         {
-            Persistence nvs(filesys.data(), "conn.txt");
+            Persistence<fs::LittleFSFS> nvs(filesys.data(), "/conn.txt", 1024);
             if (nvs.document["type"] == "wifi") {
                 WiFi.begin(nvs.document["ssid"].as<std::string>().c_str(), (nvs.document["enc"] == "WPA2") ? nvs.document["pass"].as<std::string>().c_str() : (const char*) nullptr);
             }
@@ -55,7 +60,7 @@ void commsTaskFunction(void* global_class) {
     {
         auto filesys = app -> get_fs();
         {
-            Persistence nvs(filesys.data(), "mqtt.txt");
+            Persistence<fs::LittleFSFS> nvs(filesys.data(), "/mqtt.txt", 1024);
 
             auto array = nvs.document["topics"].as<JsonArray>();
             ps_vector<ps_string> topic_list;
@@ -63,17 +68,18 @@ void commsTaskFunction(void* global_class) {
                 topic_list.push_back(v.as<ps_string>());
             }
 
-            mqtt_client = MQTTClient(wifi_client, 
-                                    handleMQTTMessage,
-                                    nvs.document["server"].as<ps_string>(),
-                                    nvs.document["port"].as<uint32_t>(),
-                                    nvs.document["username"].as<ps_string>(),
-                                    nvs.document["password"].as<ps_string>(), 
-                                    topic_list);
-        }
+        //     mqtt_client = MQTTClient(wifi_client, 
+        //                             handleMQTTMessage,
+        //                             nvs.document["server"].as<ps_string>(),
+        //                             nvs.document["port"].as<uint32_t>(),
+        //                             nvs.document["username"].as<ps_string>(),
+        //                             nvs.document["password"].as<ps_string>(), 
+        //                             topic_list);
+        //
+         }
     }
     
-    if(!mqtt_client.begin()) throw SDR::Exception("MQTT Client not ready.");
+    //if(!mqtt_client.begin()) throw SDR::Exception("MQTT Client not ready.");
 
     VariableDelay vd("RE", TARGET_LOOP_FREQUENCY); // Create a new variable delay class to set target frequency.
 

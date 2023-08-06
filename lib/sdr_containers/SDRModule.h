@@ -43,15 +43,18 @@ class Module : public TagSearch, public RuleStore {
     uint8_t i2c_address = 0;
     uint8_t io_offset = 0;
 
+    bool update_required;
+
     public:
-    Module(const std::string& id, const std::vector<std::string>& tag_list, const int& priority, const uint8_t& address, const uint8_t& offset, const ps_string& nvs_tag) :
-    TagSearch(tag_list, nvs_tag),
-    RuleStore(nvs_tag),
+    Module(const std::string& id, const std::vector<std::string>& tag_list, const int& priority, const uint8_t& address, const uint8_t& offset, bool update = false) :
+    TagSearch(tag_list),
+    RuleStore(),
     i2c_address(address),
     io_offset(offset),
     circuit_priority(priority),
     switch_time(0),
-    relay_status(false)
+    relay_status(false),
+    update_required(update)
     {
         module_id <<= id; // Copy ID to PSRAM.
     }

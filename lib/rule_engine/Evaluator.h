@@ -4,6 +4,7 @@
 #define EVALUATOR_H
 
 #include <functional>
+#include <memory>
 
 #include "ArraySeparator.h"
 #include "ShuntingYard.h"
@@ -16,7 +17,7 @@
 
 struct Command;
 
-class Evaluator : private VariableLookup {
+class Evaluator : private VariableLookup, public std::enable_shared_from_this<Evaluator>  {
     private:
     struct LexedRule{
         int priority;
@@ -45,14 +46,14 @@ class Evaluator : private VariableLookup {
     bool applyStringComparison(Token& lhs, Token& rhs, Token& operator_token);
 
     public:
-    Evaluator(SDRUnit& global_vars, Module& module_vars, OriginType _origin) :
+    Evaluator(std::shared_ptr<SDRUnit> global_vars, std::shared_ptr<Module> module_vars, OriginType _origin) :
     origin(_origin),
     VariableLookup(global_vars, module_vars)
     {
         if (origin == ORIG_MOD) {
-            generateRules(module.getRules());
+            generateRules(module->getRules());
         } else {
-            generateRules(unit.getRules());
+            generateRules(unit->getRules());
         }
 
         
@@ -69,7 +70,7 @@ class Evaluator : private VariableLookup {
 struct Command {
     int priority;
     OriginType type;
-    Evaluator* origin;
+    std::shared_ptr<Evaluator> origin;
     ps_queue<Token> command;
 };
 

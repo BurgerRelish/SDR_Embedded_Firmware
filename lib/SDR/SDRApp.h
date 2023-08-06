@@ -5,6 +5,7 @@
 #include <Arduino.h>
 #include <FastLED.h>
 #include <LittleFS.h>
+#include <memory>
 
 #include "../Communication/MessageSerializer.h"
 #include "../Communication/MessageDeserializer.h"
@@ -16,17 +17,17 @@
 #include "../sdr_containers/SDRModule.h"
 #include "../sdr_containers/SDRUnit.h"
 
-#include "../pin_map.h"
+#include "pin_map.h"
 #include "../hardware_interface/StatusLED.h"
 #include "../hardware_interface/InterfaceMaster.h"
 
-#include "../Persistence.h"
+#include "Persistence.h"
 
 #include "../data_containers/ps_string.h"
 #include "../data_containers/ps_vector.h"
 #include "../data_containers/ps_queue.h"
 
-#include "../config.h"
+#include "config.h"
 
 #include "../RTOS_tasks/sentry_task.h"
 #include "../RTOS_tasks/rule_engine_task.h"
@@ -49,18 +50,19 @@ class Exception : public std::exception {
 };
 
 /**
- * @brief A simple template class which ensures global variable concurrency. On construction, the provided mutex is taken. The data type can then by get/set by reference
- * using the data() method. The semaphore is automatically given once the class runs out of scope.
+ * @brief A simple template class which guards access to a global variable using a semaphore. On construction, the provided mutex is taken. 
+ * The data type can then by get/set by reference using the data() method. The semaphore is automatically given back once the class runs out of scope.
+ * Cannot be copied.
  * 
  * @tparam DataType The type of data the class should hold.
  */
 template <typename DataType>
 class VarGuard {
     private:
-        SemaphoreHandle_t _mutex;
-        DataType& _data;
+        SemaphoreHandle_t& _mutex;
+        std::shared_ptr<DataType> _data;
     public:
-        VarGuard(SemaphoreHandle_t& mutex) :_mutex(mutex) {
+        VarGuard(SemaphoreHandle_t& mutex) :_mutex(mutex), _data(nullptr) {
             xSemaphoreTake(_mutex, portMAX_DELAY);
         }
 
@@ -70,32 +72,41 @@ class VarGuard {
          * @return DataType& 
          */
         DataType& data() {
+            if (!_data) {
+                throw std::runtime_error("Data not initialized");
+            }
+            return *_data;
+        }
+
+        std::shared_ptr<DataType> ptr() {
             return _data;
         }
 
+        /**
+         * @brief Operator to set the internal shared pointer of the guard class.
+         * 
+         * @param data - std::shared_ptr of DataType in guard class.
+         * @return VarGuard& 
+         */
+        VarGuard& operator=(const std::shared_ptr<DataType>& data) {
+            _data = data;
+            return *this;
+        }
+        
+        // Destructor
         ~VarGuard() {
             xSemaphoreGive(_mutex);
         }
 };
 
-class AppClass : public StatusLED {
+class AppClass : public StatusLED, public std::enable_shared_from_this<AppClass> {
     private: 
         void initRTOS();
         void deinitRTOS();
 
-        friend InterfaceMaster;
-        void interface_rx_callback(uint8_t interface, std::string message);
-
-        friend MQTTClient;
-        void mqtt_client_rx_callback(MessageDeserializer* message);
-
-        SDRUnit* unit = nullptr;
-        ps_vector<Module*> modules;
-        ps_vector<Evaluator*> evaluators;
-        Executor* executor = nullptr;
-
-        MQTTClient* mqtt_client = nullptr;
-        InterfaceMaster* interface = nullptr;
+        std::shared_ptr<SDRUnit> unit;
+        std::shared_ptr<ps_vector<std::shared_ptr<Module>>> modules;
+        std::shared_ptr<fs::LittleFSFS> file_system;
 
     public:
         SemaphoreHandle_t sentry_task_semaphore;
@@ -105,12 +116,7 @@ class AppClass : public StatusLED {
 
         SemaphoreHandle_t unit_mutex;
         SemaphoreHandle_t modules_mutex;
-        SemaphoreHandle_t evaluators_mutex;
-
-        SemaphoreHandle_t executor_binary_semaphore;
-        SemaphoreHandle_t mqtt_client_binary_semaphore;
-        SemaphoreHandle_t interface_binary_semaphore;
-        SemaphoreHandle_t fs_binary_semaphore;
+        SemaphoreHandle_t fs_mutex;
 
         TaskHandle_t sentry_task_handle;
         TaskHandle_t control_task_handle;
@@ -122,35 +128,26 @@ class AppClass : public StatusLED {
         QueueHandle_t comms_task_queue;
         QueueHandle_t rule_engine_task_queue;
 
-        AppClass() : StatusLED() {}
+        AppClass() : StatusLED(), unit(nullptr), modules(nullptr) {}
         ~AppClass() {
-            deinitRTOS();
-            delete unit, executor, mqtt_client, interface;
-
-            for (auto v : modules) {
-                delete v;
-            }
-
-            for (auto v : evaluators) {
-                delete v;
-            }
         }
 
         bool begin();
 
-        VarGuard<SDRUnit*> get_unit();
-        VarGuard<ps_vector<Module*>> get_modules();
-
-        VarGuard<ps_vector<Evaluator*>> get_evaluators();
-        VarGuard<Executor*> get_executor();
-
-        VarGuard<MQTTClient*> get_mqtt_client();
-        VarGuard<InterfaceMaster*> get_interface();
+        VarGuard<SDRUnit> get_unit();
+        VarGuard<ps_vector<std::shared_ptr<Module>>> get_modules();
         VarGuard<fs::LittleFSFS> get_fs();
 
+        std::shared_ptr<AppClass> get_shared_ptr() {
+            return shared_from_this();
+        }
+
+        void set_unit(std::shared_ptr<SDRUnit> _unit) {
+            xSemaphoreTake(unit_mutex, portMAX_DELAY);
+            unit = _unit;
+            xSemaphoreGive(unit_mutex);
+        }
+
 };
-
 }
-
-extern SDR::AppClass SDRApp;
 #endif

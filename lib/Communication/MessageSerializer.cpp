@@ -1,7 +1,7 @@
 #include "MessageSerializer.h"
 
 #include <Arduino.h>
-#include "base64.h"
+#include "ps_base64.h"
 #include <cctype>
 #include <algorithm>
 #include "esp_heap_caps.h"

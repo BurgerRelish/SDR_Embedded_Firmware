@@ -31,7 +31,7 @@
 
 */
 
-#include "base64.h"
+#include "ps_base64.h"
 
 #include <algorithm>
 #include <stdexcept>

@@ -19,28 +19,18 @@ class SDRUnit: public TagSearch, public RuleStore {
     int number_of_modules;
 
     ps_string unit_id_;
+    bool update;
 
     public:
-    SDRUnit(const std::string unit_id, const int module_count, const std::vector<std::string>& tag_list, const ps_string& nvs_tag) : 
+    SDRUnit(const std::string unit_id, const int module_count, const std::vector<std::string>& tag_list,  bool update_required = false) : 
     number_of_modules(module_count),
     total_active_power(0),
     total_reactive_power(0),
     total_apparent_power(0),
     power_status(false),
-    TagSearch(tag_list, nvs_tag),
-    RuleStore(nvs_tag)
-    {
-        unit_id_ <<= unit_id;
-    }
-
-    SDRUnit(const std::string unit_id, const ps_string& nvs_tag) : 
-    number_of_modules(0),
-    total_active_power(0),
-    total_reactive_power(0),
-    total_apparent_power(0),
-    power_status(false),
-    TagSearch(nvs_tag),
-    RuleStore(nvs_tag)
+    update(update_required),
+    TagSearch(tag_list),
+    RuleStore()
     {
         unit_id_ <<= unit_id;
     }

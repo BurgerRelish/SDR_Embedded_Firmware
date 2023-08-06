@@ -4,6 +4,7 @@
 #include <LittleFS.h>
 
 #include "json_allocator.h"
+#include "../data_containers/ps_smart_ptr.h"
 
 
 bool MQTTClient::storeParams(){
@@ -33,15 +34,12 @@ bool MQTTClient::ready() {
 
 bool MQTTClient::begin() {
     if (!ready()) return false;
-    if (mqtt_client != nullptr) {
-        mqtt_client = new PubSubClient(_server.c_str(), _port, *connectivity_client);
-    }
 
-    mqtt_client->setCallback([this](char* topic, uint8_t* payload, uint32_t length) { this->mqtt_callback(topic, payload, length); });
-    mqtt_client->connect(_username.c_str(), _username.c_str(), _password.c_str());
+    mqtt_client.setCallback([this](char* topic, uint8_t* payload, uint32_t length) { this->mqtt_callback(topic, payload, length); });
+    mqtt_client.connect(_username.c_str(), _username.c_str(), _password.c_str());
 
     for (size_t i = 1; i < _topics.size(); i++) {
-        mqtt_client -> subscribe(_topics.at(i).c_str());
+        mqtt_client.subscribe(_topics.at(i).c_str());
     }
 
     return true;
@@ -53,16 +51,13 @@ void MQTTClient::mqtt_callback(char* topic, uint8_t* payload, uint32_t length) {
     ps_string message((char*) payload, length);
     log_printf("Message: %s\n", message.c_str());
 
-    MessageDeserializer request(message);
-
-    rx_callback(&request);
+    rx_callback(ps::make_shared<MessageDeserializer>(message));
 
     return;
 }
 
 bool MQTTClient::send(ps_string& message) {
-    if (mqtt_client == nullptr) return false;
-    if (!mqtt_client -> connected()) return false;
+    if (!mqtt_client.connected()) return false;
 
-    return mqtt_client -> publish(_topics.at(0).c_str(), message.c_str());
+    return mqtt_client.publish(_topics.at(0).c_str(), message.c_str());
 }

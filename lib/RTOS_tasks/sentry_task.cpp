@@ -1,6 +1,8 @@
 #include "sentry_task.h"
 #include "config.h"
 
+#include <Arduino.h>
+
 #include <FastLED.h>
 #include <WiFi.h>
 #include <Preferences.h>
@@ -8,7 +10,7 @@
 #include <sstream>
 #include <HTTPClient.h>
 
-#include "../SDRApp.h"
+#include "SDRApp.h"
 
 #include "VariableDelay.h"
 #include "../data_containers/ps_string.h"
@@ -43,7 +45,7 @@ void storeWiFiCredentials(String ssid, String password);
 void initGSM();
 void storeGSMCredentials(String apn, String pin);
 
-void initMQTT();
+// void initMQTT();
 /* ====================== */
 
 
@@ -58,7 +60,7 @@ struct unitSetupParameters {
 };
 
 bool checkSetup();
-unitSetupParameters fetchUnitParameters();
+// unitSetupParameters fetchUnitParameters();
 /* ============= */
 
 /* Status LED Functions */
@@ -67,33 +69,46 @@ uint8_t gHue = 0;
 #define deltaHue 1
 #define BRIGHTNESS 25
 
-void initFastLED();
-void updateRainbow();
-void setStatic(const uint8_t hue);
+// void initFastLED();
+// void updateRainbow();
+// void setStatic(const uint8_t hue);
 /* ==================== */
 
 void checkTaskStatus(TaskHandle_t task);
 
-void sentryPrintInfo(SDR::AppClass* app) {
-    ESP_LOGI("SENTRY", "==== Task Information ====");
-    log_printf("Sentry - State: %d, High Watermark: %u\n",eTaskGetState(app -> sentry_task_handle), uxTaskGetStackHighWaterMark2(app -> sentry_task_handle));
-    log_printf("Comms - State: %d, High Watermark: %u\n",eTaskGetState(app -> comms_task_handle), uxTaskGetStackHighWaterMark2(app -> comms_task_handle));
-    log_printf("Control - State: %d, High Watermark: %u\n",eTaskGetState(app -> control_task_handle), uxTaskGetStackHighWaterMark2(app -> control_task_handle));
-    log_printf("Rule Engine - State: %d, High Watermark: %u\n",eTaskGetState(app -> rule_engine_task_handle), uxTaskGetStackHighWaterMark2(app -> rule_engine_task_handle));
-}
+// void sentryPrintInfo(SDR::AppClass* app) {
+//     ESP_LOGI("SENTRY", "==== Task Information ====");
+//     log_printf("Sentry - State: %d, High Watermark: %u\n",eTaskGetState(app -> sentry_task_handle), uxTaskGetStackHighWaterMark2(app -> sentry_task_handle));
+//     log_printf("Comms - State: %d, High Watermark: %u\n",eTaskGetState(app -> comms_task_handle), uxTaskGetStackHighWaterMark2(app -> comms_task_handle));
+//     log_printf("Control - State: %d, High Watermark: %u\n",eTaskGetState(app -> control_task_handle), uxTaskGetStackHighWaterMark2(app -> control_task_handle));
+//     log_printf("Rule Engine - State: %d, High Watermark: %u\n",eTaskGetState(app -> rule_engine_task_handle), uxTaskGetStackHighWaterMark2(app -> rule_engine_task_handle));
+// }
 
 void sentryTaskFunction(void* global_class) {
+    std::shared_ptr<SDR::AppClass> app;
+    {
+        auto appClass = static_cast<SDR::AppClass*>(global_class);
+        app = appClass -> get_shared_ptr();
+    }
+
     try {
-        auto app = (SDR::AppClass*) global_class;
+        xSemaphoreTake(app -> sentry_task_semaphore, portMAX_DELAY);
+        xSemaphoreGive(app -> sentry_task_semaphore);
+        app -> setStatusLEDState(STATUS_LED_SETUP);
+        app -> updateStatusLED();
+
         /* Allow other RTOS tasks to start. */
         xSemaphoreGive(app -> control_task_semaphore);
         xSemaphoreGive(app -> rule_engine_task_semaphore);
         xSemaphoreGive(app -> comms_task_semaphore);
 
         VariableDelay vd(SENTRY_TASK_NAME, TARGET_LOOP_FREQUENCY); // Create a new variable delay class to set target frequency.
-        vd.addCallback([app](){sentryPrintInfo(app);}, 2500);
+        // vd.addCallback([app](){sentryPrintInfo(app);}, 2500);
 
         while(1) {
+            xSemaphoreTake(app -> sentry_task_semaphore, portMAX_DELAY);
+            xSemaphoreGive(app -> sentry_task_semaphore);
+            
             if(!app -> updateStatusLED()) ESP_LOGE("SENTRY", "Failed to update Status LED.");
 
             checkTaskStatus(app -> comms_task_handle);
@@ -152,23 +167,23 @@ void setConnectivityType(ConnectivityType type) {
     ESP_LOGI(SENTRY_TASK_NAME, "Connectivity type set: %d", type);
 }
 
-void connect() {
-    ConnectivityType type = getConnectivityType();
+// void connect() {
+//     ConnectivityType type = getConnectivityType();
 
-    if (type == CONNECT_WIFI || type == CONNECT_BOTH) {
-        initWiFi();
-    }
+//     if (type == CONNECT_WIFI || type == CONNECT_BOTH) {
+//         initWiFi();
+//     }
 
-    if (type == CONNECT_GSM || type == CONNECT_BOTH) {
-        initGSM();
-    }
+//     if (type == CONNECT_GSM || type == CONNECT_BOTH) {
+//         initGSM();
+//     }
 
-    if (type != CONNECT_NONE) {
-        initMQTT();
-    }
+//     if (type != CONNECT_NONE) {
+//         initMQTT();
+//     }
     
-    return;
-}
+//     return;
+// }
 
 void initWiFi() {
     nvs.begin(CONNECTIVITY_STORAGE_NVS_PATH);
@@ -233,41 +248,6 @@ bool checkSetup() {
     nvs.end();
 
     return retval;
-}
-
-unitSetupParameters fetchUnitParameters(const char* api_url, uint32_t api_port, const char* uid, const char* key) {
-    HTTPClient client;
-    std::ostringstream url;
-
-    url << "http://" << api_url << ":" << api_port << "/setup/&uid=" << uid << "&key=" << key;
-    ESP_LOGI("HTTP", "GETting Unit Parameters");
-    log_printf("URL: %s\n", url.str().c_str());
-
-    client.setURL(url.str().c_str());
-    auto response_code = client.GET();
-
-    if (response_code != 200) { // HTTP 200 - OK
-        ESP_LOGE("HTTP", "Error in HTTP GET request: %d", response_code);
-        client.end();
-        return;
-    }
-    
-    ps_string response_str = client.getString().c_str();
-    log_printf("Got response: %s\n", response_str.c_str());
-
-    client.end();
-
-    MessageDeserializer params(response_str);
-    unitSetupParameters ret;
-
-    ret.broker_port = params["port"];
-    ret.broker_url = params["url"];
-    ret.mqtt_ingress_topic = params["itopic"];
-    ret.mqtt_device_topic = params["dtopic"];
-    ret.mqtt_area_topic = params["itopic"];
-    ret.mqtt_password = params["pass"];
-
-    return ret;
 }
 
 

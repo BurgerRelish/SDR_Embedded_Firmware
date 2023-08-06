@@ -23,7 +23,7 @@ class TagSearch {
     }
 
     public:
-    TagSearch(const std::vector<std::string>& tag_list, const ps_string& nvs_path) {
+    TagSearch(const std::vector<std::string>& tag_list) {
         //clearTags();
 
         ps_string temp;
@@ -34,16 +34,6 @@ class TagSearch {
         }
 
         //saveTags();
-    }
-
-    TagSearch(const ps_vector<ps_string>& tag_list, const ps_string& nvs_path) {
-        //clearTags();
-        class_tags = tag_list;
-        //saveTags();
-    }
-
-    TagSearch(const ps_string& nvs_path) {
-        //loadTags();
     }
 
     const ps_vector<ps_string>& getTags() {

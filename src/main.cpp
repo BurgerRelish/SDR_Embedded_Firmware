@@ -1,13 +1,12 @@
 #include <Arduino.h>
-#include "../../lib/SDRApp.h"
+#include <memory>
+#include "SDRApp.h"
 
-using namespace SDR;
-
-AppClass app;
+std::shared_ptr<SDR::AppClass> app;
 
 void setup() {
-  app = AppClass();
-  app.begin();
+  app = std::make_shared<SDR::AppClass>();
+  app -> begin();
 }
 
 void loop() {}

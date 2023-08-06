@@ -5,10 +5,20 @@
 #include <Arduino.h>
 #include <FastLED.h>
 
-#include "../config.h"
-#include "../pin_map.h"
+#include "../SDR/config.h"
+#include "../SDR/pin_map.h"
+
+enum statusLEDState {
+    STATUS_LED_SETUP,
+    STATUS_LED_CONNECTING,
+    STATUS_LED_DISCOVERING_MODULES,
+    STATUS_LED_RUNNING,
+    STATUS_LED_HIDE,
+    STATUS_LED_ERROR
+};
 
 class StatusLED {
+
     protected:
         CRGB* status_led;
         statusLEDState status_led_state;
@@ -69,15 +79,6 @@ class StatusLED {
         }
     
     public:
-
-        enum statusLEDState {
-            STATUS_LED_SETUP,
-            STATUS_LED_CONNECTING,
-            STATUS_LED_DISCOVERING_MODULES,
-            STATUS_LED_RUNNING,
-            STATUS_LED_HIDE,
-            STATUS_LED_ERROR
-        };
 
         StatusLED() {
             status_led = new CRGB[1];

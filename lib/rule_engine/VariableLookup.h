@@ -3,6 +3,7 @@
 #ifndef VARIABLE_LOOKUP_H
 #define VARIABLE_LOOKUP_H
 #include <Arduino.h>
+#include <memory>
 #include "../sdr_containers/SDRModule.h"
 #include "../sdr_containers/SDRUnit.h"
 #include "Language.h"
@@ -18,10 +19,10 @@ class VariableLookup {
     double toDouble(ps_string& str);
     
     public:
-    SDRUnit& unit;
-    Module& module;
+    std::shared_ptr<SDRUnit> unit;
+    std::shared_ptr<Module> module;
 
-    VariableLookup(SDRUnit& _unit, Module& _module) : unit(_unit), module(_module) {}
+    VariableLookup(std::shared_ptr<SDRUnit> _unit, std::shared_ptr<Module> _module) : unit(_unit), module(_module) {}
     
     const VarType& getVarType(const Token& search_token);
 
