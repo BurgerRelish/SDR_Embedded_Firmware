@@ -24,7 +24,6 @@ class MQTTClient {
         ps_string _password;
         ps_vector<ps_string> _topics;
         
-        bool recallParams();
         bool ready();
 
         friend PubSubClient;
@@ -38,8 +37,6 @@ class MQTTClient {
                 setServer(server, port);
                 setCredentials(username, password);
                 setTopics(topics);
-
-                storeParams();
                 if(ready()) begin();
             }
 
@@ -58,8 +55,6 @@ class MQTTClient {
         void setTopics(ps_vector<ps_string>& topics) {_topics = topics;}
         ps_vector<ps_string>& getTopics() {return _topics;}
 
-        bool storeParams();
-        bool deleteParams();
         bool begin();
 
         PubSubClient& getClient() {
@@ -67,6 +62,7 @@ class MQTTClient {
         }
 
         bool send(ps_string& message);
+        bool MQTTClient::send(ps_string& message, ps_string& topic)
         
 };
 

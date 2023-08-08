@@ -7,6 +7,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <ArduinoJson.h>
 
 #include "../data_containers/ps_string.h"
 #include "../data_containers/ps_vector.h"
@@ -29,8 +30,19 @@ class RuleStore {
         }
     
     public:
-        RuleStore() {
-            //loadRules();
+        RuleStore(std::vector<Rule> rule_list) {
+            rule_store <<= rule_list;
+        }
+
+        void saveRules(JsonArray& rule_array) {
+            rule_array.clear();
+            for (auto rule : rule_store) {
+                auto rule_object = rule_array.createNestedObject();
+
+                rule_object["pr"] = rule.priority;
+                rule_object["exp"] = rule.expression.c_str();
+                rule_object["cmd"] = rule.command.c_str();
+            }
         }
 
         const ps_vector<Rule>& getRules() {

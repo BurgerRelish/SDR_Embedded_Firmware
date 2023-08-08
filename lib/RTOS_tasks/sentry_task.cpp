@@ -21,68 +21,26 @@
 
 #define TARGET_LOOP_FREQUENCY 10
 
-/* NVS Functions */
-Preferences nvs;
-
-/* ============= */
-
-/* Connectivity Functions */
-enum ConnectivityType {
-    CONNECT_WIFI,
-    CONNECT_GSM,
-    CONNECT_BOTH,
-    CONNECT_NONE
-};
-
-ConnectivityType getConnectivityType();
-void setConnectivityType(ConnectivityType type);
-void connect();
-
-void initWiFi();
-void connectWiFi(const char* ssid, const char* password);
-void storeWiFiCredentials(String ssid, String password);
-
-void initGSM();
-void storeGSMCredentials(String apn, String pin);
-
-// void initMQTT();
-/* ====================== */
-
-
-/* Dynamic Setup */
-struct unitSetupParameters {
-    ps_string broker_url;
-    ps_string broker_port;
-    ps_string mqtt_password;
-    ps_string mqtt_ingress_topic;
-    ps_string mqtt_area_topic;
-    ps_string mqtt_device_topic;
-};
-
-bool checkSetup();
-// unitSetupParameters fetchUnitParameters();
-/* ============= */
-
-/* Status LED Functions */
-CRGB status_led[1];
-uint8_t gHue = 0;
-#define deltaHue 1
-#define BRIGHTNESS 25
-
-// void initFastLED();
-// void updateRainbow();
-// void setStatic(const uint8_t hue);
-/* ==================== */
-
 void checkTaskStatus(TaskHandle_t task);
+void bootSequence(std::shared_ptr<SDR::AppClass>&);
 
-// void sentryPrintInfo(SDR::AppClass* app) {
-//     ESP_LOGI("SENTRY", "==== Task Information ====");
-//     log_printf("Sentry - State: %d, High Watermark: %u\n",eTaskGetState(app -> sentry_task_handle), uxTaskGetStackHighWaterMark2(app -> sentry_task_handle));
-//     log_printf("Comms - State: %d, High Watermark: %u\n",eTaskGetState(app -> comms_task_handle), uxTaskGetStackHighWaterMark2(app -> comms_task_handle));
-//     log_printf("Control - State: %d, High Watermark: %u\n",eTaskGetState(app -> control_task_handle), uxTaskGetStackHighWaterMark2(app -> control_task_handle));
-//     log_printf("Rule Engine - State: %d, High Watermark: %u\n",eTaskGetState(app -> rule_engine_task_handle), uxTaskGetStackHighWaterMark2(app -> rule_engine_task_handle));
-// }
+void sentryPrintInfo(std::shared_ptr<SDR::AppClass> app) {
+
+    ESP_LOGI("SENTRY", "\n======= Task Information =======");
+    log_printf("|    Task     | State |  Stack |");
+    log_printf("\n|    Sentry   |   %d   | %5uB |",(int)eTaskGetState(app -> sentry_task_handle), (uint32_t)uxTaskGetStackHighWaterMark(app -> sentry_task_handle));
+    log_printf("\n|    Comms    |   %d   | %5uB |",(int)eTaskGetState(app -> comms_task_handle), (uint32_t)uxTaskGetStackHighWaterMark(app -> comms_task_handle));
+    log_printf("\n|   Control   |   %d   | %5uB |",(int)eTaskGetState(app -> control_task_handle), (uint32_t)uxTaskGetStackHighWaterMark(app -> control_task_handle));
+    log_printf("\n| Rule Engine |   %d   | %5uB |",(int)eTaskGetState(app -> rule_engine_task_handle), (uint32_t)uxTaskGetStackHighWaterMark(app -> rule_engine_task_handle));
+    log_printf("\n--------------------------------");
+
+    size_t free_psram = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
+    size_t tot_psram = heap_caps_get_total_size(MALLOC_CAP_SPIRAM);
+    size_t free_sram = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
+    size_t tot_sram = heap_caps_get_total_size(MALLOC_CAP_INTERNAL);
+    log_printf("\n- PSRAM Usage: %f%%", 100 *( 1 - ((float) free_psram) / ((float) tot_psram)));
+    log_printf("\n- SRAM Usage: %f%%\n\n", 100 * (1 - ((float) free_sram) / ((float) tot_sram)));
+}
 
 void sentryTaskFunction(void* global_class) {
     std::shared_ptr<SDR::AppClass> app;
@@ -98,13 +56,11 @@ void sentryTaskFunction(void* global_class) {
         app -> updateStatusLED();
 
         /* Allow other RTOS tasks to start. */
-        xSemaphoreGive(app -> control_task_semaphore);
-        xSemaphoreGive(app -> rule_engine_task_semaphore);
-        xSemaphoreGive(app -> comms_task_semaphore);
+        bootSequence(app);
 
         VariableDelay vd(SENTRY_TASK_NAME, TARGET_LOOP_FREQUENCY); // Create a new variable delay class to set target frequency.
-        // vd.addCallback([app](){sentryPrintInfo(app);}, 2500);
-
+        vd.addCallback([app](){sentryPrintInfo(app);}, (uint32_t)2500);
+        app -> setStatusLEDState(STATUS_LED_RUNNING);
         while(1) {
             xSemaphoreTake(app -> sentry_task_semaphore, portMAX_DELAY);
             xSemaphoreGive(app -> sentry_task_semaphore);
@@ -116,7 +72,6 @@ void sentryTaskFunction(void* global_class) {
             checkTaskStatus(app -> rule_engine_task_handle);
             
             vd.loop();
-            vd.delay();
         }
     } catch (SDR::Exception &e) {
         ESP_LOGE("SENTRY", "SDR Exception: %s", e.what());
@@ -152,102 +107,48 @@ void checkTaskStatus(TaskHandle_t task) {
     }
 }
 
-ConnectivityType getConnectivityType() {
-    nvs.begin(CONNECTIVITY_STORAGE_NVS_PATH);
-    uint8_t type = nvs.getUInt("conntype");
-    nvs.end();
-    ESP_LOGI(SENTRY_TASK_NAME, "Got connectivity type: %d", type);
-    return ConnectivityType(type);
-}
+void bootSequence(std::shared_ptr<SDR::AppClass>& app) {
 
-void setConnectivityType(ConnectivityType type) {
-    nvs.begin(CONNECTIVITY_STORAGE_NVS_PATH);
-    nvs.putUInt("conntype", (uint32_t) type);
-    nvs.end();
-    ESP_LOGI(SENTRY_TASK_NAME, "Connectivity type set: %d", type);
-}
 
-// void connect() {
-//     ConnectivityType type = getConnectivityType();
-
-//     if (type == CONNECT_WIFI || type == CONNECT_BOTH) {
-//         initWiFi();
-//     }
-
-//     if (type == CONNECT_GSM || type == CONNECT_BOTH) {
-//         initGSM();
-//     }
-
-//     if (type != CONNECT_NONE) {
-//         initMQTT();
-//     }
     
-//     return;
-// }
 
-void initWiFi() {
-    nvs.begin(CONNECTIVITY_STORAGE_NVS_PATH);
-    String ssid = nvs.getString("ssid");
-    String password = nvs.getString("pass");
-    nvs.end();
-
-    if(ssid.isEmpty()) {
-        ESP_LOGI(SENTRY_TASK_NAME, "No stored WiFi credentials, using default.");
-        ssid = "DEFAULT_WIFI_SSID";
-
-        storeWiFiCredentials(ssid, String());
-    } 
-
-    #ifdef DEBUG_SENTRY
-    ESP_LOGD(SENTRY_TASK_NAME, "\n==== Loaded WiFi Credentials ====");
-    log_printf("- SSID: %s", ssid.c_str());
-    log_printf("\n- Password: %s", password.c_str());
-    log_printf("\n=================================\n");
-    #endif
-
-    connectWiFi(ssid.c_str(), password.c_str());
-}
-
-
-void connectWiFi(const char* ssid, const char* password) {
-    WiFi.begin(ssid, password);
-    while (WiFi.status() != WL_CONNECTED) {
-        ESP_LOGI(SENTRY_TASK_NAME, "Connecting to WiFi...");
-
-        if (WiFi.status() == WL_CONNECT_FAILED) {
-            ESP_LOGE(SENTRY_TASK_NAME, "Failed to connect to WiFi.");
+    /* Start Comms Task and Wait for communications setup to complete. */
+    ESP_LOGI("BOOT", "Resuming Comms Task.");
+    if(xSemaphoreGive(app -> comms_task_semaphore) != pdTRUE) ESP_LOGE("BOOT", "Failed to release comms semaphore.");
+    while (1) {
+        SentryQueueMessage msg;
+        if (xQueueReceive(app -> sentry_task_queue, &msg, 50 / portTICK_PERIOD_MS) != pdTRUE) { // Update the status LED every 50ms while waiting.
+            app -> updateStatusLED();
+            continue;
         }
 
-        vTaskDelay(1000/portTICK_PERIOD_MS);
+        ESP_LOGE("BOOT", "Got Message: %d", msg.new_state);
+        if (msg.new_state == COMMS_SETUP_COMPLETE) break;
     }
-}
 
-void storeWiFiCredentials(String ssid, String password) {
-    nvs.begin(CONNECTIVITY_STORAGE_NVS_PATH);
-    nvs.clear();
-    nvs.putString("ssid", ssid);
-    nvs.putString("pass", password);
-    nvs.end();
-}
+    // /* Start Control Task and wait for setup to complete. */
+    // xSemaphoreGive(app -> control_task_semaphore);
+    // while (1) {
+    //     if (xQueueReceive(app -> sentry_task_queue, &msg, 100 / portTICK_PERIOD_MS) != pdTRUE) { // Update the status LED every 100ms while waiting.
+    //         app -> updateStatusLED();
+    //         continue;
+    //     }
+    //     if (msg.new_state != CTRL_SETUP_COMPLETE) ESP_LOGE("SENTRY", "Got Unknown Message: %d", msg.new_state);
+    //     else break;
+    // }
+    // vTaskResume(app -> comms_task_handle); // Resume the comms task once the control task has been set up.
 
-void initGSM() {
-    return;
-}
-
-void storeGSMCredentials(String apn, String pin) {
-    nvs.begin(CONNECTIVITY_STORAGE_NVS_PATH);
-    nvs.clear();
-    nvs.putString("apn", apn);
-    nvs.putString("pin", pin);
-    nvs.end();
-}
-
-bool checkSetup() {
-    nvs.begin("/SETUP");
-    auto retval = nvs.getBool("SETUP");
-    nvs.end();
-
-    return retval;
+    // /* Start the Rule Engine task and wait for setup to complete. */
+    // xSemaphoreGive(app -> rule_engine_task_semaphore);
+    // while (1) {
+    //     if (xQueueReceive(app -> sentry_task_queue, &msg, 100 / portTICK_PERIOD_MS) != pdTRUE) { // Update the status LED every 100ms while waiting.
+    //         app -> updateStatusLED();
+    //         continue;
+    //     }
+    //     if (msg.new_state != RE_SETUP_COMPLETE) ESP_LOGE("SENTRY", "Got Unknown Message: %d", msg.new_state);
+    //     else break;
+    // }
+    // vTaskResume(app -> control_task_handle); // Resume the control task once both the rule engine and comms tasks are running.
 }
 
 

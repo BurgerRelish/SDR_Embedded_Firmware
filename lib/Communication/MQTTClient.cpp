@@ -1,25 +1,9 @@
 #include "MQTTClient.h"
 #include <PubSubClient.h>
-#include <FS.h>
-#include <LittleFS.h>
 
 #include "json_allocator.h"
 #include "../data_containers/ps_smart_ptr.h"
 
-
-bool MQTTClient::storeParams(){
-    return true;
-}
-
-bool MQTTClient::recallParams(){
-
-    return true;
-}
-
-bool MQTTClient::deleteParams() {
-
-    return true;
-}
 
 bool MQTTClient::ready() {
     bool ret = (_username.length() > 0);
@@ -61,3 +45,10 @@ bool MQTTClient::send(ps_string& message) {
 
     return mqtt_client.publish(_topics.at(0).c_str(), message.c_str());
 }
+
+bool MQTTClient::send(ps_string& message, ps_string& topic) {
+    if (!mqtt_client.connected()) return false;
+
+    return mqtt_client.publish(topic.c_str(), message.c_str());
+}
+

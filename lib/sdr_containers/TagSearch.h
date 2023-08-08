@@ -7,6 +7,7 @@
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <ArduinoJson.h>
 
 #include "../data_containers/ps_string.h"
 #include "../data_containers/ps_vector.h"
@@ -15,12 +16,6 @@ class TagSearch {
     private:
     ps_vector<ps_string> class_tags;
     ps_string _nvs_path;
-
-    void loadTags() {
-    }
-
-    void saveTags() {
-    }
 
     public:
     TagSearch(const std::vector<std::string>& tag_list) {
@@ -32,12 +27,26 @@ class TagSearch {
             class_tags.push_back(temp);
             temp.clear();
         }
-
-        //saveTags();
     }
 
-    const ps_vector<ps_string>& getTags() {
-        return class_tags;
+    void saveTags(JsonArray& tag_array) {
+        tag_array.clear();
+        for (auto tag : class_tags) {
+            auto tag_obj = tag_array.add(tag.c_str());
+        }
+    }
+
+    std::vector<std::string> getTags() {
+        std::string temp;
+        std::vector<std::string> ret;
+
+        for (auto tag : class_tags) {
+            temp <<= tag;
+            ret.push_back(temp);
+            temp.clear();
+        }
+
+        return ret;
     }
 
     void clearTags() {
@@ -46,31 +55,26 @@ class TagSearch {
 
     void appendTag(const ps_string& tag) {
         class_tags.push_back(tag);
-        saveTags();
     }
 
     void appendTag(const ps_vector<ps_string>& tags) {
         for (size_t i = 0; i < tags.size(); i++) {
             class_tags.push_back(tags.at(i));
         }
-        saveTags();
     }
 
     void replaceTag(const ps_string& tag) {
         clearTags();
         class_tags.push_back(tag);
-        saveTags();
     }
 
     void replaceTag(const ps_vector<ps_string>& tags) {
         clearTags();
         class_tags = tags;
-        saveTags();
     }
 
     void replaceTag(ps_string& tag, size_t loc) {
         class_tags.at(loc) = tag;
-        saveTags();
     }
 
     /**

@@ -2,21 +2,37 @@
 #include "SDRApp.h"
 #include <memory>
 #include <unordered_map>
+#include <tuple>
+
 #include "../data_containers/ps_smart_ptr.h"
 #include "../data_containers/ps_vector.h"
 #include "../data_containers/ps_string.h"
+#include "../data_containers/ps_queue.h"
 
 struct InterfaceRxMessage {
-    uint8_t interface;
+    uint16_t address;
     std::string message;
-} incoming_message;
+};
 
-void interfaceRxCallback(uint8_t, std::string);
-void handleControlMessage(std::shared_ptr<SDR::AppClass>, std::shared_ptr<InterfaceMaster>);
+std::shared_ptr<ps_queue<InterfaceRxMessage>> incoming_message;
+
+
+using ModuleParameterMap = std::unordered_map<std::string, std::tuple<int, std::vector<std::string>, std::vector<Rule>>>;
+using ModuleAddressMap = std::unordered_map<uint16_t, std::shared_ptr<Module>>;
+
+void interfaceRxCallback(uint16_t, std::string);
+void handleControlMessage(std::shared_ptr<SDR::AppClass>&, std::shared_ptr<InterfaceMaster>&);
+void handleInterfaceMessage(std::shared_ptr<SDR::AppClass>&, InterfaceRxMessage&, ModuleAddressMap&);
+void sendStateChanges(std::shared_ptr<SDR::AppClass>&, std::shared_ptr<InterfaceMaster>&);
+
+ModuleParameterMap loadModuleParameters(Persistence<fs::LittleFSFS>&);
+
+uint16_t countChar(std::string, char);
 
 void controlTaskFunction(void* global_class) {
     std::shared_ptr<InterfaceMaster> interface(nullptr);
-
+    incoming_message = std::make_shared<ps_queue<InterfaceRxMessage>>();
+    
     std::shared_ptr<SDR::AppClass> app(nullptr);
     { /* Convert nullptr into AppClass pointer, then get a shared pointer of the class, releasing the appClass pointer once it is no longer required. */
         auto appClass = static_cast<SDR::AppClass*>(global_class);
@@ -41,92 +57,110 @@ void controlTaskFunction(void* global_class) {
             }
         }
 
+
+        ModuleAddressMap module_address_map;
+
         { /* Create a module class for every discovered module. */
-            auto filesys = app -> get_fs();
+            auto filesys = app -> get_fs(); // Get lock on global variables.
             Persistence<fs::LittleFSFS> nvs(filesys.data(), "/modules.txt", 4096, true); // Load existing Modules and their Tags, and allow for updates to be written to fs.
-            auto known_modules = nvs.document.as<JsonArray>();
+            auto module_map = loadModuleParameters(nvs);
 
-            std::unordered_map<std::string, std::pair<uint8_t, std::vector<std::string>>> module_map;
-
-            /* Load all known modules into an unordered map for ease of identification. */
-            for (size_t i = 0; i < known_modules.size(); i++) {
-                std::vector<std::string> tags;
-                auto tag_list = known_modules[i]["tags"].as<JsonArray>();
-
-                for (auto tag : tag_list) {
-                    tags.push_back(tag);
-                }
-
-                module_map.insert(
-                    std::pair<std::string, std::pair<uint8_t, std::vector<std::string>>>(
-                        known_modules[i]["mid"],
-                        std::pair<uint8_t, std::vector<std::string>>(known_modules[i]["pr"].as<uint8_t>(),
-                                                                    tags))
-                );
-            }
-
-            incoming_message.interface = 3;
             for (uint8_t interface_no = 0; interface_no <= 1; interface_no++) {
                 for (uint8_t address = 0; address <= interface -> get_end_device_address(interface_no); address++) {
                     interface -> send(interface_no, address, 1);
-                    while (incoming_message.interface == 3) {vTaskDelay(5/portTICK_PERIOD_MS);} // Wait for module parameter announce.
+                    while (incoming_message->empty()) {vTaskDelay(5/portTICK_PERIOD_MS);} // Wait for module parameter announce.
                     auto modules = app -> get_modules(); // Fetch global module vector.
                     
-                    auto found_module = module_map.find(incoming_message.message);
+                    auto found_module = module_map.find(incoming_message->front().message);
 
                     if (found_module == module_map.end()) { // Found unknown module
                         modules.data().push_back(
-                                ps::make_shared<Module>(
-                                    incoming_message.message, // ID
-                                    std::vector<std::string>(), // Tag List
-                                    0, // Priority
-                                    address, // SWI Address
-                                    interface_no, // RS485 Interface
-                                    true // Requires an update.
+                                ps::make_shared<Module>(                // Create a new Module class on PSRAM.
+                                    incoming_message->front().message,   // ID
+                                    -1,                                 // Priority
+                                    std::vector<std::string>(),         // Tag List
+                                    std::vector<Rule>(),                // Rule List
+                                    address,                            // SWI Address
+                                    interface_no,                       // RS485 Interface
+                                    true                                // Requires an update.
                                 )
                         );
-
-                        auto new_module = nvs.document.createNestedObject();
-                        new_module["mid"] = incoming_message.message.c_str();
-                        new_module["pr"] = 0;
-                        auto tag_arr = new_module["tags"].createNestedArray();
-
                     } else { // Found known module.
                         modules.data().push_back(
-                            ps::make_shared<Module>(
-                                found_module -> first, // ID
-                                found_module -> second.second, // Tag List
-                                found_module -> second.first, // Priority
-                                address, // SWI Address
-                                interface_no // RS485 Interface
-                                ) // Does not require an update
+                            ps::make_shared<Module>(                 // Create a new Module class on PSRAM.
+                                found_module -> first,               // ID
+                                std::get<0>(found_module -> second), // Priority
+                                std::get<1>(found_module -> second), // Tag List
+                                std::get<2>(found_module -> second), // Rule List
+                                address,                             // SWI Address
+                                interface_no                         // RS485 Interface
+                                )                                    // Does not require an update
                         );
                     }
 
-                    incoming_message.interface = 3;
+                    /* Store module address in */
+                    module_address_map.insert(
+                        std::make_pair(
+                            address + ((interface) ? 256 : 0),      // Offset interface_1 by 256.
+                            modules.data().back()                   // Get shared_ptr of module.
+                        )
+                    );
+
+                    incoming_message->pop();
                 }
             }
-        }
+        } // Return SDR::VarGuard semaphores.
+
+        /* Generate the module map. */
+        app -> generate_module_map();
 
         { /* Create the unit class */
-            auto unit = app -> get_unit();
+            auto unit = app -> get_unit(); // Get lock on global variables.
             auto filesys = app -> get_fs();
-            Persistence<fs::LittleFSFS> nvs(filesys.data(), "/device.txt", 1024, true);
+            Persistence<fs::LittleFSFS> nvs(filesys.data(), "/device.txt", 1024, true); // Open unit document.
 
+            /* Load tag list */
             std::vector<std::string> tag_list;
-            auto tag_array = nvs.document["tags"].as<JsonArray>();
-
-            for(auto v : tag_array) {
-                tag_list.push_back(v.as<std::string>());
+            {            
+                auto tag_array = nvs.document["tags"].as<JsonArray>();
+                for(auto v : tag_array) {
+                    tag_list.push_back(v.as<std::string>());
+                }
             }
 
+            /* Load rule list */
+            std::vector<Rule> rule_list;
+            {
+                auto rule_array = nvs.document["rules"].as<JsonArray>();
+                for (auto rule : rule_array) {
+                    Rule new_rule {
+                        rule["pr"].as<int>(),
+                        rule["exp"].as<ps_string>(),
+                        rule["cmd"].as<ps_string>()
+                    };
+                    rule_list.push_back(new_rule);
+                }
+            }
+
+
+            /* Create a new unit class and update the global variable of it. */
             app -> set_unit(
                 ps::make_shared<SDRUnit>(
                     nvs.document["uid"].as<std::string>(), // Unit ID
                     app -> get_modules().data().size(), // Module Count
-                    tag_list // Unit Tag List
+                    tag_list, // Unit Tag List
+                    rule_list
                 )
             );
+        } // Return SDR::VarGuard semaphores.
+        
+        /* Notify Sentry Task that setup has completed. */
+        {
+            auto msg = (SentryQueueMessage*)heap_caps_malloc(sizeof(SentryQueueMessage), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
+            msg -> new_state = CTRL_SETUP_COMPLETE;
+            msg -> data = nullptr;
+            if(xQueueSend(app -> sentry_task_queue, (void*) msg, portMAX_DELAY) != pdTRUE) throw SDR::Exception("Failed to send message.");
+            vTaskSuspend(NULL);
         }
         
         while(1) {
@@ -137,8 +171,17 @@ void controlTaskFunction(void* global_class) {
             /* Receive and Handle Queue messages. */
             handleControlMessage(app, interface);
 
-            /* Service interface loop. */
+            /* Transmit any state changes. */
+            sendStateChanges(app, interface);
+
+            /* Service interface loop to receive messages. */
             interface -> loop();
+
+            /* Check for any messages received. */
+            if (!incoming_message->empty()) {
+                handleInterfaceMessage(app, incoming_message->front(), module_address_map);
+                incoming_message->pop();
+            }
         }
 
     } catch (SDR::Exception &e) {
@@ -150,13 +193,153 @@ void controlTaskFunction(void* global_class) {
     vTaskDelete(NULL);
 }
 
-void interfaceRxCallback(uint8_t interface, std::string message) {
-    incoming_message.interface = interface;
-    incoming_message.message = message;
+/**
+ * @brief Callback for the InterfaceMaster class. Adds the received message and its interface onto the incoming message queue.
+ * 
+ * @param address 
+ * @param message 
+ */
+void interfaceRxCallback(uint16_t address, std::string message) {
+    incoming_message->push(
+        InterfaceRxMessage {
+            address, 
+            message
+        }
+    );
+
+    return;
+}
+
+void handleInterfaceMessage(std::shared_ptr<SDR::AppClass>& app, InterfaceRxMessage& message, ModuleAddressMap& module_map) {
+    auto modules_guard = app -> get_modules(); // Take control of modules semaphore.
+
+    auto module_pair = module_map.find(message.address);
+    
+    if (module_pair == module_map.end()) throw SDR::Exception("Unknown address received.");
+    auto module = module_pair -> second;
+
+    switch (countChar(message.message, '|')) {
+        case 6: // Reading: "V|PF|AP|RP|SP|kWh|State"
+        {        
+            size_t pos = 0;
+            ps_queue<double> variables;
+            while(pos < message.message.size()) {
+                size_t new_pos = message.message.find_first_of('|', pos);
+                if (new_pos == std::string::npos) new_pos = message.message.length();
+
+                variables.push(std::atof(message.message.substr(pos, new_pos - pos).c_str()));
+                pos = ++new_pos; // Skip "|"
+            }
+
+            module -> addReading(
+                Reading(variables, app -> get_epoch_time())
+            );
+        }
+        break;
+        case 0: // Command Result: "Result"
+            module -> newStatusChange(
+                StatusChange{
+                    (std::atof(message.message.c_str()) == 1) ? true : false,
+                    app -> get_epoch_time()
+                }
+            );
+
+        break;
+    }
+}
+
+void handleControlMessage(std::shared_ptr<SDR::AppClass>& app, std::shared_ptr<InterfaceMaster>& interface) {
+    
+    ControlQueueMessage msg;
+
+}
+
+/**
+ * @brief Transmits any relay state changes made to any Module to the requested module.
+ * 
+ * @param app 
+ * @param interface 
+ */
+void sendStateChanges(std::shared_ptr<SDR::AppClass>& app, std::shared_ptr<InterfaceMaster>& interface) {
+    auto modules_var = app -> get_modules();
+
+    for (auto module : modules_var.data()) {
+        if (!module -> statusChanged()) continue;
+        interface -> send(
+            module -> offset(),
+            module -> address(),
+            (module -> status()) ? 31 : 30 // ON / OFF
+        );
+    }
+}
+
+/**
+ * @brief Loads the module parameters from flash into an unordered map for module discovery.
+ * 
+ * @param nvs 
+ * @return ModuleParameterMap 
+ */
+ModuleParameterMap loadModuleParameters(Persistence<fs::LittleFSFS>& nvs) {
+    auto known_modules = nvs.document.as<JsonArray>();
+
+    ModuleParameterMap module_map;
+
+    for (auto module : known_modules) {
+        std::vector<std::string> tags;
+        {     /* Load tags into vector */
+            auto tag_list = module["tags"].as<JsonArray>();
+            for (auto tag : tag_list) {
+                tags.push_back(tag);
+            }
+        }
+
+        /* Load rules into vector */
+        std::vector<Rule> rules;
+        {
+            auto rule_list = module["rules"].as<JsonArray>();
+            for (auto rule : rule_list) {
+                Rule new_rule {
+                    rule["pr"].as<int>(),
+                    rule["exp"].as<ps_string>(),
+                    rule["cmd"].as<ps_string>()
+                };
+
+                rules.push_back(new_rule);
+            }
+        }
+
+        /* Insert new module into map */
+        module_map.insert(
+            std::make_pair (
+                module["mid"].as<std::string>(), // Module ID
+                std::make_tuple(
+                    module["pr"].as<int>(), // Module Priority
+                    tags, // Module Tag List
+                    rules // Module Rule List
+                )
+            )
+        );
+
+    }
+
+    return module_map;
+}
+
+/**
+ * @brief Counts the number of occurences of a char in a string.
+ * 
+ * @param message string to count chars in.
+ * @param ch char to count.
+ * @return uint16_t number of matching chars.
+ */
+uint16_t countChar(std::string message, char ch) {
+    uint16_t count = 0;
+    for (auto str_ch : message) {
+        if(str_ch == ch) count++;
+    }
+
+    return count;
 }
 
 
-void handleControlMessage(std::shared_ptr<SDR::AppClass> app, std::shared_ptr<InterfaceMaster> interface) {
-
-}
 

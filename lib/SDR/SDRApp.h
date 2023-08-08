@@ -6,6 +6,8 @@
 #include <FastLED.h>
 #include <LittleFS.h>
 #include <memory>
+#include <unordered_map>
+#include "time.h"
 
 #include "../Communication/MessageSerializer.h"
 #include "../Communication/MessageDeserializer.h"
@@ -32,6 +34,7 @@
 #include "../RTOS_tasks/sentry_task.h"
 #include "../RTOS_tasks/rule_engine_task.h"
 #include "../RTOS_tasks/communication_task.h"
+#include "../RTOS_tasks/control_task.h"
 
 
 namespace SDR {
@@ -99,6 +102,8 @@ class VarGuard {
         }
 };
 
+using ModuleMap = std::unordered_map<std::string, std::shared_ptr<Module>>;
+
 class AppClass : public StatusLED, public std::enable_shared_from_this<AppClass> {
     private: 
         void initRTOS();
@@ -106,6 +111,7 @@ class AppClass : public StatusLED, public std::enable_shared_from_this<AppClass>
 
         std::shared_ptr<SDRUnit> unit;
         std::shared_ptr<ps_vector<std::shared_ptr<Module>>> modules;
+        std::shared_ptr<ModuleMap> module_map;
         std::shared_ptr<fs::LittleFSFS> file_system;
 
     public:
@@ -117,6 +123,7 @@ class AppClass : public StatusLED, public std::enable_shared_from_this<AppClass>
         SemaphoreHandle_t unit_mutex;
         SemaphoreHandle_t modules_mutex;
         SemaphoreHandle_t fs_mutex;
+        SemaphoreHandle_t time_mutex;
 
         TaskHandle_t sentry_task_handle;
         TaskHandle_t control_task_handle;
@@ -133,20 +140,19 @@ class AppClass : public StatusLED, public std::enable_shared_from_this<AppClass>
         }
 
         bool begin();
+        bool generate_module_map();
+        void set_unit(std::shared_ptr<SDRUnit> _unit);
 
         VarGuard<SDRUnit> get_unit();
         VarGuard<ps_vector<std::shared_ptr<Module>>> get_modules();
         VarGuard<fs::LittleFSFS> get_fs();
+        VarGuard<ModuleMap> get_module_map();
 
-        std::shared_ptr<AppClass> get_shared_ptr() {
-            return shared_from_this();
-        }
+        std::shared_ptr<AppClass> get_shared_ptr();
 
-        void set_unit(std::shared_ptr<SDRUnit> _unit) {
-            xSemaphoreTake(unit_mutex, portMAX_DELAY);
-            unit = _unit;
-            xSemaphoreGive(unit_mutex);
-        }
+        void configure_time(uint32_t gmtOffsetSec, int daylightOffsetSec, const char* ntp_server);
+        uint64_t get_epoch_time();
+        struct tm get_local_time();
 
 };
 }

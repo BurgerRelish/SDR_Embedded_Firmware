@@ -2,7 +2,7 @@
 #include <LittleFS.h>
 #include <unity.h>
 
-#include "../Persistence.h"
+#include "../SDR/Persistence.h"
 
 void test_write() {
     Persistence<fs::LittleFSFS> nvs(LittleFS, "/test.txt", 1024, true);

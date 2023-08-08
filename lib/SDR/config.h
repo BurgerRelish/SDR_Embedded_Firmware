@@ -13,6 +13,7 @@
 #define BRIGHTNESS 25
 
 #define WIFI_HOSTNAME "SmartDemand Unit"
+#define WIFI_SETUP_AP_PASSWORD "Password123"
 #define WIFI_TIMEOUT_MS 120000
 
 /* Debugging */
@@ -29,20 +30,21 @@
 /* Sentry Task */
 #define SENTRY_TASK_NAME "SENTRY"
 
-constexpr uint32_t SENTRY_TASK_STACK = 32768;
+constexpr uint32_t SENTRY_TASK_STACK = 8096;
 constexpr uint8_t SENTRY_QUEUE_SIZE = 10;
 constexpr uint8_t SENTRY_PRIORITY = 1;
 
 enum SentryTaskState {
-    STATUS_BOOTING,
     STATUS_GOOD,
     STATUS_NO_COMMS,
     STATUS_DISCONNECT_SCHEDULED,
     STATUS_RECONNECT_SCHEDULED,
     RE_RESTART_READY,
     COMMS_RESTART_READY,
-    CTRL_RESTART_READY
-
+    CTRL_RESTART_READY,
+    COMMS_SETUP_COMPLETE,
+    CTRL_SETUP_COMPLETE,
+    RE_SETUP_COMPLETE
 };
 
 struct SentryQueueMessage {
@@ -53,7 +55,7 @@ struct SentryQueueMessage {
 /* Rule Engine Task */
 #define RULE_ENGINE_TASK_NAME "RULE_ENGINE"
 
-constexpr uint32_t RULE_ENGINE_TASK_STACK = 32768;
+constexpr uint32_t RULE_ENGINE_TASK_STACK = 98304;
 constexpr uint8_t RULE_ENGINE_QUEUE_SIZE = 10;
 constexpr uint8_t RULE_ENGINE_PRIORITY = 3;
 
@@ -91,7 +93,7 @@ struct CommsQueueMessage {
 /* Module Control Task */
 #define CONTROL_TASK_NAME "CONTROL"
 
-constexpr uint32_t CONTROL_TASK_STACK = 32768;
+constexpr uint32_t CONTROL_TASK_STACK = 16384;
 constexpr uint8_t CONTROL_QUEUE_SIZE = 10;
 constexpr uint8_t CONTROL_PRIORITY = 2;
 
