@@ -54,7 +54,9 @@
         "queue": "cpp",
         "port.h": "c",
         "shared_dictionary.h": "c",
-        "types.h": "c"
+        "types.h": "c",
+        "bitset": "cpp",
+        "regex": "cpp"
     },
     "docwriter.style": "Doxygen"
 }

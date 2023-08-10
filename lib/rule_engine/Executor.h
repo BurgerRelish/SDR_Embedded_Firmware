@@ -7,21 +7,21 @@
 
 #include "../sdr_containers/SDRUnit.h"
 #include "../sdr_containers/SDRModule.h"
-#include "../data_containers/ps_priority_queue.h"
-#include "../data_containers/ps_queue.h"
+#include "../ps_stl/ps_stl.h"
+
 #include "Language.h"
 #include "Semantics.h"
 #include "Evaluator.h"
 
 class Executor {
     private:
-        ps_priority_queue<Command> command_list;
+        ps::priority_queue<Command> command_list;
         OriginType cmd_origin_type;
         std::shared_ptr<Evaluator> cmd_origin;
-        ps_queue<Token> current_command;
+        ps::queue<Token> current_command;
         
-        ps_string command_name;
-        ps_vector<Token> parameters;
+        ps::string command_name;
+        ps::vector<Token> parameters;
 
         xQueueHandle comms_queue;
         xQueueHandle control_queue;
@@ -55,7 +55,7 @@ class Executor {
         void PUBSTAT(int window);
         void REQUPD(int window);
         void PUBREAD(int window);
-        void COMMS_NOTIFY(ps_string& message);
+        void COMMS_NOTIFY(ps::string& message);
 
     public:
         Executor(xQueueHandle _comms_queue, xQueueHandle _control_queue, xQueueHandle _rule_engine_queue):
@@ -69,7 +69,7 @@ class Executor {
             command_list.push(cmd);
         };
 
-        void addCommands(ps_queue<Command> commands) {
+        void addCommands(ps::queue<Command> commands) {
             while(!commands.empty()) {
                 command_list.push(commands.front());
                 commands.pop();

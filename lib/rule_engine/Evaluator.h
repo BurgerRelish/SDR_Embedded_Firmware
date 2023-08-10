@@ -11,7 +11,8 @@
 #include "Lexer.h"
 #include "../sdr_containers/SDRUnit.h"
 #include "../sdr_containers/SDRModule.h"
-#include "ps_queue.h"
+#include "../ps_stl/ps_stl.h"
+
 #include "Language.h"
 #include "VariableLookup.h"
 
@@ -21,23 +22,23 @@ class Evaluator : private VariableLookup, public std::enable_shared_from_this<Ev
     private:
     struct LexedRule{
         int priority;
-        ps_queue<Token> expression;
-        ps_queue<Token> commands;
+        ps::queue<Token> expression;
+        ps::queue<Token> commands;
     };
 
     OriginType origin;
 
     uint64_t delay_end_time = 0;
 
-    ps_vector<LexedRule> rules;
+    ps::vector<LexedRule> rules;
 
-    void generateRules(const ps_vector<Rule>& rule_input);
-    ps_queue<Token> lexExpression(ps_string& expr);
+    void generateRules(const ps::vector<Rule>& rule_input);
+    ps::queue<Token> lexExpression(ps::string& expr);
 
-    bool evaluateRPN(ps_queue<Token>&);
+    bool evaluateRPN(ps::queue<Token>&);
     /* Operations */
 
-    void evaluateOperator(ps_stack<Token>& tokens, Token& operator_token);
+    void evaluateOperator(ps::stack<Token>& tokens, Token& operator_token);
     bool applyBooleanOperator(Token& lhs, Token& rhs, Token& operator_token);
     double applyArithmeticOperator(Token& lhs, Token& rhs, Token& operator_token);
     bool applyComparisonOperator(Token& lhs, Token& rhs, Token& operator_token);
@@ -71,7 +72,7 @@ struct Command {
     int priority;
     OriginType type;
     std::shared_ptr<Evaluator> origin;
-    ps_queue<Token> command;
+    ps::queue<Token> command;
 };
 
 #endif // EVALUATOR_H

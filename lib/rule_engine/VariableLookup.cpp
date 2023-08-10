@@ -158,11 +158,11 @@ const uint64_t VariableLookup::getUint64(Token& token) {
     return retval;
 }
 
-const ps_string VariableLookup::getString(Token& token) {
-    ps_string retval;
+const ps::string VariableLookup::getString(Token& token) {
+    ps::string retval;
 
     if (token.type == STRING_LITERAL) return token.lexeme;
-    if (token.type != IDENTIFIER) throw std::invalid_argument("Cannot get ps_string of this token type.");
+    if (token.type != IDENTIFIER) throw std::invalid_argument("Cannot get ps::string of this token type.");
 
     retrieveVar(token.lexeme, retval);
 
@@ -170,7 +170,7 @@ const ps_string VariableLookup::getString(Token& token) {
 }
 
 
-double VariableLookup::toDouble(ps_string& str) {
+double VariableLookup::toDouble(ps::string& str) {
     std::string string;
     string <<= str;
 
@@ -190,7 +190,7 @@ const VarType&  VariableLookup::getVarType(const Token& search_token) {
     return result -> second;
 }
 
-void VariableLookup::retrieveVar(const ps_string& var, double& val) {
+void VariableLookup::retrieveVar(const ps::string& var, double& val) {
     std::string var_name;
     var_name <<= var;
 
@@ -215,7 +215,7 @@ void VariableLookup::retrieveVar(const ps_string& var, double& val) {
     }
 }
 
-void VariableLookup::retrieveVar(const ps_string& var, bool& val) {
+void VariableLookup::retrieveVar(const ps::string& var, bool& val) {
     std::string var_name;
     var_name <<= var;
 
@@ -234,7 +234,7 @@ void VariableLookup::retrieveVar(const ps_string& var, bool& val) {
     return;
 }
 
-void VariableLookup::retrieveVar(const ps_string& var, int& val) {
+void VariableLookup::retrieveVar(const ps::string& var, int& val) {
     std::string var_name;
     var_name <<= var;
 
@@ -251,7 +251,7 @@ void VariableLookup::retrieveVar(const ps_string& var, int& val) {
     return;
 }
 
-void VariableLookup::retrieveVar(const ps_string& var, uint64_t& val) {
+void VariableLookup::retrieveVar(const ps::string& var, uint64_t& val) {
     std::string var_name;
     var_name <<= var;
 
@@ -268,12 +268,12 @@ void VariableLookup::retrieveVar(const ps_string& var, uint64_t& val) {
     return;
 }
 
-void VariableLookup::retrieveVar(const ps_string& var, ps_string& val) {
+void VariableLookup::retrieveVar(const ps::string& var, ps::string& val) {
     if (var == MODULE_ID) {
         val = module->id();
     } else if (var == UNIT_ID) {
         val = unit->id();
-    } else throw std::invalid_argument("Invalid variable of type \'ps_string\' requested.");
+    } else throw std::invalid_argument("Invalid variable of type \'ps::string\' requested.");
 
     return;
 }

@@ -70,7 +70,7 @@ static unsigned int pos_of_char(const unsigned char chr) {
     throw std::runtime_error("Input is not valid base64-encoded data.");
 }
 
-static ps_string insert_linebreaks(ps_string str, size_t distance) {
+static ps::string insert_linebreaks(ps::string str, size_t distance) {
  //
  // Provided by https://github.com/JomaCorpFX, adapted by me.
  //
@@ -108,7 +108,7 @@ static String encode(String s, bool url) {
   return base64_encode(reinterpret_cast<const unsigned char*>(s.data()), s.length(), url);
 }
 
-ps_string base64_encode(unsigned char const* bytes_to_encode, size_t in_len, bool url) {
+ps::string base64_encode(unsigned char const* bytes_to_encode, size_t in_len, bool url) {
 
     size_t len_encoded = (in_len +2) / 3 * 4;
 
@@ -125,7 +125,7 @@ ps_string base64_encode(unsigned char const* bytes_to_encode, size_t in_len, boo
  //
     const char* base64_chars_ = base64_chars[url];
 
-    ps_string ret;
+    ps::string ret;
     ret.reserve(len_encoded);
 
     unsigned int pos = 0;
@@ -209,7 +209,7 @@ static String decode(String const& encoded_string, bool remove_linebreaks) {
     //
     // Emit the first output byte that is produced in each chunk:
     //
-       ret.push_back(static_cast<ps_string::value_type>( ( (pos_of_char(encoded_string.at(pos+0)) ) << 2 ) + ( (pos_of_char_1 & 0x30 ) >> 4)));
+       ret.push_back(static_cast<ps::string::value_type>( ( (pos_of_char(encoded_string.at(pos+0)) ) << 2 ) + ( (pos_of_char_1 & 0x30 ) >> 4)));
 
        if ( ( pos + 2 < length_of_string  )       &&  // Check for data that is not padded with equal signs (which is allowed by RFC 2045)
               encoded_string.at(pos+2) != '='     &&
@@ -230,7 +230,7 @@ static String decode(String const& encoded_string, bool remove_linebreaks) {
           //
           // Emit a chunk's third byte (which might not be produced in the last chunk).
           //
-             ret.push_back(static_cast<ps_string::value_type>( ( (pos_of_char_2 & 0x03 ) << 6 ) + pos_of_char(encoded_string.at(pos+3))   ));
+             ret.push_back(static_cast<ps::string::value_type>( ( (pos_of_char_2 & 0x03 ) << 6 ) + pos_of_char(encoded_string.at(pos+3))   ));
           }
        }
 
@@ -240,19 +240,19 @@ static String decode(String const& encoded_string, bool remove_linebreaks) {
     return ret;
 }
 
-ps_string base64_decode(ps_string const& s, bool remove_linebreaks) {
+ps::string base64_decode(ps::string const& s, bool remove_linebreaks) {
    return decode(s, remove_linebreaks);
 }
 
-ps_string base64_encode(ps_string const& s, bool url) {
+ps::string base64_encode(ps::string const& s, bool url) {
    return encode(s, url);
 }
 
-ps_string base64_encode_pem (ps_string const& s) {
+ps::string base64_encode_pem (ps::string const& s) {
    return encode_pem(s);
 }
 
-ps_string base64_encode_mime(ps_string const& s) {
+ps::string base64_encode_mime(ps::string const& s) {
    return encode_mime(s);
 }
 

@@ -5,25 +5,36 @@
 
 #include <PubSubClient.h>
 #include <Client.h>
+#include <WiFi.h>
 
 #include <functional>
 #include <memory>
 #include <string>
 #include "../Communication/MessageDeserializer.h"
-#include "../data_containers/ps_string.h"
-#include "../data_containers/ps_vector.h"
+#include "../ps_stl/ps_stl.h"
+
+
+enum ConnectivityMode {
+    CONN_WIFI,
+    CONN_GSM
+};
 
 class MQTTClient {
     private:
+        
+        Client& conn_client;
         PubSubClient mqtt_client;
+
         std::function<void(std::shared_ptr<MessageDeserializer>)> rx_callback;
 
-        ps_string _server;
+
+        ps::string _server;
         uint32_t _port;
-        ps_string _username;
-        ps_string _password;
-        ps_vector<ps_string> _topics;
-        
+        ps::string _username;
+        ps::string _password;
+        ps::vector<ps::string> _egress;
+        ps::vector<ps::string> _ingress;
+
         bool ready();
 
         friend PubSubClient;
@@ -31,29 +42,42 @@ class MQTTClient {
 
     public:
         /* Create an MQTTClient with the provided details. Will store client credentials to the NVS, and overwrite any existing values.*/
-        MQTTClient(Client* client, std::function<void(MessageDeserializer*)> callback, ps_string& server, uint32_t& port, 
-                    ps_string& username, ps_string& password,
-                    ps_vector<ps_string>& topics) {
+        MQTTClient(Client& connectivity_client, 
+                    std::function<void(std::shared_ptr<MessageDeserializer>)> callback,
+                    ps::string server,
+                    uint32_t port, 
+                    ps::string username,
+                    ps::string password,
+                    ps::vector<ps::string> ingress_topics,
+                    ps::vector<ps::string> egress_topics
+                ) : conn_client(connectivity_client)
+            {
                 setServer(server, port);
                 setCredentials(username, password);
-                setTopics(topics);
+                setTopics(ingress_topics, egress_topics);
                 if(ready()) begin();
             }
 
         ~MQTTClient() {
         }
 
-        void setServer(ps_string& server, uint32_t& port) {
+        void setServer(ps::string& server, uint32_t& port) {
             _server = server;
             _port = port;
         }
 
-        void setCredentials(ps_string& username, ps_string& password) {
+        void setCredentials(ps::string& username, ps::string& password) {
             _username = username;
             _password = password;
         }
-        void setTopics(ps_vector<ps_string>& topics) {_topics = topics;}
-        ps_vector<ps_string>& getTopics() {return _topics;}
+
+        void setTopics(ps::vector<ps::string>& ingress_topics, ps::vector<ps::string>& egress_topics) {
+            _egress = egress_topics;
+            _ingress = ingress_topics;
+        }
+
+        ps::vector<ps::string>& getIngressTopics() {return _ingress;}
+        ps::vector<ps::string>& getEgressTopics() {return _egress;}
 
         bool begin();
 
@@ -61,8 +85,8 @@ class MQTTClient {
             return mqtt_client;
         }
 
-        bool send(ps_string& message);
-        bool MQTTClient::send(ps_string& message, ps_string& topic)
+        bool send(ps::string& message, uint16_t egress_topic_number);
+        bool send(ps::string& message, ps::string& topic);
         
 };
 

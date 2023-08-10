@@ -4,17 +4,14 @@
 #include <unordered_map>
 #include <tuple>
 
-#include "../data_containers/ps_smart_ptr.h"
-#include "../data_containers/ps_vector.h"
-#include "../data_containers/ps_string.h"
-#include "../data_containers/ps_queue.h"
+#include "../ps_stl/ps_stl.h"
 
 struct InterfaceRxMessage {
     uint16_t address;
     std::string message;
 };
 
-std::shared_ptr<ps_queue<InterfaceRxMessage>> incoming_message;
+std::shared_ptr<ps::queue<InterfaceRxMessage>> incoming_message;
 
 
 using ModuleParameterMap = std::unordered_map<std::string, std::tuple<int, std::vector<std::string>, std::vector<Rule>>>;
@@ -31,7 +28,7 @@ uint16_t countChar(std::string, char);
 
 void controlTaskFunction(void* global_class) {
     std::shared_ptr<InterfaceMaster> interface(nullptr);
-    incoming_message = std::make_shared<ps_queue<InterfaceRxMessage>>();
+    incoming_message = std::make_shared<ps::queue<InterfaceRxMessage>>();
     
     std::shared_ptr<SDR::AppClass> app(nullptr);
     { /* Convert nullptr into AppClass pointer, then get a shared pointer of the class, releasing the appClass pointer once it is no longer required. */
@@ -135,8 +132,8 @@ void controlTaskFunction(void* global_class) {
                 for (auto rule : rule_array) {
                     Rule new_rule {
                         rule["pr"].as<int>(),
-                        rule["exp"].as<ps_string>(),
-                        rule["cmd"].as<ps_string>()
+                        rule["exp"].as<ps::string>(),
+                        rule["cmd"].as<ps::string>()
                     };
                     rule_list.push_back(new_rule);
                 }
@@ -156,10 +153,10 @@ void controlTaskFunction(void* global_class) {
         
         /* Notify Sentry Task that setup has completed. */
         {
-            auto msg = (SentryQueueMessage*)heap_caps_malloc(sizeof(SentryQueueMessage), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-            msg -> new_state = CTRL_SETUP_COMPLETE;
-            msg -> data = nullptr;
-            if(xQueueSend(app -> sentry_task_queue, (void*) msg, portMAX_DELAY) != pdTRUE) throw SDR::Exception("Failed to send message.");
+            SentryQueueMessage msg;
+            msg.new_state = CTRL_SETUP_COMPLETE;
+            msg.data = nullptr;
+            if(xQueueSend(app -> sentry_task_queue, (void*) &msg, portMAX_DELAY) != pdTRUE) throw SDR::Exception("Failed to send message.");
             vTaskSuspend(NULL);
         }
         
@@ -222,7 +219,7 @@ void handleInterfaceMessage(std::shared_ptr<SDR::AppClass>& app, InterfaceRxMess
         case 6: // Reading: "V|PF|AP|RP|SP|kWh|State"
         {        
             size_t pos = 0;
-            ps_queue<double> variables;
+            ps::queue<double> variables;
             while(pos < message.message.size()) {
                 size_t new_pos = message.message.find_first_of('|', pos);
                 if (new_pos == std::string::npos) new_pos = message.message.length();
@@ -300,8 +297,8 @@ ModuleParameterMap loadModuleParameters(Persistence<fs::LittleFSFS>& nvs) {
             for (auto rule : rule_list) {
                 Rule new_rule {
                     rule["pr"].as<int>(),
-                    rule["exp"].as<ps_string>(),
-                    rule["cmd"].as<ps_string>()
+                    rule["exp"].as<ps::string>(),
+                    rule["cmd"].as<ps::string>()
                 };
 
                 rules.push_back(new_rule);

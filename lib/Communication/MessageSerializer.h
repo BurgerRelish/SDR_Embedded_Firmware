@@ -4,31 +4,29 @@
 #include <stdlib.h>
 #include <memory>
 
-#include "ps_string.h"
-#include "ps_vector.h"
+#include "../ps_stl/ps_stl.h"
 
 #include <ArduinoJson.h>
 #include "json_allocator.h"
 
-#include "../sdr_containers/SDRModule.h"
-#include "../sdr_containers/SDRUnit.h"
+#include "MQTTClient.h"
 
-#include "ps_smart_ptr.h"
+#include "MessageCompressor.h"
 
-class MessageSerializer
-{
+/**
+ * @brief Creates a JSON document of requested size on construction. The JSON document can be modified during the lifetime of the class,
+ * finally, when the class runs out of scope, any data in the JSON document is automatically serialized and sent using the MQTT Client to
+ * the requested topic.
+ */
+class MessageSerializer : private MessageCompressor {
     private:
-        DynamicPSRAMJsonDocument document;
-        const std::shared_ptr<SDRUnit>  _unit;
-        const ps_vector<std::shared_ptr<Module>> _modules;
-
-        ps_string compressString(const ps_string& message);
+        std::shared_ptr<MQTTClient> mqtt_client;
+        size_t topic;
+          
     public:
-        MessageSerializer(const std::shared_ptr<SDRUnit> unit, const ps_vector<std::shared_ptr<Module>> modules);
-        ps_string serializeReadings();
-        ps_string serializeUpdateRequest(const ps_vector<Module*> modules);
-        ps_string serializeNotification(ps_string notification);
-
+        DynamicPSRAMJsonDocument document;
+        MessageSerializer(std::shared_ptr<MQTTClient> client, size_t egress_topic, size_t json_document_size);
+        ~MessageSerializer();
 };
 
 #endif

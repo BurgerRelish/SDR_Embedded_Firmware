@@ -1,23 +1,23 @@
 #include <unity.h>
 #include "ps_string.h"
-#include "ps_queue.h"
+#include "ps_queue.h.h"
 
 void test_stringLength() {
-  ps_string str = "Hello, World!";
+  ps::string str = "Hello, World!";
   TEST_ASSERT_EQUAL(13, str.length());
 }
 
 void test_stringConcatenation() {
-  ps_string str1 = "Hello, ";
-  ps_string str2 = "World!";
-  ps_string result = str1 + str2;
+  ps::string str1 = "Hello, ";
+  ps::string str2 = "World!";
+  ps::string result = str1 + str2;
   TEST_ASSERT_EQUAL_STRING("Hello, World!", result.c_str());
 }
 
 void test_std_into_ps() {
     std::string std_string = "Hello World!";
 
-    ps_string new_string; 
+    ps::string new_string; 
     new_string <<= std_string;
 
     TEST_ASSERT_TRUE(new_string == std_string);
@@ -29,8 +29,8 @@ void test_std_into_ps() {
 
 }
 
-ps_queue<ps_string> ret_str_in_queue() {
-  ps_queue<ps_string> ret;
+ps::queue<ps::string> ret_str_in_queue() {
+  ps::queue<ps::string> ret;
 
   ret.push("Hello");
   ret.push("World!");
@@ -39,8 +39,8 @@ ps_queue<ps_string> ret_str_in_queue() {
 }
 
 void test_string_in_queue() {
-    ps_queue<ps_string> queue;
-    ps_string string = "Hello1";
+    ps::queue<ps::string> queue;
+    ps::string string = "Hello1";
     queue.push(string);
 
     string = "World!2";

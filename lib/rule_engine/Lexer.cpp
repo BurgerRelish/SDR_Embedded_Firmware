@@ -5,14 +5,14 @@
 #define TAG_RULE_ENGINE "RULE_ENGINE"
 #endif
 
-ps_queue<Token> Lexer::tokenize() {
+ps::queue<Token> Lexer::tokenize() {
     #ifdef DEBUG_RULE_ENGINE
     ESP_LOGD(TAG_RULE_ENGINE, "Lexer started.");
     uint64_t start_time = esp_timer_get_time();
     #endif
 
     size_t expr_size = expression_.size();
-    ps_queue<Token> token_list;
+    ps::queue<Token> token_list;
     char cur_char;
 
     while (index < expr_size) {
@@ -46,12 +46,12 @@ ps_queue<Token> Lexer::tokenize() {
     #ifdef DEBUG_RULE_ENGINE
     uint64_t tot_time = esp_timer_get_time() - start_time;
     
-    ps_string debug;
-    ps_queue<Token> debugQueue = token_list;
+    ps::string debug;
+    ps::queue<Token> debugQueue = token_list;
 
     while(!debugQueue.empty()) {
         debug += debugQueue.front().lexeme;
-        debug += ps_string(" ");
+        debug += ps::string(" ");
         debugQueue.pop();
     }
     ESP_LOGD(TAG_RULE_ENGINE, "\n==== Lexical Analysis Complete ====");

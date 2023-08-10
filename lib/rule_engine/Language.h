@@ -11,10 +11,8 @@
 #include "../sdr_containers/SDRUnit.h"
 #include "../sdr_containers/SDRModule.h"
 
-#include "../data_containers/ps_string.h"
-#include "../data_containers/ps_stack.h"
-#include "../data_containers/ps_vector.h"
-#include "../data_containers/ps_queue.h"
+#include "../ps_stl/ps_stl.h"
+
 
 #include "Semantics.h"
 
@@ -33,7 +31,7 @@ enum TokenType {
 
 struct Token {
     TokenType type;
-    ps_string lexeme;
+    ps::string lexeme;
 };
 
 

@@ -1,16 +1,19 @@
 
 
-#ifndef PS_DEQUE
-#define PS_DEQUE 1
+#ifndef PS_DEQUE_H
+#define PS_DEQUE_H 1
 
 #include <deque>
-#include "psram_allocator.h"
+#include "ps_allocator.h"
+
+namespace ps {
+    template <class T>
+    using deque = std::deque<T, PS_Allocator<T>>;
+}
+
 
 template <class T>
-using ps_deque = std::deque<T, PSRAMAllocator<T>>;
-
-template <class T>
-bool operator==(const ps_deque<T>& lhs, const std::deque<T>& rhs) {
+bool operator==(const ps::deque<T>& lhs, const std::deque<T>& rhs) {
     if (lhs.size() != rhs.size()) {
         return false;
     }
@@ -31,22 +34,22 @@ bool operator==(const ps_deque<T>& lhs, const std::deque<T>& rhs) {
 }
 
 template <class T>
-bool operator==(const std::deque<T>& lhs, const ps_deque<T>& rhs) {
+bool operator==(const std::deque<T>& lhs, const ps::deque<T>& rhs) {
     return (rhs == lhs);
 }
 
 template <class T>
-bool operator!=(const std::deque<T>& lhs, const ps_deque<T>& rhs) {
+bool operator!=(const std::deque<T>& lhs, const ps::deque<T>& rhs) {
     return !(lhs == rhs);
 }
 
 template <class T>
-bool operator!=(const ps_deque<T>& lhs, const std::deque<T>& rhs) {
+bool operator!=(const ps::deque<T>& lhs, const std::deque<T>& rhs) {
     return !(lhs == rhs);
 }
 
 template <class T>
-ps_deque<T>& operator<<=(ps_deque<T>& dest, const std::deque<T>& src) {
+ps::deque<T>& operator<<=(ps::deque<T>& dest, const std::deque<T>& src) {
     dest.clear(); // Clear the destination deque
 
     // Copy the elements from src to dest
@@ -58,7 +61,7 @@ ps_deque<T>& operator<<=(ps_deque<T>& dest, const std::deque<T>& src) {
 }
 
 template <class T>
-std::deque<T>& operator<<=(std::deque<T>& dest, const ps_deque<T>& src) {
+std::deque<T>& operator<<=(std::deque<T>& dest, const ps::deque<T>& src) {
     dest.clear(); // Clear the destination deque
 
     // Copy the elements from src to dest

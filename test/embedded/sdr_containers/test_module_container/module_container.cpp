@@ -7,7 +7,7 @@
 #include "../sdr_containers.h"
 #include "ps_string.h"
 #include "ps_vector.h"
-#include "ps_stack.h"
+#include "ps_stack.h.h"
 
 
 void test_module_container() {
@@ -28,7 +28,7 @@ void test_module_container() {
         10000 // uint64_t timestamp;
     };
 
-    ps_vector<ps_string> tag_search = {"Hello", "World", "tag3"};
+    ps::vector<ps::string> tag_search = {"Hello", "World", "tag3"};
 
     Module container(id, tag_list, priority, address, offset);
     container.addReading(test_reading_0);
@@ -47,13 +47,13 @@ void test_module_container() {
     TEST_ASSERT_FALSE(container.tagEqualityComparison(tag_search));
     TEST_ASSERT_TRUE(container.tagSubsetComparison(tag_search));
 
-    ps_string search_str = "tag3";
+    ps::string search_str = "tag3";
     TEST_ASSERT_TRUE(container.tagSubsetComparison(search_str));
 
 
     TEST_ASSERT_EQUAL_DOUBLE(test_reading_0.active_power, container.latestReading().active_power);
 
-    ps_stack<Reading> reading_stack;
+    ps::stack<Reading> reading_stack;
     reading_stack = container.getReadings();
 
     TEST_ASSERT_EQUAL_INT(1, reading_stack.size());

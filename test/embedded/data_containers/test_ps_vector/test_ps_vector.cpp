@@ -5,7 +5,7 @@
 void test_vector_operations(void) {
   // Arrange
   
-  ps_vector<int> vec;
+  ps::vector<int> vec;
 
   // Act
   vec.push_back(10);
@@ -27,7 +27,7 @@ void test_vector_operations(void) {
   TEST_ASSERT_EQUAL_INT(20, vec2[1]);
   TEST_ASSERT_EQUAL_INT(30, vec2[2]);
 
-  ps_vector<int> vec3;
+  ps::vector<int> vec3;
   vec3 <<= vec2;
 
   TEST_ASSERT_EQUAL_INT(3, vec3.size());

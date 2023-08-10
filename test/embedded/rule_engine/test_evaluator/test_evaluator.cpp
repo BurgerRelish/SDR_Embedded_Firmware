@@ -6,7 +6,7 @@
 #include "../sdr_containers/SDRModule.h"
 #include "ps_vector.h"
 #include "ps_string.h"
-#include "ps_stack.h"
+#include "ps_stack.h.h"
 
 void test_evaluator() {
     {    
@@ -53,11 +53,11 @@ void test_evaluator() {
 
     Rule new_rule = {
         1,
-        ps_string("((TAP <= 5) && (PS == 1)) && TS >= 0 && UID == \"unitID\" && UTL == [\"unit\",\"test_unit_tag\"]"),
-        ps_string("TestCommand"),
+        ps::string("((TAP <= 5) && (PS == 1)) && TS >= 0 && UID == \"unitID\" && UTL == [\"unit\",\"test_unit_tag\"]"),
+        ps::string("TestCommand"),
     };
 
-    ps_queue<Rule> rules;
+    ps::queue<Rule> rules;
     rules.push(new_rule); 
 
     sdr_module.appendRule(new_rule);

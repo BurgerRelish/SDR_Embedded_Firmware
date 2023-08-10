@@ -4,8 +4,8 @@
 #define LEXER_H
 
 #include "Language.h"
-#include "ps_queue.h"
-#include "ps_string.h"
+#include "../ps_stl/ps_stl.h"
+
 
 /**
  * @class Lexer
@@ -13,7 +13,7 @@
  */
 class Lexer {
 private:
-    ps_string expression_;
+    ps::string expression_;
     size_t index;
 
 public:
@@ -21,14 +21,14 @@ public:
         expression_ <<= expression; // Move the std::string to PSRAM for processing.
     }
 
-    Lexer(const ps_string& expression) : expression_(expression), index(0) {}
+    Lexer(const ps::string& expression) : expression_(expression), index(0) {}
 
     /**
      * @brief Tokenize the input expression and return a queue of tokens.
      * @param expression The C expression to tokenize.
      * @returns std::queue<std::string> A queue of tokens.
      */
-    ps_queue<Token> tokenize();
+    ps::queue<Token> tokenize();
 
 private:
     /**

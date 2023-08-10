@@ -7,14 +7,18 @@
 #include "freertos/semphr.h"
 #include "freertos/queue.h"
 #include "esp32-hal.h"
+#include "../ps_stl/ps_stl.h"
 
-#include "../data_containers/ps_string.h"
+
 #define deltaHue 1
 #define BRIGHTNESS 25
 
 #define WIFI_HOSTNAME "SmartDemand Unit"
 #define WIFI_SETUP_AP_PASSWORD "Password123"
 #define WIFI_TIMEOUT_MS 120000
+
+#define READING_INTERVAL_MIN 5
+#define UPDATE_REQUEST_INTERVAL_MIN 10
 
 /* Debugging */
 #define DEBUG_SENTRY

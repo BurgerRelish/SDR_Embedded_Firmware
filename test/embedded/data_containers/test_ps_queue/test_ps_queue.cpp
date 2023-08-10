@@ -1,10 +1,10 @@
 #include <Arduino.h>
 #include <unity.h>
-#include "ps_queue.h"
+#include "ps_queue.h.h"
 #include <queue>
 
 void testQueueFunctionality() {
-    ps_queue<int> queue1;
+    ps::queue<int> queue1;
     std::queue<int> queue2;
 
     // Test empty queues

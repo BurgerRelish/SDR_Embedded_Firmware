@@ -5,7 +5,8 @@
 
 #include "esp_heap_caps.h"
 #include <ArduinoJson.h>
-#include "../data_containers/ps_string.h"
+#include "../ps_stl/ps_stl.h"
+
 
 struct JsonPSRAMAllocator {
     void* allocate(size_t n) {
@@ -35,7 +36,7 @@ struct JsonPSRAMAllocator {
 
 typedef BasicJsonDocument<JsonPSRAMAllocator> DynamicPSRAMJsonDocument;
 
-void convertFromJson(JsonVariantConst src, ps_string& dst);
+void convertFromJson(JsonVariantConst src, ps::string& dst);
 
 
 #endif

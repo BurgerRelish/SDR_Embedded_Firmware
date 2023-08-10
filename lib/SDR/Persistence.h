@@ -8,7 +8,8 @@
 #include <string>
 #include <ArduinoJson.h>
 
-#include "../data_containers/ps_string.h"
+#include "../ps_stl/ps_stl.h"
+
 #include "../Communication/json_allocator.h"
 
 /**
@@ -21,7 +22,7 @@
 template <class FileSystem>
 class Persistence {
     private:
-        ps_string path;
+        ps::string path;
         FileSystem& _file_system;
         bool write;
     public:
@@ -34,7 +35,7 @@ class Persistence {
             }
 
             auto file = file_system.open(path.c_str(), FILE_READ, true);
-            ps_string data = file.readString().c_str();
+            ps::string data = file.readString().c_str();
 
             ESP_LOGI("Persistence" , "File: %s", data.c_str());
 

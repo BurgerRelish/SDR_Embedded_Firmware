@@ -9,17 +9,18 @@
 #include "Persistence.h"
 
 #include "SDRApp.h"
-#include "../data_containers/ps_smart_ptr.h"
+#include "../ps_stl/ps_stl.h"
+
 
 #define TARGET_LOOP_FREQUENCY 10
 
 void handleREMessage(std::shared_ptr<SDR::AppClass>);
-void evaluateRE(std::shared_ptr<Evaluator>, std::shared_ptr<ps_vector<std::shared_ptr<Evaluator>>>, std::shared_ptr<Executor>);
+void evaluateRE(std::shared_ptr<Evaluator>, std::shared_ptr<ps::vector<std::shared_ptr<Evaluator>>>, std::shared_ptr<Executor>);
 
 void ruleEngineTaskFunction(void* global_class) {
     /* Init Local Shared Pointers. */
     std::shared_ptr<Evaluator> unit_evaluator = nullptr;
-    std::shared_ptr<ps_vector<std::shared_ptr<Evaluator>>> module_evaluators;
+    std::shared_ptr<ps::vector<std::shared_ptr<Evaluator>>> module_evaluators;
     std::shared_ptr<Executor> executor = nullptr;
 
     std::shared_ptr<SDR::AppClass> app(nullptr);
@@ -67,7 +68,7 @@ void ruleEngineTaskFunction(void* global_class) {
     }
 }
 
-void evaluateRE(std::shared_ptr<Evaluator> unit_evaluator, std::shared_ptr<ps_vector<std::shared_ptr<Evaluator>>> module_evaluators, std::shared_ptr<Executor> executor) {
+void evaluateRE(std::shared_ptr<Evaluator> unit_evaluator, std::shared_ptr<ps::vector<std::shared_ptr<Evaluator>>> module_evaluators, std::shared_ptr<Executor> executor) {
     Command cmds;
     cmds = unit_evaluator -> evaluate();
     if (!cmds.command.empty()) executor -> addCommand(cmds);

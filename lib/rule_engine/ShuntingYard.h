@@ -5,9 +5,8 @@
 
 #include <stdexcept>
 
-#include "ps_queue.h"
-#include "ps_stack.h"
-#include "ps_string.h"
+#include "../ps_stl/ps_stl.h"
+
 #include "Language.h"
 
 const std::unordered_map<TokenType, int> precedenceTable = {
@@ -29,7 +28,7 @@ public:
      * @param tokenQueue The input token queue.
      * @return The postfix expression as a std::queue of tokens.
      */
-    static ps_queue<Token> apply(ps_queue<Token>& tokenQueue);
+    static ps::queue<Token> apply(ps::queue<Token>& tokenQueue);
 private:
     /**
      * @brief Checks if operator1 has higher precedence than operator2.

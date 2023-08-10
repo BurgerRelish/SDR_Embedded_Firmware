@@ -4,7 +4,7 @@
 #define PS_SMART_PTR_H
 #include <memory>
 #include <esp_heap_caps.h>
-#include "psram_allocator.h"
+#include "ps_allocator.h"
 
 namespace ps {
 
@@ -15,14 +15,14 @@ struct Deleter {
             ptr -> ~T();
         }
         
-        PSRAMAllocator<T>().deallocate(ptr, 1);
+        PS_Allocator<T>().deallocate(ptr, 1);
     }
 };
 
 
 template<class T, class ... Args>
 std::shared_ptr<T> make_shared(Args&& ... args) {
-    auto memory = PSRAMAllocator<T>().allocate(sizeof(T));
+    auto memory = PS_Allocator<T>().allocate(sizeof(T));
     if (!memory) {
         throw std::bad_alloc();
     }
@@ -30,18 +30,18 @@ std::shared_ptr<T> make_shared(Args&& ... args) {
     try {
         auto obj = new (memory) T (std::forward<Args>(args)...);
 
-        using AllocatorType = typename std::allocator_traits<PSRAMAllocator<T>>::template rebind_alloc<T>;
+        using AllocatorType = typename std::allocator_traits<PS_Allocator<T>>::template rebind_alloc<T>;
 
-        return std::shared_ptr<T>(obj, Deleter<T>(), AllocatorType(PSRAMAllocator<T>()));
+        return std::shared_ptr<T>(obj, Deleter<T>(), AllocatorType(PS_Allocator<T>()));
     } catch (...) {
-        PSRAMAllocator<T>().deallocate(memory, 1);
+        PS_Allocator<T>().deallocate(memory, 1);
         throw;
     }
 }
 
 template<class T, class ... Args>
 std::unique_ptr<T, Deleter<T>> make_unique(Args&& ... args) {
-    auto memory = PSRAMAllocator<T>().allocate(sizeof(T));
+    auto memory = PS_Allocator<T>().allocate(sizeof(T));
     if (!memory) {
         throw std::bad_alloc();
     }
@@ -50,7 +50,7 @@ std::unique_ptr<T, Deleter<T>> make_unique(Args&& ... args) {
         auto obj = new (memory) T (std::forward<Args>(args)...);
         return std::unique_ptr<T, Deleter<T>>(obj, Deleter<T>());
     } catch (...) {
-        PSRAMAllocator<T>().deallocate(memory, 1);
+        PS_Allocator<T>().deallocate(memory, 1);
         throw;
     }
 }

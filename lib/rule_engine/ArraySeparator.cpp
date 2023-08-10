@@ -6,7 +6,7 @@
 #define TAG_RULE_ENGINE "RULE_ENGINE"
 #endif
 
-ps_vector<ps_string> ArraySeparator::separate(const Token& token) {
+ps::vector<ps::string> ArraySeparator::separate(const Token& token) {
     #ifdef DEBUG_RULE_ENGINE
     ESP_LOGD(TAG_RULE_ENGINE, "Separating Array...");
     uint64_t start_time = esp_timer_get_time();
@@ -14,9 +14,9 @@ ps_vector<ps_string> ArraySeparator::separate(const Token& token) {
 
     if (token.type != ARRAY) throw std::invalid_argument("Not an ARRAY type token.");
 
-    ps_queue<Token> array_tokens = tokenize_array(token.lexeme);
+    ps::queue<Token> array_tokens = tokenize_array(token.lexeme);
 
-    ps_vector<ps_string> resultant_array;
+    ps::vector<ps::string> resultant_array;
 
     TokenType token_type;
     while (!array_tokens.empty())
@@ -36,7 +36,7 @@ ps_vector<ps_string> ArraySeparator::separate(const Token& token) {
     return resultant_array;
 }
 
-ps_queue<Token> ArraySeparator::tokenize_array(const ps_string& string) {
+ps::queue<Token> ArraySeparator::tokenize_array(const ps::string& string) {
     Lexer lexer(string);
     return lexer.tokenize();
 }

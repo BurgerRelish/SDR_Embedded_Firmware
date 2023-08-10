@@ -7,18 +7,19 @@
 #define PS_BASE64_H_C0CE2A47_D10E_42C9_A27C_C883944E704A
 
 #include <string>
-#include "ps_string.h"
+#include "../ps_stl/ps_stl.h"
+
 
 #if __cplusplus >= 201703L
 #include <string_view>
 #endif  // __cplusplus >= 201703L
 
-ps_string base64_encode     (ps_string const& s, bool url = false);
-ps_string base64_encode_pem (ps_string const& s);
-ps_string base64_encode_mime(ps_string const& s);
+ps::string base64_encode     (ps::string const& s, bool url = false);
+ps::string base64_encode_pem (ps::string const& s);
+ps::string base64_encode_mime(ps::string const& s);
 
-ps_string base64_decode(ps_string const& s, bool remove_linebreaks = false);
-ps_string base64_encode(unsigned char const*, size_t len, bool url = false);
+ps::string base64_decode(ps::string const& s, bool remove_linebreaks = false);
+ps::string base64_encode(unsigned char const*, size_t len, bool url = false);
 
 #if __cplusplus >= 201703L
 //

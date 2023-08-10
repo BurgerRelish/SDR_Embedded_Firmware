@@ -212,7 +212,7 @@ void Executor::PUBREAD(int window) {
     next_command = true;
 }
 
-void Executor::COMMS_NOTIFY(ps_string& message) {
+void Executor::COMMS_NOTIFY(ps::string& message) {
     char* temp_msg = (char*) heap_caps_calloc(1, strlen(message.c_str()) + 1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
     strcpy(temp_msg, message.c_str());
 

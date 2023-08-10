@@ -25,9 +25,7 @@
 
 #include "Persistence.h"
 
-#include "../data_containers/ps_string.h"
-#include "../data_containers/ps_vector.h"
-#include "../data_containers/ps_queue.h"
+#include "../ps_stl/ps_stl.h"
 
 #include "config.h"
 
@@ -41,7 +39,7 @@ namespace SDR {
 
 class Exception : public std::exception {
     private:
-        ps_string what_str;
+        ps::string what_str;
     public:
         Exception(const char* message) {
             what_str = message;
@@ -110,7 +108,7 @@ class AppClass : public StatusLED, public std::enable_shared_from_this<AppClass>
         void deinitRTOS();
 
         std::shared_ptr<SDRUnit> unit;
-        std::shared_ptr<ps_vector<std::shared_ptr<Module>>> modules;
+        std::shared_ptr<ps::vector<std::shared_ptr<Module>>> modules;
         std::shared_ptr<ModuleMap> module_map;
         std::shared_ptr<fs::LittleFSFS> file_system;
 
@@ -144,7 +142,7 @@ class AppClass : public StatusLED, public std::enable_shared_from_this<AppClass>
         void set_unit(std::shared_ptr<SDRUnit> _unit);
 
         VarGuard<SDRUnit> get_unit();
-        VarGuard<ps_vector<std::shared_ptr<Module>>> get_modules();
+        VarGuard<ps::vector<std::shared_ptr<Module>>> get_modules();
         VarGuard<fs::LittleFSFS> get_fs();
         VarGuard<ModuleMap> get_module_map();
 

@@ -4,20 +4,21 @@
 #define MESSAGE_DESERIALIZER_H
 
 #include <ArduinoJson.h>
-#include "ps_string.h"
+#include "../ps_stl/ps_stl.h"
+
+#include "MessageCompressor.h"
 #include "json_allocator.h"
 
-class MessageDeserializer {
+/**
+ * @brief Automatically decompresses and deserializes the JSON formatted string. The JSON document can be used to get any data contained in the message. 
+ * 
+ */
+class MessageDeserializer: private MessageCompressor {
     private:
-        DynamicPSRAMJsonDocument document;
-
-        void deserialize_json(const ps_string& message);
-        ps_string decompressString(const ps_string& message);
-
+        void deserialize_json(const ps::string& message);
     public:
-    MessageDeserializer(const ps_string& message);
-    
-    ps_string operator[] (const ps_string&);
+        DynamicPSRAMJsonDocument document;
+        MessageDeserializer(const ps::string& message);
 
 };
 

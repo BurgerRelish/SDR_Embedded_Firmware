@@ -13,7 +13,8 @@
 #include "SDRApp.h"
 
 #include "VariableDelay.h"
-#include "../data_containers/ps_string.h"
+#include "../ps_stl/ps_stl.h"
+
 #include "../Communication/MessageDeserializer.h"
 #include "../sdr_containers/SDRUnit.h"
 

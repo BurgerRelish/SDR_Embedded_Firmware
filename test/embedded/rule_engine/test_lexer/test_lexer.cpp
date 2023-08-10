@@ -3,13 +3,13 @@
 #include "Lexer.h"
 
 #include "ps_string.h"
-#include "ps_queue.h"
+#include "ps_queue.h.h"
 
 void testTokenize() {
     
     std::string expression = "(3.14 + 2) * 5 (\"TEST\") || 1";
     Lexer lexer(expression);
-    ps_queue<Token> tokens = lexer.tokenize();
+    ps::queue<Token> tokens = lexer.tokenize();
 
     TEST_ASSERT_EQUAL_INT(LEFT_PARENTHESES, tokens.front().type);
     TEST_ASSERT_EQUAL_STRING("(", tokens.front().lexeme.c_str());

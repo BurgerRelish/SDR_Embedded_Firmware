@@ -9,7 +9,7 @@
 class RuleEngine {
     private:
     public:
-    RuleEngine(SDRUnit* global_vars, Module* module_vars, ps_queue<Rule>* rule_input, xQueueHandle comms_queue, xQueueHandle control_queue, xQueueHandle rule_engine_queue) {
+    RuleEngine(SDRUnit* global_vars, Module* module_vars, ps::queue<Rule>* rule_input, xQueueHandle comms_queue, xQueueHandle control_queue, xQueueHandle rule_engine_queue) {
 
     }
 };

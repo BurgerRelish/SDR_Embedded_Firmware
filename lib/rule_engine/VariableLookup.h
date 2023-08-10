@@ -7,16 +7,18 @@
 #include "../sdr_containers/SDRModule.h"
 #include "../sdr_containers/SDRUnit.h"
 #include "Language.h"
+#include "../ps_stl/ps_stl.h"
+
 
 
 class VariableLookup {
     private:    
-    void retrieveVar(const ps_string& var, double& val);
-    void retrieveVar(const ps_string& var, bool& val);
-    void retrieveVar(const ps_string& var, int& val);
-    void retrieveVar(const ps_string& var, uint64_t& val);
-    void retrieveVar(const ps_string& var, ps_string& val);
-    double toDouble(ps_string& str);
+    void retrieveVar(const ps::string& var, double& val);
+    void retrieveVar(const ps::string& var, bool& val);
+    void retrieveVar(const ps::string& var, int& val);
+    void retrieveVar(const ps::string& var, uint64_t& val);
+    void retrieveVar(const ps::string& var, ps::string& val);
+    double toDouble(ps::string& str);
     
     public:
     std::shared_ptr<SDRUnit> unit;
@@ -30,7 +32,7 @@ class VariableLookup {
     const bool getBool(Token& token);
     const int getInt(Token& token);
     const uint64_t getUint64(Token& token);
-    const ps_string getString(Token& token);
+    const ps::string getString(Token& token);
 };
 
 #endif

@@ -10,18 +10,18 @@
 #define TAG_RULE_ENGINE "RULE_ENGINE"
 #endif
 
-void Evaluator::generateRules(const ps_vector<Rule>& rule_input) {
+void Evaluator::generateRules(const ps::vector<Rule>& rule_input) {
     Rule current_rule;
     LexedRule new_rule;
     ShuntingYard rpn_algorithm;
-    ps_vector<Rule> _rule_input = rule_input;
+    ps::vector<Rule> _rule_input = rule_input;
 
     while(!_rule_input.empty()) {
         current_rule = _rule_input.at(0);
         new_rule.priority = current_rule.priority;
 
         // Lex each rule and convert it to postfix notation, ready for evaluation. 
-        ps_queue<Token> tokens = lexExpression(current_rule.expression);
+        ps::queue<Token> tokens = lexExpression(current_rule.expression);
         new_rule.expression = rpn_algorithm.apply(tokens);
 
         new_rule.commands = lexExpression(current_rule.command);
@@ -36,7 +36,7 @@ Command Evaluator::evaluate() {
         Command ret;
         ret.type = origin;
         ret.priority = 99999;
-        ret.command = ps_queue<Token>();
+        ret.command = ps::queue<Token>();
         ret.origin = shared_from_this();
         return ret;
     }
@@ -44,7 +44,7 @@ Command Evaluator::evaluate() {
     #ifdef DEBUG_RULE_ENGINE
     uint64_t start_time = esp_timer_get_time();
     #endif
-    ps_stack<LexedRule> rule_stack;
+    ps::stack<LexedRule> rule_stack;
     int highest_priority = 0;
 
     // Evaluate all rules which have a priority greater than the last successful rule.
@@ -57,7 +57,7 @@ Command Evaluator::evaluate() {
         }
     }
 
-    ps_queue<Token> commands;
+    ps::queue<Token> commands;
 
     // Only return the commands which resulted from the rules with the highest priority.
     while (!rule_stack.empty()) {
@@ -76,8 +76,8 @@ Command Evaluator::evaluate() {
     ESP_LOGD(TAG_RULE_ENGINE, "\n==== Rule Evaluation Completed ====");
     log_printf("- Processing Time: %uus\n", tot_time);
     log_printf("- Successful Rules: %d\n", commands.size());
-    ps_string debug;
-    ps_queue<Token> debug_queue = commands;
+    ps::string debug;
+    ps::queue<Token> debug_queue = commands;
 
     while(!debug_queue.empty()) {
         debug += debug_queue.front().lexeme;
@@ -98,14 +98,14 @@ Command Evaluator::evaluate() {
     return ret;
 }
 
-ps_queue<Token> Evaluator::lexExpression(ps_string& expr) {
+ps::queue<Token> Evaluator::lexExpression(ps::string& expr) {
     Lexer lexer(expr);
     return lexer.tokenize();
 }
 
-bool Evaluator::evaluateRPN(ps_queue<Token>& tokens) {
-    ps_queue<Token> token_list = tokens;
-    ps_stack<Token> token_stack;
+bool Evaluator::evaluateRPN(ps::queue<Token>& tokens) {
+    ps::queue<Token> token_list = tokens;
+    ps::stack<Token> token_stack;
     
     // Evaluate all commands in the expression.
     while (!token_list.empty()) {
@@ -136,7 +136,7 @@ bool Evaluator::evaluateRPN(ps_queue<Token>& tokens) {
     return (bool) std::atof(token_stack.top().lexeme.c_str());
 }
 
-void Evaluator::evaluateOperator(ps_stack<Token>& tokens, Token& operator_token) {
+void Evaluator::evaluateOperator(ps::stack<Token>& tokens, Token& operator_token) {
     Token rhs = tokens.top();
     VarType rhs_type = getVarType(rhs);
     tokens.pop();
@@ -324,7 +324,7 @@ bool Evaluator::applyComparisonOperatorUint64(Token& lhs, Token& rhs, Token& ope
 */
 bool Evaluator::applyArrayComparison(Token& lhs, Token& rhs, Token& operator_token) {
     ArraySeparator separator;
-    ps_vector<ps_string> search_array; 
+    ps::vector<ps::string> search_array; 
     Token arr_name;
 
     VarType lhs_type = getVarType(lhs);
@@ -356,7 +356,7 @@ bool Evaluator::applyArrayComparison(Token& lhs, Token& rhs, Token& operator_tok
 
     #ifdef DEBUG_RULE_ENGINE
     ESP_LOGD(TAG_RULE_ENGINE, "\n==== Apply Comparison Operator Array ====");
-    ps_string array_str;
+    ps::string array_str;
     array_str += "[";
     for (size_t i = 0; i < search_array.size(); i++) {
         array_str += search_array.at(i);
@@ -396,8 +396,8 @@ bool Evaluator::applyArrayComparison(Token& lhs, Token& rhs, Token& operator_tok
  * @brief Handles the comparison between two string literals or variables of string literal type.
 */
 bool Evaluator::applyStringComparison(Token& lhs, Token& rhs, Token& operator_token) {
-    ps_string lhs_str = getString(lhs);
-    ps_string rhs_str = getString(rhs);
+    ps::string lhs_str = getString(lhs);
+    ps::string rhs_str = getString(rhs);
 
     #ifdef DEBUG_RULE_ENGINE
     ESP_LOGD(TAG_RULE_ENGINE, "\n==== Apply Comparison Operator String ====");

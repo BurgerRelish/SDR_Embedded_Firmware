@@ -22,12 +22,12 @@ void test_unit_container() {
     container.totalActivePower() = 12.670;
     TEST_ASSERT_EQUAL_DOUBLE(12.670, container.totalActivePower());
 
-    ps_vector<ps_string> tag_search = {"Hello", "World", "tag3"};
+    ps::vector<ps::string> tag_search = {"Hello", "World", "tag3"};
     TEST_ASSERT_TRUE(container.tagEqualityComparison(tag_search));
     tag_search.pop_back();
     TEST_ASSERT_FALSE(container.tagEqualityComparison(tag_search));
     TEST_ASSERT_TRUE(container.tagSubsetComparison(tag_search));
-    TEST_ASSERT_FALSE(container.tagSubsetComparison(ps_string("Test2")));
+    TEST_ASSERT_FALSE(container.tagSubsetComparison(ps::string("Test2")));
 }
 
 void setup() {

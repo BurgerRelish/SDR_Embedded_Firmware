@@ -9,25 +9,20 @@
 #include <sstream>
 #include <ArduinoJson.h>
 
-#include "../data_containers/ps_string.h"
-#include "../data_containers/ps_vector.h"
+#include "../ps_stl/ps_stl.h"
+
 
 struct Rule {
     int priority;
-    ps_string expression;
-    ps_string command;
+    ps::string expression;
+    ps::string command;
 };
 
 class RuleStore {
     private:
-        ps_vector<Rule> rule_store;
-        ps_string _nvs_tag;
+        ps::vector<Rule> rule_store;
+        ps::string _nvs_tag;
 
-        void loadRules() {     
-        }
-
-        void saveRules() {
-        }
     
     public:
         RuleStore(std::vector<Rule> rule_list) {
@@ -45,7 +40,7 @@ class RuleStore {
             }
         }
 
-        const ps_vector<Rule>& getRules() {
+        const ps::vector<Rule>& getRules() {
             return rule_store;
         }
 
@@ -64,7 +59,7 @@ class RuleStore {
             //saveRules();
         }
 
-        void replaceRules(ps_vector<Rule> rules) {
+        void replaceRules(ps::vector<Rule> rules) {
             clearRules();
             rule_store = rules;
             //saveRules();
@@ -80,7 +75,7 @@ class RuleStore {
             //saveRules();
         }
 
-        void appendRule(ps_vector<Rule> rules) {
+        void appendRule(ps::vector<Rule> rules) {
             for (size_t i = 0; i < rules.size(); i++) {
                 rule_store.push_back(rules.at(i));
             }

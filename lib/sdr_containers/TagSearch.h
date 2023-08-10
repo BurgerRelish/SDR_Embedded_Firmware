@@ -9,19 +9,19 @@
 #include <sstream>
 #include <ArduinoJson.h>
 
-#include "../data_containers/ps_string.h"
-#include "../data_containers/ps_vector.h"
+#include "../ps_stl/ps_stl.h"
+
 
 class TagSearch {
     private:
-    ps_vector<ps_string> class_tags;
-    ps_string _nvs_path;
+    ps::vector<ps::string> class_tags;
+    ps::string _nvs_path;
 
     public:
     TagSearch(const std::vector<std::string>& tag_list) {
         //clearTags();
 
-        ps_string temp;
+        ps::string temp;
         for (size_t i = 0; i < tag_list.size(); i++) { // Copy tag list to PSRAM.
             temp <<= tag_list.at(i);
             class_tags.push_back(temp);
@@ -53,27 +53,27 @@ class TagSearch {
         class_tags.clear();
     }
 
-    void appendTag(const ps_string& tag) {
+    void appendTag(const ps::string& tag) {
         class_tags.push_back(tag);
     }
 
-    void appendTag(const ps_vector<ps_string>& tags) {
+    void appendTag(const ps::vector<ps::string>& tags) {
         for (size_t i = 0; i < tags.size(); i++) {
             class_tags.push_back(tags.at(i));
         }
     }
 
-    void replaceTag(const ps_string& tag) {
+    void replaceTag(const ps::string& tag) {
         clearTags();
         class_tags.push_back(tag);
     }
 
-    void replaceTag(const ps_vector<ps_string>& tags) {
+    void replaceTag(const ps::vector<ps::string>& tags) {
         clearTags();
         class_tags = tags;
     }
 
-    void replaceTag(ps_string& tag, size_t loc) {
+    void replaceTag(ps::string& tag, size_t loc) {
         class_tags.at(loc) = tag;
     }
 
@@ -84,12 +84,12 @@ class TagSearch {
      * @returns True if matching tags >= n, else false.
     */
 
-    const bool tagMinQuantifierSearch(const ps_vector<ps_string>& tag_list, const size_t n) const {
+    const bool tagMinQuantifierSearch(const ps::vector<ps::string>& tag_list, const size_t n) const {
         if ((class_tags.size() < n) || (tag_list.size() < n)) return false; // Not enough tags for a true outcome.
 
         size_t matches = 0;
         for (size_t src_it = 0; src_it < tag_list.size(); src_it++) {
-            ps_string cur_str = tag_list.at(src_it);
+            ps::string cur_str = tag_list.at(src_it);
 
             for (size_t class_it = 0; class_it < class_tags.size(); class_it++) {
                 if (cur_str == class_tags.at(class_it)) {
@@ -108,7 +108,7 @@ class TagSearch {
      * @brief Checks whether the provided tag is part of the modules tag list.
      * @return True if the tag is found in the module tag list, else false.
     */
-    const bool tagSubsetComparison(const ps_string& tag) const {
+    const bool tagSubsetComparison(const ps::string& tag) const {
         for (size_t i = 0; i < class_tags.size(); i++) {
             if (tag == class_tags.at(i)) return true;
         }
@@ -120,7 +120,7 @@ class TagSearch {
      * @brief Checks whether any of the tags provided are in the module tag list.
      * @return True if any tag is common between tag_list and the module tag list, else false.
     */
-    const bool tagSubsetComparison(const ps_vector<ps_string>& tag_list) const {
+    const bool tagSubsetComparison(const ps::vector<ps::string>& tag_list) const {
         return tagMinQuantifierSearch(tag_list, 1);
     }
 
@@ -128,7 +128,7 @@ class TagSearch {
      * @brief Checks whether the provided tag_list matches exactly to the modules tag list. Element order does not matter.
      * @return True if the two vectors match, else false.
     */
-    const bool tagEqualityComparison(const ps_vector<ps_string>& tag_list) const {
+    const bool tagEqualityComparison(const ps::vector<ps::string>& tag_list) const {
         return tagMinQuantifierSearch(tag_list, class_tags.size());
     }
 

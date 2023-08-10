@@ -9,8 +9,8 @@
 #include "RuleStore.h"
 #include "TagSearch.h"
 
-#include "../data_containers/ps_string.h"
-#include "../data_containers/ps_vector.h"
+#include "../ps_stl/ps_stl.h"
+
 
 #include "../SDR/Persistence.h"
 
@@ -22,7 +22,7 @@ class SDRUnit: public TagSearch, public RuleStore {
     bool power_status;
     int number_of_modules;
 
-    ps_string unit_id_;
+    ps::string unit_id_;
     bool update;
     bool save;
 
@@ -58,26 +58,26 @@ class SDRUnit: public TagSearch, public RuleStore {
         update = false;
 
         auto rule_arr = update_obj["rules"].as<JsonArray>();
-        ps_vector<Rule> rule_vect;
+        ps::vector<Rule> rule_vect;
         for (auto rule : rule_arr) {
             rule_vect.push_back(
                 Rule{
                     rule["priority"].as<int>(),
-                    rule["expression"].as<ps_string>(),
-                    rule["command"].as<ps_string>()
+                    rule["expression"].as<ps::string>(),
+                    rule["command"].as<ps::string>()
                 }
             );
         }
 
         auto tag_arr = update_obj["tags"].as<JsonArray>();
-        ps_vector<ps_string> tag_vect;
+        ps::vector<ps::string> tag_vect;
         for (auto tag : tag_arr) {
             tag_vect.push_back(
-                tag.as<ps_string>()
+                tag.as<ps::string>()
             );
         }
 
-        if (update_obj["action"].as<ps_string>() == "replace") {
+        if (update_obj["action"].as<ps::string>() == "replace") {
             replaceRules(rule_vect);
             replaceTag(tag_vect);
         } else {
@@ -108,7 +108,7 @@ class SDRUnit: public TagSearch, public RuleStore {
         return number_of_modules;
     }
 
-    const ps_string& id() {
+    const ps::string& id() {
         return unit_id_;
     }
 

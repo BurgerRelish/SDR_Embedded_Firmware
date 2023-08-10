@@ -6,13 +6,12 @@
 #include <string>
 #include <stdint.h>
 #include <vector>
+#include <tuple>
 #include <LittleFS.h>
 
-#include "../data_containers/ps_stack.h"
-#include "../data_containers/ps_queue.h"
+#include "../ps_stl/ps_stl.h"
 
 #include "../SDR/Persistence.h"
-
 #include "RuleStore.h"
 #include "TagSearch.h"
 
@@ -27,7 +26,7 @@ class Reading {
         double kwh_usage;
         uint64_t timestamp;
 
-        Reading(ps_queue<double>& var, uint64_t ts) {
+        Reading(ps::queue<double>& var, uint64_t ts) {
             voltage = var.front();
             var.pop();
             frequency = var.front();
@@ -66,11 +65,11 @@ struct StatusChange {
 
 class Module : public TagSearch, public RuleStore {
     private:
-    ps_stack<Reading> readings;
+    ps::vector<Reading> readings;
     Reading latest_reading;
-    ps_stack<StatusChange> _status;
+    ps::vector<StatusChange> _status;
 
-    ps_string module_id;
+    ps::string module_id;
     int circuit_priority;
 
     bool state_changed;
@@ -82,6 +81,137 @@ class Module : public TagSearch, public RuleStore {
 
     bool update;
     bool save;
+
+    /**
+     * @brief Gets the maximum value of the attribute
+     * 
+     * @param attribute 
+     * @return double 
+     */
+    double calculateMaximum(double Reading::* attribute) {
+        double max = 0;
+        for (auto& reading : readings) {
+            if(reading.*attribute > max) max = reading.*attribute;
+        }
+        return max;
+    }
+
+    /**
+     * @brief Gets the mean value of the attribute.
+     * 
+     * @param attribute 
+     * @return double 
+     */
+    double calculateMean(double Reading::* attribute) {
+        double ret;
+
+        for (auto reading : readings) {
+            ret += reading.*attribute;
+        }
+
+        return (ret / readings.size());
+    }
+
+    /**
+     * @brief Calculates the IQR of the provided attribute.
+     * 
+     * @param data 
+     * @param attribute 
+     * @return double 
+     */
+    double calculateIQR(double Reading::* attribute) {
+        ps::vector<double> attributeValues;
+        for (auto& reading : readings) {
+            attributeValues.push_back(reading.*attribute);
+        }
+
+        size_t n = attributeValues.size();
+        std::sort(attributeValues.begin(), attributeValues.end());
+
+        size_t q1_index = n / 4;
+        size_t q3_index = (3 * n) / 4;
+
+        double q1_value = (attributeValues[q1_index - 1] + attributeValues[q1_index]) / 2.0;
+        double q3_value = (attributeValues[q3_index - 1] + attributeValues[q3_index]) / 2.0;
+
+        return q3_value - q1_value;
+    }
+
+    /**
+     * @brief Calculates the standard deviation of the provided attribute.
+     * 
+     * @param mean 
+     * @param attribute 
+     * @return double 
+     */
+    double calculateStandardDeviation(double mean, double Reading::* attribute) {
+        double variance = 0;
+
+        for (auto& reading : readings) {
+            variance += pow((reading.*attribute - mean), 2);
+        }
+
+        variance /= (readings.size() - 1);
+
+        return sqrt(variance);
+
+    }
+
+    /**
+     * @brief Calculates the Kurtosis of the provided attribute.
+     * 
+     * @param mean 
+     * @param attribute 
+     * @return double 
+     */
+    double calculateKurtosis(double mean, double Reading::* attribute) {
+        float variance = pow(calculateStandardDeviation(mean, attribute), 2);
+
+        auto n = readings.size();
+
+        float C1 = ((n + 1) * n) / ((n - 1) * (n - 2) * (n - 3));
+        float C2 = (-3 * pow(n - 1, 2)) / ((n - 2) * (n - 3));
+
+        float C3 = 0;
+        for (auto& reading : readings) {
+            C3 += pow(reading.*attribute - mean, 4);
+        }
+
+        return (C1 * (C3 / variance) - C2);
+    }
+
+    /**
+     * @brief Get the Statistical Summarization of the requested attribute.
+     * 
+     * @param attribute 
+     * @return std::tuple<double, double, double, double> Mean, Maximum, IQR, Kurtosis
+     */
+    std::tuple<double, double, double, double> getSummarization(double Reading::* attribute) {
+        auto mean = calculateMean(attribute);
+        return std::make_tuple(
+            mean,
+            calculateMaximum(attribute),
+            calculateIQR(attribute),
+            calculateKurtosis(mean, attribute)
+        );
+    }
+
+    template <std::size_t I = 0, typename... Ts>
+    typename std::enable_if<I == sizeof...(Ts),
+                    void>::type
+    loadArray(std::tuple<Ts...> tup, JsonArray& array)
+    {
+        return;
+    }
+    
+    template <std::size_t I = 0, typename... Ts>
+    typename std::enable_if<(I < sizeof...(Ts)),
+                    void>::type
+    loadArray(std::tuple<Ts...> tup, JsonArray& array)
+    {
+        array.add(std::get<I>(tup));        
+        loadArray<I + 1>(tup, array);
+    }
 
     public:
     Module(const std::string& id, const int& priority, const std::vector<std::string>& tag_list, const std::vector<Rule>& rule_list, const uint8_t& address, const uint8_t& offset, bool update_required = false) :
@@ -118,94 +248,126 @@ class Module : public TagSearch, public RuleStore {
     }
 
     /**
-     * @brief Serializes the readings and returns a ps_string containing the JSON formatted string. Clears the readings stack.
+     * @brief Serializes the readings into the provided array. Automatically appends a new object to the array.
      * 
-     * @return ps_string JSON Formatted reading packet.
+     * @return bool true - If serialization was successful, or the class is empty, else false.
      */
-    ps_string serializeReadings() {
-        if (!readings.size()) return "";
+    bool serializeReadings(JsonArray& reading_array) {
+        if (!readings.size()) return true;
 
-        DynamicPSRAMJsonDocument document(6 * JSON_ARRAY_SIZE(readings.size()) + JSON_OBJECT_SIZE(7) + 128);
+        auto document = reading_array.createNestedObject();
+
         document["moduleID"] = module_id.c_str();
-        auto voltage_arr = document["voltage"].createNestedArray();
-        auto frequency_arr = document["frequency"].createNestedArray();
-        auto SP_arr = document["apparentPower"].createNestedArray();
-        auto PF_arr = document["powerFactor"].createNestedArray();
-        auto kwh_arr = document["kwh"].createNestedArray();
-        auto ts_arr = document["timestamp"].createNestedArray();
+        document["count"] = readings.size();
 
-        while (!readings.empty()) {
-            voltage_arr.add(readings.top().voltage);
-            frequency_arr.add(readings.top().frequency);
-            SP_arr.add(readings.top().apparent_power);
-            PF_arr.add(readings.top().power_factor);
-            kwh_arr.add(readings.top().kwh_usage);
-            ts_arr.add(readings.top().timestamp);
-
-            readings.pop();
+        /* Load calculated values into json arrays.*/
+        {        
+            auto voltage_array = document.createNestedArray("voltage");
+            loadArray(getSummarization(&Reading::voltage), voltage_array);
         }
 
-        ps_string result;
-        if(!serializeJson(document, result)) {
-            ESP_LOGE("MODULE", "Serialization Failed.");
-            return "";
+        {
+            auto frequency_array = document.createNestedArray("frequency");
+            loadArray(getSummarization(&Reading::frequency), frequency_array);
         }
-        return result;
+
+        {
+            auto apparent_power_array = document.createNestedArray("apparentPower");
+            loadArray(getSummarization(&Reading::apparent_power), apparent_power_array);
+        }
+
+        {
+            auto power_factor_array = document.createNestedArray("powerFactor");
+            loadArray(getSummarization(&Reading::power_factor), power_factor_array);
+        }
+    
+
+        {        
+            double kwh_sum = 0;
+            ps::vector<uint64_t> ts_vector;
+            for (auto& reading : readings) {
+                kwh_sum += reading.kwh_usage;
+                ts_vector.push_back(reading.timestamp);
+            }
+
+            document["kwh"] = kwh_sum;
+
+            std::sort(ts_vector.begin(), ts_vector.end());
+            
+            auto timestamp_arr = document.createNestedArray("timestamp");
+            timestamp_arr.add(ts_vector.front());
+            timestamp_arr.add(ts_vector.back());
+        }
+
+        readings.clear();
+        return true;
     }
 
     /**
      * @brief Serializes all the status changes on the module. Clears the status change stack.
      * 
-     * @return ps_string 
+     * @return bool true - If serialization was successful, or the class is empty, else false.
      */
-    ps_string serializeStatusChange() {
-        if (!_status.size()) return "";
+    bool serializeStatusChange(JsonArray& array) {
+        if (!_status.size()) return true;
 
-        DynamicPSRAMJsonDocument document(2 * JSON_ARRAY_SIZE(_status.size()) + JSON_OBJECT_SIZE(3) + 128);
-
+        auto document = array.createNestedObject();
+        
         document["moduleID"] = module_id.c_str();
-        auto state_arr = document["state"].createNestedArray();
-        auto ts_arr = document["timestamp"].createNestedArray();
+        auto state_arr = document.createNestedArray("state");
+        auto ts_arr = document.createNestedArray("timestamp");
 
         while(!_status.empty()) {
-            state_arr.add(_status.top().state);
-            ts_arr.add(_status.top().timestamp);
+            state_arr.add(_status.back().state);
+            ts_arr.add(_status.back().timestamp);
+            _status.pop_back();
         }
 
-        ps_string result;
-        if(serializeJson(document, result) == 0) {
-            ESP_LOGE("MODULE", "Serialization Failed.");
-            return "";
-        }
-
-        return result;
+        return true;
     }
 
+    /**
+     * @brief Loads the provided update object into the class.
+     * 
+     * @note JSON Format:
+     * {
+     *  "action" : "replace" or "append",
+     *  "priority" : int,
+     *  "rules" : [{
+     *      "priority" : int,
+     *      "expression" : "string",
+     *      "command" : "string"
+     *      }, ...],
+     *  "tags" : ["string", ...]
+     * }
+     * 
+     * @param update_obj 
+     */
     void loadUpdate(JsonObject update_obj) {
         save = true;
         update = false;
 
         auto rule_arr = update_obj["rules"].as<JsonArray>();
-        ps_vector<Rule> rule_vect;
+        ps::vector<Rule> rule_vect;
         for (auto rule : rule_arr) {
             rule_vect.push_back(
                 Rule{
                     rule["priority"].as<int>(),
-                    rule["expression"].as<ps_string>(),
-                    rule["command"].as<ps_string>()
+                    rule["expression"].as<ps::string>(),
+                    rule["command"].as<ps::string>()
                 }
             );
         }
 
         auto tag_arr = update_obj["tags"].as<JsonArray>();
-        ps_vector<ps_string> tag_vect;
+        ps::vector<ps::string> tag_vect;
         for (auto tag : tag_arr) {
             tag_vect.push_back(
-                tag.as<ps_string>()
+                tag.as<ps::string>()
             );
         }
 
-        if (update_obj["action"].as<ps_string>() == "replace") {
+        if (update_obj["action"].as<ps::string>() == "replace") {
             replaceRules(rule_vect);
             replaceTag(tag_vect);
         } else {
@@ -213,10 +375,12 @@ class Module : public TagSearch, public RuleStore {
             appendTag(tag_vect);
         }
 
+        circuit_priority = update_obj["priority"].as<int>();
+
         return;
     }
 
-    const ps_string& id() {
+    const ps::string& id() {
         return module_id;
     }
 
@@ -244,12 +408,17 @@ class Module : public TagSearch, public RuleStore {
         return state_changed;
     }
 
-    ps_stack<StatusChange>& getStatusChanges() {
+    /**
+     * @brief Get the Status Changes object. Will be empty after serializeStatusChanges() has been called,
+     * 
+     * @return ps::vector<StatusChange>& 
+     */
+    ps::vector<StatusChange>& getStatusChanges() {
         return _status;
     }
 
     void newStatusChange(StatusChange new_status) {
-        _status.push(new_status);
+        _status.push_back(new_status);
         relay_status = new_status.state;
         switch_time = new_status.timestamp;
         state_changed = false;
@@ -262,11 +431,11 @@ class Module : public TagSearch, public RuleStore {
     }
 
     /**
-     * @brief Adds a new reading to the module stack.
+     * @brief Adds a new reading to the module vector.
     */
     void addReading(const Reading& reading) {
         latest_reading = reading;
-        readings.push(reading);
+        readings.push_back(reading);
     }
 
     /**
@@ -279,11 +448,11 @@ class Module : public TagSearch, public RuleStore {
     }
 
     /**
-     * @brief Get the Readings object stack. May be empty after serialization, rather use `latestReading()` to get the latest reading.
+     * @brief Get the Readings object vector. May be empty after serialization, rather use `latestReading()` to get the latest reading.
      * 
-     * @return ps_stack<Reading>& Reference to reading stack.
+     * @return ps::vector<Reading>& Reference to reading vector.
      */
-    ps_stack<Reading>& getReadings() {
+    ps::vector<Reading>& getReadings() {
         return readings;
     }
 

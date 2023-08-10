@@ -5,13 +5,13 @@
 #define TAG_RULE_ENGINE "RULE_ENGINE"
 #endif
 
-ps_queue<Token> ShuntingYard::apply(ps_queue<Token>& tokenQueue) {
+ps::queue<Token> ShuntingYard::apply(ps::queue<Token>& tokenQueue) {
 
     #ifdef DEBUG_RULE_ENGINE
         uint64_t start_time = esp_timer_get_time();
     #endif
-    ps_queue<Token> outputQueue;
-    ps_stack<Token> operatorStack;
+    ps::queue<Token> outputQueue;
+    ps::stack<Token> operatorStack;
 
     while (!tokenQueue.empty()) {
         Token token = tokenQueue.front();
@@ -69,8 +69,8 @@ ps_queue<Token> ShuntingYard::apply(ps_queue<Token>& tokenQueue) {
     #ifdef DEBUG_RULE_ENGINE
     uint64_t tot_time = esp_timer_get_time() - start_time;
 
-    ps_string debug;
-    ps_queue<Token> debugQueue = outputQueue;
+    ps::string debug;
+    ps::queue<Token> debugQueue = outputQueue;
     while(!debugQueue.empty()) {
         debug += debugQueue.front().lexeme;
         debug += " ";

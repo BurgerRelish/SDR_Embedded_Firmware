@@ -2,7 +2,6 @@
 #include "HardwareSerial.h"
 #include "FS.h"
 #include <LittleFS.h>
-#include "../data_containers/ps_smart_ptr.h"
 
 
 namespace SDR {
@@ -86,7 +85,7 @@ bool AppClass::begin() {
     if(!LittleFS.begin(true)) ESP_LOGE("FS", "Failed to mount LittleFS.");
     file_system = std::shared_ptr<fs::LittleFSFS>(&LittleFS);
 
-    modules = ps::make_shared<ps_vector<std::shared_ptr<Module>>>();
+    modules = ps::make_shared<ps::vector<std::shared_ptr<Module>>>();
     
     initRTOS();
     return true;
@@ -98,8 +97,8 @@ VarGuard<SDRUnit> AppClass::get_unit(){
     return guard;
 }
 
-VarGuard<ps_vector<std::shared_ptr<Module>>> AppClass::get_modules(){
-    VarGuard<ps_vector<std::shared_ptr<Module>>> guard(modules_mutex);
+VarGuard<ps::vector<std::shared_ptr<Module>>> AppClass::get_modules(){
+    VarGuard<ps::vector<std::shared_ptr<Module>>> guard(modules_mutex);
     guard = modules;
     return guard;
 }

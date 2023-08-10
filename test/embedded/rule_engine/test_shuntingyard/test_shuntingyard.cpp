@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include <unity.h>
-#include "ps_queue.h"
+#include "ps_queue.h.h"
 #include "ps_string.h"
 #include "Language.h"
 #include "ShuntingYard.h"
@@ -11,7 +11,7 @@ void testShuntingYard() {
     
     std::string inputstr = "((3 + 4) <= test_var) && test_array == [\"hello world\", \"test123\", \"...\"]";
     Lexer lexer(inputstr);
-    ps_queue<Token> inputQueue;
+    ps::queue<Token> inputQueue;
 
     try {
         inputQueue = lexer.tokenize(); 
@@ -21,7 +21,7 @@ void testShuntingYard() {
     }
     // Expected output queue of tokens
     // 3 4 + test_var <= test_array ["hello world"] == &&
-    ps_queue<Token> expectedOutputQueue;
+    ps::queue<Token> expectedOutputQueue;
     expectedOutputQueue.push({NUMERIC_LITERAL, "3"});
     expectedOutputQueue.push({NUMERIC_LITERAL, "4"});
     expectedOutputQueue.push({ARITHMETIC_OPERATOR, "+"});
@@ -33,7 +33,7 @@ void testShuntingYard() {
     expectedOutputQueue.push({BOOLEAN_OPERATOR, "&&"});
 
     ShuntingYard shuntingYard;
-    ps_queue<Token> actualOutputQueue;
+    ps::queue<Token> actualOutputQueue;
     try {
         actualOutputQueue = shuntingYard.apply(inputQueue);
     } catch (std::exception &e) {

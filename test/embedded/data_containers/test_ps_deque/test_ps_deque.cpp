@@ -1,12 +1,12 @@
 #include <Arduino.h>
 #include <unity.h>
 #include <queue>
-#include "ps_deque.h"
+#include "ps_deque"
 #include <esp32-hal-psram.h>
 
 void test_push_back()
 {
-    ps_deque<int> deque;
+    ps::deque<int> deque;
     deque.push_back(1);
     deque.push_back(2);
     deque.push_back(3);
@@ -22,7 +22,7 @@ void test_push_back()
 
 void test_push_front()
 {
-    ps_deque<int> deque;
+    ps::deque<int> deque;
     deque.push_front(3);
     deque.push_front(2);
     deque.push_front(1);
@@ -34,7 +34,7 @@ void test_push_front()
 
 void test_pop_front()
 {
-    ps_deque<int> deque;
+    ps::deque<int> deque;
     deque.push_back(1);
     deque.push_back(2);
     deque.push_back(3);
@@ -48,7 +48,7 @@ void test_pop_front()
 
 void test_pop_back()
 {
-    ps_deque<int> deque;
+    ps::deque<int> deque;
     deque.push_back(1);
     deque.push_back(2);
     deque.push_back(3);
@@ -62,7 +62,7 @@ void test_pop_back()
 
 void test_clear()
 {
-    ps_deque<int> deque;
+    ps::deque<int> deque;
     deque.push_back(1);
     deque.push_back(2);
     deque.push_back(3);
@@ -75,7 +75,7 @@ void test_clear()
 
 void test_at()
 {
-    ps_deque<int> deque;
+    ps::deque<int> deque;
     deque.push_back(1);
     deque.push_back(2);
     deque.push_back(3);
@@ -86,7 +86,7 @@ void test_at()
 
 void test_erase()
 {
-    ps_deque<int> deque;
+    ps::deque<int> deque;
     deque.push_back(1);
     deque.push_back(2);
     deque.push_back(3);
@@ -100,7 +100,7 @@ void test_erase()
 
 void test_empty()
 {
-    ps_deque<int> deque;
+    ps::deque<int> deque;
     TEST_ASSERT_TRUE(deque.empty());
 
     deque.push_back(1);
@@ -112,7 +112,7 @@ void test_empty()
 
 void test_size()
 {
-    ps_deque<int> deque;
+    ps::deque<int> deque;
     TEST_ASSERT_EQUAL(0, deque.size());
 
     deque.push_back(1);
@@ -129,8 +129,8 @@ bool isPsramAllocated(void* ptr) {
 }
 
 void test_ps_deque_psram_allocation() {
-  // Create a ps_deque of integers
-  ps_deque<int> myDeque;
+  // Create a ps::deque of integers
+  ps::deque<int> myDeque;
 
   // Add some elements to the deque
   myDeque.push_back(1);
@@ -139,13 +139,13 @@ void test_ps_deque_psram_allocation() {
 
   // Check if the memory is allocated in PSRAM
   for (const auto& num : myDeque) {
-    TEST_ASSERT_TRUE_MESSAGE(isPsramAllocated((void*)&num), "Element in ps_deque is not allocated in PSRAM");
+    TEST_ASSERT_TRUE_MESSAGE(isPsramAllocated((void*)&num), "Element in ps::deque is not allocated in PSRAM");
   }
 }
 
 void test_ps_deque_in_ps_deque() {
-    ps_deque<int> deque;
-    ps_deque<ps_deque<int>> nested_deque;
+    ps::deque<int> deque;
+    ps::deque<ps::deque<int>> nested_deque;
 
     deque.push_back(1);
     deque.push_back(2);

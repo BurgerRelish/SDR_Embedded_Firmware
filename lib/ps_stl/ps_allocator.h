@@ -13,7 +13,7 @@
  * It complies with the rules for allocators in C++ and can be used with std::containers.
  */
 template <typename T>
-class PSRAMAllocator {
+class PS_Allocator {
 public:
     using value_type = T;
     using pointer = T*;
@@ -26,7 +26,7 @@ public:
     /**
      * @brief Constructs an allocator object.
      */
-    PSRAMAllocator() noexcept {}
+    PS_Allocator() noexcept {}
 
     /**
      * @brief Constructs an allocator object with another allocator of the same type.
@@ -34,7 +34,7 @@ public:
      * @param other Another allocator object.
      */
     template <typename U>
-    PSRAMAllocator(const PSRAMAllocator<U>& other) noexcept {}
+    PS_Allocator(const PS_Allocator<U>& other) noexcept {}
 
     /**
      * @brief Allocates memory for a single object of type T.
@@ -71,6 +71,8 @@ public:
         return (size_type)heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / sizeof(T);
     }
 };
+
+
 /**
  * @brief Determines whether two allocators are equal.
  *
@@ -80,7 +82,7 @@ public:
  * @return True if the allocators are equal, false otherwise.
  */
 template <class T, class U>
-bool operator==(const PSRAMAllocator<T>&, const PSRAMAllocator<U>&) noexcept {
+bool operator==(const PS_Allocator<T>&, const PS_Allocator<U>&) noexcept {
   return true;
 }
 
@@ -93,7 +95,7 @@ bool operator==(const PSRAMAllocator<T>&, const PSRAMAllocator<U>&) noexcept {
  * @return True if the allocators are not equal, false otherwise.
  */
 template <class T, class U>
-bool operator!=(const PSRAMAllocator<T>& lhs, const PSRAMAllocator<U>& rhs) noexcept {
+bool operator!=(const PS_Allocator<T>& lhs, const PS_Allocator<U>& rhs) noexcept {
   return !(lhs == rhs);
 }
 
