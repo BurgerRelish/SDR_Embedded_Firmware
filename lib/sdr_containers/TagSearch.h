@@ -36,17 +36,8 @@ class TagSearch {
         }
     }
 
-    std::vector<std::string> getTags() {
-        std::string temp;
-        std::vector<std::string> ret;
-
-        for (auto tag : class_tags) {
-            temp <<= tag;
-            ret.push_back(temp);
-            temp.clear();
-        }
-
-        return ret;
+    ps::vector<ps::string> getTags() {
+        return class_tags;
     }
 
     void clearTags() {

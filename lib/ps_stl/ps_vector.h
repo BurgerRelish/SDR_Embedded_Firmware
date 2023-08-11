@@ -12,7 +12,7 @@ namespace ps {
      * @note The operator '>>=' can be used to MOVE a ps::vector to a std::vector or vice versa.
     */
     template <class T>
-    using vector = std::vector<T, PS_Allocator<T>>;
+    using vector = std::vector<T, allocator<T>>;
 }
 
 

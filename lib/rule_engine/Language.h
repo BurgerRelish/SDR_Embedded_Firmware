@@ -13,7 +13,6 @@
 
 #include "../ps_stl/ps_stl.h"
 
-
 #include "Semantics.h"
 
 enum TokenType {
@@ -49,35 +48,6 @@ enum VarType{
     PS_STRING,
     ARRAY_VAR,
     INVALID_VAR
-};
-
-
-/* SDR Unit Identifer Names */
-const std::unordered_map<std::string, VarType> vartype_lookup {
-    /* Global Variables */
-    {TOTAL_ACTIVE_POWER, DOUBLE},
-    {TOTAL_REACTIVE_POWER, DOUBLE},
-    {TOTAL_APPARENT_POWER, DOUBLE},
-    {POWER_STATUS, BOOL},
-    {UNIT_ID, PS_STRING},
-    {MODULE_COUNT, INT},
-    {UNIT_TAG_LIST, ARRAY_VAR},
-    {CURRENT_TIME, UINT64_T},
-
-    /* Module Variables */
-    {ACTIVE_POWER, DOUBLE},
-    {REACTIVE_POWER, DOUBLE},
-    {APPARENT_POWER, DOUBLE},
-    {VOLTAGE, DOUBLE},
-    {FREQUENCY, DOUBLE},
-    {POWER_FACTOR, DOUBLE},
-    {SWITCH_TIME, BOOL},
-    {CIRCUIT_PRIORITY, INT},
-    {MODULE_ID, PS_STRING},
-    {MODULE_TAG_LIST, ARRAY_VAR},
-    {SWITCH_TIME, UINT64_T},
-    {SWITCH_STATUS, BOOL},
-    {"INVALID_VAR", INVALID_VAR}
 };
 
 

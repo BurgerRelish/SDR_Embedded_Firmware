@@ -36,7 +36,9 @@ struct JsonPSRAMAllocator {
 
 typedef BasicJsonDocument<JsonPSRAMAllocator> DynamicPSRAMJsonDocument;
 
-void convertFromJson(JsonVariantConst src, ps::string& dst);
+namespace ps {
+        void convertFromJson(JsonVariantConst src, string& dst);
+}
 
 
 #endif

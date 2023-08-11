@@ -10,7 +10,7 @@ namespace ps {
      * @brief An implementation of std::string which is stored on the PSRAM. Member functions and their functionality is identical to that of std::string.
      * @note The operator '<<=' Can be used to copy the ps::string (PSRAM) to a std::string (SRAM) or vice-versa. 
     */
-    using string = std::basic_string<char, std::char_traits<char>, PS_Allocator<char>>;
+    using string = std::basic_string<char, std::char_traits<char>, allocator<char>>;
 
 }
 

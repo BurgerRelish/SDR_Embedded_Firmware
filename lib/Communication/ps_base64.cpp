@@ -255,28 +255,3 @@ ps::string base64_encode_pem (ps::string const& s) {
 ps::string base64_encode_mime(ps::string const& s) {
    return encode_mime(s);
 }
-
-#if __cplusplus >= 201703L
-//
-// Interface with std::string_view rather than const std::string&
-// Requires C++17
-// Provided by Yannic Bonenberger (https://github.com/Yannic)
-//
-
-std::string base64_encode(std::string_view s, bool url) {
-   return encode(s, url);
-}
-
-std::string base64_encode_pem(std::string_view s) {
-   return encode_pem(s);
-}
-
-std::string base64_encode_mime(std::string_view s) {
-   return encode_mime(s);
-}
-
-std::string base64_decode(std::string_view s, bool remove_linebreaks) {
-   return decode(s, remove_linebreaks);
-}
-
-#endif  // __cplusplus >= 201703L

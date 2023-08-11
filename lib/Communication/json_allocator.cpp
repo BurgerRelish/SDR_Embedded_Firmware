@@ -1,5 +1,9 @@
 #include "json_allocator.h"
 
-void convertFromJson(JsonVariantConst src, ps::string& dst) {
+namespace ps {
+        
+void convertFromJson(JsonVariantConst src, string& dst) {
         dst = src.as<const char*>();
+}
+
 }

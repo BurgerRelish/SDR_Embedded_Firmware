@@ -13,7 +13,6 @@ struct InterfaceRxMessage {
 
 std::shared_ptr<ps::queue<InterfaceRxMessage>> incoming_message;
 
-
 using ModuleParameterMap = std::unordered_map<std::string, std::tuple<int, std::vector<std::string>, std::vector<Rule>>>;
 using ModuleAddressMap = std::unordered_map<uint16_t, std::shared_ptr<Module>>;
 
@@ -246,9 +245,8 @@ void handleInterfaceMessage(std::shared_ptr<SDR::AppClass>& app, InterfaceRxMess
 }
 
 void handleControlMessage(std::shared_ptr<SDR::AppClass>& app, std::shared_ptr<InterfaceMaster>& interface) {
-    
     ControlQueueMessage msg;
-
+    
 }
 
 /**

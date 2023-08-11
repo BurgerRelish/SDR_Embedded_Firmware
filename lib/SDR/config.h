@@ -39,13 +39,6 @@ constexpr uint8_t SENTRY_QUEUE_SIZE = 10;
 constexpr uint8_t SENTRY_PRIORITY = 1;
 
 enum SentryTaskState {
-    STATUS_GOOD,
-    STATUS_NO_COMMS,
-    STATUS_DISCONNECT_SCHEDULED,
-    STATUS_RECONNECT_SCHEDULED,
-    RE_RESTART_READY,
-    COMMS_RESTART_READY,
-    CTRL_RESTART_READY,
     COMMS_SETUP_COMPLETE,
     CTRL_SETUP_COMPLETE,
     RE_SETUP_COMPLETE
@@ -64,14 +57,13 @@ constexpr uint8_t RULE_ENGINE_QUEUE_SIZE = 10;
 constexpr uint8_t RULE_ENGINE_PRIORITY = 3;
 
 enum RuleEngineMessageType {
-    MODULE_CLASS_PTR,
-    GLOBAL_CLASS_PTR,
-    RE_PREPARE_RESTART
+    RE_UNIT_COMMAND,
+    RE_MODULE_COMMAND
 };
 
 struct RuleEngineQueueMessage {
     RuleEngineMessageType type;
-    void* data;
+    std::shared_ptr<void> data;
 };
 
 /* Communications Task */
@@ -102,15 +94,13 @@ constexpr uint8_t CONTROL_QUEUE_SIZE = 10;
 constexpr uint8_t CONTROL_PRIORITY = 2;
 
 enum ControlMessageType {
-    CTRL_READ_MODULES,
-    CTRL_ON,
-    CTRL_OFF,
-    CTRL_PREPARE_RESTART
+    CTRL_UNIT_COMMAND,
+    CTRL_MODULE_COMMAND
 };
 
 struct ControlQueueMessage {
     ControlMessageType type;
-    void* data;
+    std::shared_ptr<void> data;
 };
 
 #endif

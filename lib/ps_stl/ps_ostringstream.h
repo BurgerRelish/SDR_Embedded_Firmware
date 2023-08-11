@@ -7,7 +7,7 @@
 #include "ps_allocator.h"
 
 namespace ps {
-    using ostringstream = std::basic_ostringstream<char, std::char_traits<char>, PS_Allocator<char>>;
+    using ostringstream = std::basic_ostringstream<char, std::char_traits<char>, allocator<char>>;
 }
 
 #endif

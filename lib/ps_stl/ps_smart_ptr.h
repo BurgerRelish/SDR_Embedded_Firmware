@@ -8,52 +8,18 @@
 
 namespace ps {
 
-template<class T>
-struct Deleter {
-    void operator()(T* ptr) const {
-        if (ptr) {
-            ptr -> ~T();
-        }
-        
-        PS_Allocator<T>().deallocate(ptr, 1);
-    }
-};
-
-
 template<class T, class ... Args>
 std::shared_ptr<T> make_shared(Args&& ... args) {
-    auto memory = PS_Allocator<T>().allocate(sizeof(T));
-    if (!memory) {
-        throw std::bad_alloc();
-    }
-
-    try {
-        auto obj = new (memory) T (std::forward<Args>(args)...);
-
-        using AllocatorType = typename std::allocator_traits<PS_Allocator<T>>::template rebind_alloc<T>;
-
-        return std::shared_ptr<T>(obj, Deleter<T>(), AllocatorType(PS_Allocator<T>()));
-    } catch (...) {
-        PS_Allocator<T>().deallocate(memory, 1);
-        throw;
-    }
+    typedef typename std::remove_cv<T>::type _Tp_nc;
+    return std::allocate_shared<T>(allocator<T>(),
+				       std::forward<Args>(args)...);
 }
 
-template<class T, class ... Args>
-std::unique_ptr<T, Deleter<T>> make_unique(Args&& ... args) {
-    auto memory = PS_Allocator<T>().allocate(sizeof(T));
-    if (!memory) {
-        throw std::bad_alloc();
-    }
+template<class T>
+struct is_shared_ptr : std::false_type {};
 
-    try {
-        auto obj = new (memory) T (std::forward<Args>(args)...);
-        return std::unique_ptr<T, Deleter<T>>(obj, Deleter<T>());
-    } catch (...) {
-        PS_Allocator<T>().deallocate(memory, 1);
-        throw;
-    }
-}
+template<class T>
+struct is_shared_ptr<std::shared_ptr<T>> : std::true_type {};
 
 }
 

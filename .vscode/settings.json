@@ -56,7 +56,8 @@
         "shared_dictionary.h": "c",
         "types.h": "c",
         "bitset": "cpp",
-        "regex": "cpp"
+        "regex": "cpp",
+        "any": "cpp"
     },
     "docwriter.style": "Doxygen"
 }

@@ -263,11 +263,17 @@ void loadUpdate(std::shared_ptr<MessageDeserializer>& data, std::shared_ptr<SDR:
 }
 
 void loadUnitCommand(std::shared_ptr<MessageDeserializer>& data, std::shared_ptr<SDR::AppClass>& app){
-
+    ControlQueueMessage msg;
+    msg.type = CTRL_UNIT_COMMAND;
+    msg.data = data;
+    xQueueSend(app -> control_task_queue, &msg, portMAX_DELAY);
 }
 
 void loadModuleCommand(std::shared_ptr<MessageDeserializer>& data, std::shared_ptr<SDR::AppClass>& app){
-
+    ControlQueueMessage msg;
+    msg.type = CTRL_MODULE_COMMAND;
+    msg.data = data;
+    xQueueSend(app -> control_task_queue, &msg, portMAX_DELAY);
 }
 
 void connectWiFi(Persistence<fs::LittleFSFS>& nvs) {

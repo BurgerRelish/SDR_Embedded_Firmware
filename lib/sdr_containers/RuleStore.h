@@ -23,7 +23,6 @@ class RuleStore {
         ps::vector<Rule> rule_store;
         ps::string _nvs_tag;
 
-    
     public:
         RuleStore(std::vector<Rule> rule_list) {
             rule_store <<= rule_list;
@@ -46,41 +45,30 @@ class RuleStore {
 
         void clearRules() {
             rule_store.clear();
-
-            // Preferences nvs;
-            // nvs.begin(_nvs_tag.c_str());
-            // nvs.clear();
-            // nvs.end();
         }
 
         void replaceRules(Rule rule) {
             clearRules();
             rule_store.push_back(rule);
-            //saveRules();
         }
 
         void replaceRules(ps::vector<Rule> rules) {
             clearRules();
             rule_store = rules;
-            //saveRules();
         }
 
         void replaceRules(size_t number, Rule rule) {
             rule_store.at(number) = rule;
-            //saveRules();
         }
 
         void appendRule(Rule rule) {
             rule_store.push_back(rule);
-            //saveRules();
         }
 
         void appendRule(ps::vector<Rule> rules) {
             for (size_t i = 0; i < rules.size(); i++) {
                 rule_store.push_back(rules.at(i));
             }
-
-            //saveRules();
         }
 };
 

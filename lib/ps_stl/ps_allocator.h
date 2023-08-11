@@ -1,102 +1,232 @@
+// Allocators -*- C++ -*-
 
-#ifndef PSRAM_ALLOCATOR_H
-#define PSRAM_ALLOCATOR_H
+// Copyright (C) 2001-2018 Free Software Foundation, Inc.
+//
+// This file is part of the GNU ISO C++ Library.  This library is free
+// software; you can redistribute it and/or modify it under the
+// terms of the GNU General Public License as published by the
+// Free Software Foundation; either version 3, or (at your option)
+// any later version.
 
-#include <esp_heap_caps.h>
-#include <stdexcept>
-#include <deque>
+// This library is distributed in the hope that it will be useful,
+// but WITHOUT ANY WARRANTY; without even the implied warranty of
+// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+// GNU General Public License for more details.
 
-/**
- * @brief Allocator template that uses only PSRAM memory.
+// Under Section 7 of GPL version 3, you are granted additional
+// permissions described in the GCC Runtime Library Exception, version
+// 3.1, as published by the Free Software Foundation.
+
+// You should have received a copy of the GNU General Public License and
+// a copy of the GCC Runtime Library Exception along with this program;
+// see the files COPYING3 and COPYING.RUNTIME respectively.  If not, see
+// <http://www.gnu.org/licenses/>.
+
+/*
+ * Copyright (c) 1996-1997
+ * Silicon Graphics Computer Systems, Inc.
  *
- * This allocator template allocates and deallocates memory using the PSRAM on the ESP32.
- * It complies with the rules for allocators in C++ and can be used with std::containers.
+ * Permission to use, copy, modify, distribute and sell this software
+ * and its documentation for any purpose is hereby granted without fee,
+ * provided that the above copyright notice appear in all copies and
+ * that both that copyright notice and this permission notice appear
+ * in supporting documentation.  Silicon Graphics makes no
+ * representations about the suitability of this software for any
+ * purpose.  It is provided "as is" without express or implied warranty.
  */
-template <typename T>
-class PS_Allocator {
-public:
-    using value_type = T;
-    using pointer = T*;
-    using const_pointer = const T*;
-    using reference = T&;
-    using const_reference = const T&;
-    using difference_type = std::ptrdiff_t;
-    using size_type = std::size_t;
 
-    /**
-     * @brief Constructs an allocator object.
-     */
-    PS_Allocator() noexcept {}
-
-    /**
-     * @brief Constructs an allocator object with another allocator of the same type.
-     *
-     * @param other Another allocator object.
-     */
-    template <typename U>
-    PS_Allocator(const PS_Allocator<U>& other) noexcept {}
-
-    /**
-     * @brief Allocates memory for a single object of type T.
-     *
-     * @param n Size of the allocation (ignored).
-     * @return Pointer to the allocated memory.
-     */
-    [[nodiscard]] T* allocate(std::size_t n) {
-        // Allocate memory from PSRAM
-        void* ptr = heap_caps_malloc(n * sizeof(T), MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
-        if (ptr == nullptr) {
-            throw std::bad_alloc();
-        }
-        return static_cast<T*>(ptr);
-    }
-
-    /**
-     * @brief Deallocates memory for a single object of type T.
-     *
-     * @param p Pointer to the memory to deallocate.
-     * @param n Size of the allocation (ignored).
-     */
-    void deallocate(T* p, std::size_t /* n */) noexcept {
-        // Free memory back to PSRAM
-        heap_caps_free(p);
-    }
-
-    /**
-     * @brief Returns the maximum number of objects that can be allocated.
-     *
-     * @return Maximum number of objects that can be allocated.
-     */
-    std::size_t max_size() const noexcept {
-        return (size_type)heap_caps_get_free_size(MALLOC_CAP_SPIRAM) / sizeof(T);
-    }
-};
-
-
-/**
- * @brief Determines whether two allocators are equal.
- *
- * @tparam T The type of the allocators.
- * @param lhs The first allocator.
- * @param rhs The second allocator.
- * @return True if the allocators are equal, false otherwise.
+/** @file bits/allocator.h
+ *  This is an internal header file, included by other library headers.
+ *  Do not attempt to use it directly. @headername{memory}
  */
-template <class T, class U>
-bool operator==(const PS_Allocator<T>&, const PS_Allocator<U>&) noexcept {
-  return true;
-}
 
-/**
- * @brief Determines whether two allocators are not equal.
- *
- * @tparam T The type of the allocators.
- * @param lhs The first allocator.
- * @param rhs The second allocator.
- * @return True if the allocators are not equal, false otherwise.
- */
-template <class T, class U>
-bool operator!=(const PS_Allocator<T>& lhs, const PS_Allocator<U>& rhs) noexcept {
-  return !(lhs == rhs);
-}
+#ifndef PS_ALLOCATOR_H
+#define PS_ALLOCATOR_H 1
+
+//#include <bits/c++allocator.h> // Define the base class to std::allocator.
+#include "ps_base_allocator.h"
+#include <bits/memoryfwd.h>
+#if __cplusplus >= 201103L
+#include <type_traits>
+#endif
+
+#define __cpp_lib_incomplete_container_elements 201505
+#if __cplusplus >= 201103L
+# define __cpp_lib_allocator_is_always_equal 201411
+#endif
+
+namespace ps _GLIBCXX_VISIBILITY(default)
+{
+_GLIBCXX_BEGIN_NAMESPACE_VERSION
+
+  /**
+   *  @addtogroup allocators
+   *  @{
+   */
+
+  /**
+   * @brief  The @a standard allocator, as per [20.4].
+   *
+   *  See https://gcc.gnu.org/onlinedocs/libstdc++/manual/memory.html#std.util.memory.allocator
+   *  for further details.
+   *
+   *  @tparam  _Tp  Type of allocated object.
+   */
+  template<typename _Tp>
+    class allocator : public psram::psram_base_allocator<_Tp>
+    {
+   public:
+      typedef size_t     size_type;
+      typedef ptrdiff_t  difference_type;
+      typedef _Tp*       pointer;
+      typedef const _Tp* const_pointer;
+      typedef _Tp&       reference;
+      typedef const _Tp& const_reference;
+      typedef _Tp        value_type;
+
+      template<typename _Tp1>
+	struct rebind
+	{ typedef allocator<_Tp1> other; };
+
+#if __cplusplus >= 201103L
+      // _GLIBCXX_RESOLVE_LIB_DEFECTS
+      // 2103. std::allocator propagate_on_container_move_assignment
+      typedef std::true_type propagate_on_container_move_assignment;
+
+      typedef std::true_type is_always_equal;
+#endif
+
+      allocator() throw() { }
+
+      allocator(const allocator& __a) throw()
+      : psram::psram_base_allocator<_Tp>(__a) { }
+
+      template<typename _Tp1>
+	allocator(const allocator<_Tp1>&) throw() { }
+
+      ~allocator() throw() { }
+
+      // Inherit everything else.
+    };
+
+  template<typename _T1, typename _T2>
+    inline bool
+    operator==(const allocator<_T1>&, const allocator<_T2>&)
+    _GLIBCXX_USE_NOEXCEPT
+    { return true; }
+
+  template<typename _Tp>
+    inline bool
+    operator==(const allocator<_Tp>&, const allocator<_Tp>&)
+    _GLIBCXX_USE_NOEXCEPT
+    { return true; }
+
+  template<typename _T1, typename _T2>
+    inline bool
+    operator!=(const allocator<_T1>&, const allocator<_T2>&)
+    _GLIBCXX_USE_NOEXCEPT
+    { return false; }
+
+  template<typename _Tp>
+    inline bool
+    operator!=(const allocator<_Tp>&, const allocator<_Tp>&)
+    _GLIBCXX_USE_NOEXCEPT
+    { return false; }
+
+  // Invalid allocator<cv T> partial specializations.
+  // allocator_traits::rebind_alloc can be used to form a valid allocator type.
+  template<typename _Tp>
+    class allocator<const _Tp>
+    {
+    public:
+      typedef _Tp value_type;
+      template<typename _Up> allocator(const allocator<_Up>&) { }
+    };
+
+  template<typename _Tp>
+    class allocator<volatile _Tp>
+    {
+    public:
+      typedef _Tp value_type;
+      template<typename _Up> allocator(const allocator<_Up>&) { }
+    };
+
+  template<typename _Tp>
+    class allocator<const volatile _Tp>
+    {
+    public:
+      typedef _Tp value_type;
+      template<typename _Up> allocator(const allocator<_Up>&) { }
+    };
+
+  // Undefine.
+#undef __allocator_base
+
+  // To implement Option 3 of DR 431.
+  template<typename _Alloc, bool = __is_empty(_Alloc)>
+    struct __alloc_swap
+    { static void _S_do_it(_Alloc&, _Alloc&) _GLIBCXX_NOEXCEPT { } };
+
+  template<typename _Alloc>
+    struct __alloc_swap<_Alloc, false>
+    {
+      static void
+      _S_do_it(_Alloc& __one, _Alloc& __two) _GLIBCXX_NOEXCEPT
+      {
+	// Precondition: swappable allocators.
+	if (__one != __two)
+	  swap(__one, __two);
+      }
+    };
+
+  // Optimize for stateless allocators.
+  template<typename _Alloc, bool = __is_empty(_Alloc)>
+    struct __alloc_neq
+    {
+      static bool
+      _S_do_it(const _Alloc&, const _Alloc&)
+      { return false; }
+    };
+
+  template<typename _Alloc>
+    struct __alloc_neq<_Alloc, false>
+    {
+      static bool
+      _S_do_it(const _Alloc& __one, const _Alloc& __two)
+      { return __one != __two; }
+    };
+
+#if __cplusplus >= 201103L
+  template<typename _Tp, bool
+    = std::__or_<std::is_copy_constructible<typename _Tp::value_type>,
+            std::is_nothrow_move_constructible<typename _Tp::value_type>>::value>
+    struct __shrink_to_fit_aux
+    { static bool _S_do_it(_Tp&) noexcept { return false; } };
+
+  template<typename _Tp>
+    struct __shrink_to_fit_aux<_Tp, true>
+    {
+      static bool
+      _S_do_it(_Tp& __c) noexcept
+      {
+#if __cpp_exceptions
+	try
+	  {
+	    _Tp(std::__make_move_if_noexcept_iterator(__c.begin()),
+		std::__make_move_if_noexcept_iterator(__c.end()),
+		__c.get_allocator()).swap(__c);
+	    return true;
+	  }
+	catch(...)
+	  { return false; }
+#else
+	return false;
+#endif
+      }
+    };
+#endif
+
+_GLIBCXX_END_NAMESPACE_VERSION
+} // namespace std
 
 #endif

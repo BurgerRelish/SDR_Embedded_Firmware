@@ -109,10 +109,6 @@ void checkTaskStatus(TaskHandle_t task) {
 }
 
 void bootSequence(std::shared_ptr<SDR::AppClass>& app) {
-
-
-    
-
     /* Start Comms Task and Wait for communications setup to complete. */
     ESP_LOGI("BOOT", "Resuming Comms Task.");
     if(xSemaphoreGive(app -> comms_task_semaphore) != pdTRUE) ESP_LOGE("BOOT", "Failed to release comms semaphore.");

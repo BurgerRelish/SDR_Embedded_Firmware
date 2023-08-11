@@ -8,7 +8,7 @@
 
 namespace ps {
     template <class T>
-    using deque = std::deque<T, PS_Allocator<T>>;
+    using deque = std::deque<T, allocator<T>>;
 }
 
 

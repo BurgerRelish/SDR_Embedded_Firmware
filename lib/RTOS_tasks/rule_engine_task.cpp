@@ -5,6 +5,7 @@
 #include "VariableDelay.h"
 #include "../rule_engine/Evaluator.h"
 #include "../rule_engine/Executor.h"
+#include "../rule_engine/Lexer.h"
 
 #include "Persistence.h"
 
@@ -14,15 +15,14 @@
 
 #define TARGET_LOOP_FREQUENCY 10
 
+std::shared_ptr<Evaluator> unit_evaluator = nullptr;
+std::shared_ptr<Executor> executor = nullptr;
+std::shared_ptr<ps::vector<std::shared_ptr<Evaluator>>> module_evaluators;
+
 void handleREMessage(std::shared_ptr<SDR::AppClass>);
 void evaluateRE(std::shared_ptr<Evaluator>, std::shared_ptr<ps::vector<std::shared_ptr<Evaluator>>>, std::shared_ptr<Executor>);
 
 void ruleEngineTaskFunction(void* global_class) {
-    /* Init Local Shared Pointers. */
-    std::shared_ptr<Evaluator> unit_evaluator = nullptr;
-    std::shared_ptr<ps::vector<std::shared_ptr<Evaluator>>> module_evaluators;
-    std::shared_ptr<Executor> executor = nullptr;
-
     std::shared_ptr<SDR::AppClass> app(nullptr);
     { /* Convert nullptr into AppClass pointer, then get a shared pointer of the class, releasing the appClass pointer once it is no longer required. */
         auto appClass = static_cast<SDR::AppClass*>(global_class);
@@ -80,19 +80,38 @@ void evaluateRE(std::shared_ptr<Evaluator> unit_evaluator, std::shared_ptr<ps::v
 }
 
 void handleREMessage(std::shared_ptr<SDR::AppClass> app) {
-    RuleEngineQueueMessage buffer;
-    if (xQueueReceive(app -> rule_engine_task_queue, &buffer, 0) != pdTRUE) return;
+    RuleEngineQueueMessage msg;
+    while(1) {
+        if (xQueueReceive(app -> rule_engine_task_queue, &msg, 1 / portTICK_PERIOD_MS) != pdTRUE) break;
 
-    switch (buffer.type) {
-        case MODULE_CLASS_PTR: {
-        }
-        case GLOBAL_CLASS_PTR: {
-        }
-        case RE_PREPARE_RESTART: {
-            
+        switch (msg.type) {
+            case RE_UNIT_COMMAND: {
+                auto data = std::static_pointer_cast<MessageDeserializer> (msg.data);
+            }
             break;
-        }
-        default: {
+            case RE_MODULE_COMMAND: {
+                auto data = std::static_pointer_cast<MessageDeserializer> (msg.data);
+                Command cmd;
+                {
+                    Lexer lexer(data -> document["command"].as<ps::string>());
+                    cmd.command = lexer.tokenize();
+                }
+                
+                cmd.priority = data -> document["priority"].as<int>();
+                cmd.type = ORIG_MOD;
+
+                auto map = app -> get_module_map();
+
+                auto module = map.data().find(data -> document["moduleID"].as<std::string>());
+                if (module == map.data().end()) {
+                    ESP_LOGD("ModCommand", "No module with matching ID found.");
+                    return;
+                }
+
+                //cmd.origin = module -> second;
+
+                executor -> addCommand(cmd);
+            }
             break;
         }
     }

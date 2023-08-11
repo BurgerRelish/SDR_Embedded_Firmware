@@ -22,13 +22,19 @@ public:
     }
 
     Lexer(const ps::string& expression) : expression_(expression), index(0) {}
-
+    Lexer() {};
     /**
      * @brief Tokenize the input expression and return a queue of tokens.
      * @param expression The C expression to tokenize.
      * @returns std::queue<std::string> A queue of tokens.
      */
     ps::queue<Token> tokenize();
+
+    ps::queue<Token> tokenize(const ps::string& expression) {
+        index = 0;
+        expression_ = expression;
+        return tokenize();
+    }
 
 private:
     /**
