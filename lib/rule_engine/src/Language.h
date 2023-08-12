@@ -3,17 +3,9 @@
 #ifndef SDR_LANGUAGE_H
 #define SDR_LANGUAGE_H
 
-#include <string>
-#include <vector>
-#include <queue>
-#include <unordered_map>
-
-#include "../sdr_containers/SDRUnit.h"
-#include "../sdr_containers/SDRModule.h"
-
 #include "../ps_stl/ps_stl.h"
 
-#include "Semantics.h"
+#include "../rule_engine/Semantics.h"
 
 enum TokenType {
     LEFT_PARENTHESES, // (
@@ -31,13 +23,6 @@ enum TokenType {
 struct Token {
     TokenType type;
     ps::string lexeme;
-};
-
-
-
-enum OriginType {
-    ORIG_UNIT,
-    ORIG_MOD
 };
 
 enum VarType{

@@ -22,9 +22,14 @@ public:
         } else if constexpr (std::is_same_v<T, int> || std::is_same_v<T, uint64_t>) {
             return static_cast<bool>(value);
         } else if constexpr (std::is_same_v<T, double>) {
-            return value > 0.01;
+            return value > 0.001;
         } else if constexpr (std::is_same_v<T, ps::string>) {
-            return value.length() ? true : false;
+                ps::istringstream iss(value);
+                int result;
+                if (iss >> result) {
+                    return result > 0.001;
+                }
+                return 0; // If not a number, return 0
         } else if constexpr (std::is_same_v<T, ps::vector<ps::string>>) {
             return !value.empty();
         } else {
@@ -38,7 +43,12 @@ public:
         } else if constexpr (std::is_same_v<T, bool> || std::is_same_v<T, uint64_t> || std::is_same_v<T, double>) {
             return static_cast<int>(value);
         } else if constexpr (std::is_same_v<T, ps::string>) {
-            return static_cast<int>(value.length());
+                ps::istringstream iss(value);
+                double result;
+                if (iss >> result) {
+                    return static_cast<int>(result);
+                }
+                return 0; // If not a number, return 0
         } else if constexpr (std::is_same_v<T, ps::vector<ps::string>>) {
             return static_cast<int>(value.size());
         } else {
@@ -52,7 +62,12 @@ public:
         } else if constexpr (std::is_same_v<T, bool> || std::is_same_v<T, uint64_t> || std::is_same_v<T, int>) {
             return static_cast<double>(value);
         } else if constexpr (std::is_same_v<T, ps::string>) {
-            return static_cast<double>(value.length());
+                ps::istringstream iss(value);
+                double result;
+                if (iss >> result) {
+                    return result;
+                }
+                return 0; // If not a number, return 0
         } else if constexpr (std::is_same_v<T, ps::vector<ps::string>>) {
             return static_cast<double>(value.size());
         } else {
@@ -66,7 +81,12 @@ public:
         } else if constexpr (std::is_same_v<T, bool> || std::is_same_v<T, int> || std::is_same_v<T, double>) {
             return static_cast<uint64_t>(value);
         } else if constexpr (std::is_same_v<T, ps::string>) {
-            return static_cast<uint64_t>(value.length());
+                ps::istringstream iss(value);
+                uint64_t result;
+                if (iss >> result) {
+                    return result;
+                }
+                return 0; // If not a number, return 0
         } else if constexpr (std::is_same_v<T, ps::vector<ps::string>>) {
             return static_cast<uint64_t>(value.size());
         } else {

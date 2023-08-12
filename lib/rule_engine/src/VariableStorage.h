@@ -15,7 +15,7 @@
 #include "../sdr_containers/SDRModule.h"
 #include "../ps_stl/ps_stl.h"
 
-#include "Semantics.h"
+#include "../rule_engine/Semantics.h"
 
 #include "var_cast.h"
 
@@ -23,7 +23,7 @@ namespace re {
 
 class VariableStorage;
 
- enum VariableType {
+enum VariableType {
     VAR_INT,
     VAR_BOOL,
     VAR_DOUBLE,
@@ -33,10 +33,6 @@ class VariableStorage;
     VAR_CLASS,
     VAR_UNKNOWN
 };
-
-std::shared_ptr<VariableStorage> load(std::shared_ptr<SDRUnit>&, std::shared_ptr<Module>&);
-void load_unit(std::shared_ptr<SDRUnit>&, std::shared_ptr<VariableStorage>&);
-void load_module(std::shared_ptr<Module>&, std::shared_ptr<VariableStorage>&);
 
 
 class VariableStorage {
@@ -133,13 +129,10 @@ class VariableStorage {
             ESP_LOGV("find", "Unknown variable name: \'%s\'.", identifier.c_str());
         }
 
-
+        /* If all else fails, try cast the identifier to the return value. */
         try {
-            T result;
-            ps::istringstream val(identifier.c_str());
-            val >> result;
-
-            return result;
+            auto ret = var_cast<ps::string> (identifier);
+            return ret;
         } catch (...) {
             ESP_LOGE("Cast", "Failed to reinterpret.");
         }

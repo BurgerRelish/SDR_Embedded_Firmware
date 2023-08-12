@@ -21,7 +21,10 @@ bool Expression::evaluate() {
 }
 
 bool Expression::evaluateRPN() {
-    ps::queue<Token> token_list = _expression;
+    ps::queue<Token> token_list;
+    for (auto token : _expression) {
+        token_list.push(token);
+    }
     ps::stack<Token> token_stack;
     
     // Evaluate all commands in the expression.
@@ -167,6 +170,7 @@ double Expression::applyArithmeticOperator(Token& lhs, Token& rhs, Token& operat
 
 bool Expression::applyComparisonOperator(Token& lhs, Token& rhs, Token& operator_token) {
     if (variables->type(lhs.lexeme) == VAR_UINT64_T || variables->type(rhs.lexeme) == VAR_UINT64_T) return applyComparisonOperatorUint64(lhs, rhs, operator_token);
+    
     double lhs_val = variables->get<double>(lhs.lexeme);
     double rhs_val = variables->get<double>(rhs.lexeme);
 
@@ -238,64 +242,74 @@ bool Expression::applyComparisonOperatorUint64(Token& lhs, Token& rhs, Token& op
  * @brief Handles the comparison between two arrays or an array and a string literal/variable.
 */
 bool Expression::applyArrayComparison(Token& lhs, Token& rhs, Token& operator_token) {
-    ArraySeparator separator;
-    ps::vector<ps::string> search_array; 
+    ps::vector<ps::string> lhs_array;
+    ps::vector<ps::string> rhs_array; 
+
     Token arr_name;
 
     VariableType lhs_type = variables->type(lhs.lexeme);
     VariableType rhs_type = variables->type(rhs.lexeme);
-
-    if (lhs.type == ARRAY) {
-        search_array = separator.separate(lhs);
-        arr_name = rhs;
-    } else if (lhs.type == STRING_LITERAL) {
-        search_array.push_back(lhs.lexeme);
-        arr_name = rhs;
-    } else if (lhs_type == VAR_STRING) {
-        search_array.push_back(variables->get<ps::string>(lhs.lexeme));
-        arr_name = rhs;
-    } else if (rhs.type == ARRAY) {
-        search_array = separator.separate(rhs);
-        arr_name = lhs;
-    } else if (rhs.type == STRING_LITERAL) {
-        search_array.push_back(rhs.lexeme);
-        arr_name = lhs;
-    } else if (rhs_type == VAR_STRING) {
-        search_array.push_back(variables->get<ps::string>(rhs.lexeme));
-        arr_name = lhs;
+    /* If the array is of a string type, */
+    if (lhs_type == VAR_STRING || lhs.type == STRING_LITERAL) {
+        lhs_array.push_back(variables->get<ps::string>(lhs.lexeme));
+    } else if (lhs.type == ARRAY) {
+        auto it = array_lookup.find(rhs.lexeme);
+        if (it != array_lookup.end()) { // Array already exists.
+            lhs_array = it -> second;
+        } else { // Else parse the array and store it for later.
+            ArraySeparator separator;
+            lhs_array = separator.separate(lhs);
+            array_lookup.insert(std::make_pair(rhs.lexeme, lhs_array));
+        }
+    } else if (lhs_type == VAR_ARRAY) {
+        lhs_array = variables -> get<ps::vector<ps::string>>(lhs.lexeme);
     }
 
-    if (search_array.size() == 0) throw std::invalid_argument("Invalid token type for array comparison.");
+    if (rhs_type == VAR_STRING || rhs.type == STRING_LITERAL) {
+        rhs_array.push_back(variables->get<ps::string>(rhs.lexeme));
+    } else if (rhs.type == ARRAY) {
+        auto it = array_lookup.find(lhs.lexeme);
+        if (it != array_lookup.end()) { // Array already exists.
+            rhs_array = it -> second;
+        } else { // Else parse the array and store it for later.
+            ArraySeparator separator;
+            rhs_array = separator.separate(rhs);
+            array_lookup.insert(std::make_pair(lhs.lexeme, rhs_array));
+        }
+    } else if (rhs_type == VAR_ARRAY) {
+        rhs_array = variables -> get<ps::vector<ps::string>>(rhs.lexeme);
+    }
 
     #ifdef DEBUG_RULE_ENGINE
     ESP_LOGD("Array", "\n==== Apply Comparison Operator ====");
     ps::string array_str;
+    log_printf("- Operator: %s", operator_token.lexeme.c_str());
+
     array_str += "[";
-    for (size_t i = 0; i < search_array.size(); i++) {
-        array_str += search_array.at(i);
+    for (size_t i = 0; i < lhs_array.size(); i++) {
+        array_str += lhs_array.at(i);
         array_str += ", ";
     };
     array_str += "]";
+    log_printf("\n- lhs Array: %s", array_str.c_str());
+
+    array_str.clear();
+    array_str += "[";
+    for (size_t i = 0; i < rhs_array.size(); i++) {
+        array_str += rhs_array.at(i);
+        array_str += ", ";
+    };
+    array_str += "]";
+    log_printf("\n- rhs Array: %s", array_str.c_str());
     
-    log_printf("- Operator: %s", operator_token.lexeme.c_str());
-    log_printf("\n- Array Name: %s", arr_name.lexeme.c_str());
-    log_printf("\n- Search Array: %s", array_str.c_str());
     #endif
 
     bool retval;
 
     if (operator_token.lexeme == ARRAY_TAG_EQUALITY_COMPARISON) {
-        if (arr_name.lexeme == UNIT_TAG_LIST) {
-            retval = variables->get_direct<std::shared_ptr<SDRUnit>>("UNIT")->tagEqualityComparison(search_array);
-        } else if (arr_name.lexeme == MODULE_TAG_LIST) {
-            retval = variables->get_direct<std::shared_ptr<Module>>("MODULE")->tagEqualityComparison(search_array);
-        } else throw std::invalid_argument("Unknown array name."); 
+        retval = arrayEqualityComparison(lhs_array, rhs_array);
     } else if (operator_token.lexeme == ARRAY_TAG_SUBSET_COMPARISON) {
-        if (arr_name.lexeme == UNIT_TAG_LIST) {
-            retval = variables->get_direct<std::shared_ptr<SDRUnit>>("UNIT")->tagSubsetComparison(search_array);
-        } else if (arr_name.lexeme == MODULE_TAG_LIST) {
-            retval = variables->get_direct<std::shared_ptr<Module>>("MODULE")->tagSubsetComparison(search_array);
-        } else throw std::invalid_argument("Unknown array name."); 
+        retval = arraySubsetComparison(lhs_array, rhs_array);
     } else throw std::invalid_argument("Unknown array comparison.");
 
     #ifdef DEBUG_RULE_ENGINE
@@ -334,4 +348,51 @@ bool Expression::applyStringComparison(Token& lhs, Token& rhs, Token& operator_t
 
     return retval;
 }
+
+
+
+/**
+ * @brief Check whether a minimum number of elements match.
+ * @param lhs_array The list of elements to compare.
+ * @param lhs_array The list of elements to compare.
+ * @param n The minimum number of matching elements before a true is returned.
+ * @returns True if matching elements >= n, else false.
+*/
+const bool Expression::arrayMinQuantifierSearch(const ps::vector<ps::string>& lhs_array, const ps::vector<ps::string>& rhs_array, const size_t n) const {
+    if ((lhs_array.size() < n) || (rhs_array.size() < n)) return false; // Not enough elements for a true outcome.
+
+    size_t matches = 0;
+    for (size_t src_it = 0; src_it < rhs_array.size(); src_it++) {
+        ps::string cur_str = rhs_array.at(src_it);
+
+        for (size_t it = 0; it < lhs_array.size(); it++) {
+            if (cur_str == lhs_array.at(it)) {
+                matches++;
+                if (matches >= n) return true; // Stop searching after enough matches are found.
+                break;
+            }
+        }
+
+    }
+
+    return false;
+}
+
+/**
+ * @brief Checks whether any elements of both arrays match.
+ * @return True if any element is common between both arrays, else false.
+*/
+const bool Expression::arraySubsetComparison(const ps::vector<ps::string>& lhs_array, const ps::vector<ps::string>& rhs_array) const {
+    return arrayMinQuantifierSearch(lhs_array, rhs_array, 1);
+}
+
+/**
+ * @brief Checks whether the provided arrays match. Element order does not matter.
+ * @return True if the two arrays match, else false.
+*/
+const bool Expression::arrayEqualityComparison(const ps::vector<ps::string>& lhs_array, const ps::vector<ps::string>& rhs_array) const {
+    if (lhs_array.size() != rhs_array.size()) return false;
+    return arrayMinQuantifierSearch(lhs_array, rhs_array, lhs_array.size());
+}
+
 }
