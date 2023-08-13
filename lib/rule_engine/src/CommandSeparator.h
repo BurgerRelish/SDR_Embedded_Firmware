@@ -6,7 +6,7 @@
 #include "../rule_engine/Semantics.h"
 #include "Language.h"
 #include "Lexer.h"
-#include "../ps_stl/ps_stl.h"
+#include <ps_stl.h>
 
 namespace re {
     

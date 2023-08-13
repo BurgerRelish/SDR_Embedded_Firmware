@@ -3,7 +3,7 @@
 #ifndef ARRAY_SEPARATOR_H
 #define ARRAY_SEPARATOR_H
 
-#include "../ps_stl/ps_stl.h"
+#include <ps_stl.h>
 
 #include "Language.h"
 #include "Lexer.h"

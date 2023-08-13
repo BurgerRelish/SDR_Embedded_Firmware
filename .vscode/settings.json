@@ -57,7 +57,8 @@
         "types.h": "c",
         "bitset": "cpp",
         "regex": "cpp",
-        "any": "cpp"
+        "any": "cpp",
+        "ruleenginebase": "cpp"
     },
     "docwriter.style": "Doxygen"
 }

@@ -7,7 +7,7 @@
 #include <vector>
 #include <string>
 #include <sstream>
-#include "../ps_stl/ps_stl.h"
+#include <ps_stl.h>
 
 template<typename T>
 class var_cast {

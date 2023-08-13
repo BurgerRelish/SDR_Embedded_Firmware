@@ -4,9 +4,9 @@
 namespace re {
     
 void RuleEngine::load_rule_engine_vars() {
-    variables -> set(VAR_UINT64_T, LAST_EXECUTION_TIME, std::function<uint64_t()>([this]() { return this->last_time; }));
+    variables -> set_var(VAR_UINT64_T, LAST_EXECUTION_TIME, std::function<uint64_t()>([this]() { return this->last_time; }));
 
-    variables -> set(VAR_UINT64_T, CURRENT_TIME, std::function<uint64_t()>([]() {
+    variables -> set_var(VAR_UINT64_T, CURRENT_TIME, std::function<uint64_t()>([]() {
         time_t now;
         struct tm timeinfo;
         if(!getLocalTime(&timeinfo)){

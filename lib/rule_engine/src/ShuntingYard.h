@@ -5,7 +5,7 @@
 
 #include <stdexcept>
 
-#include "../ps_stl/ps_stl.h"
+#include <ps_stl.h>
 
 #include "Language.h"
 

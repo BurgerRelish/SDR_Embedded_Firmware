@@ -9,7 +9,7 @@
 #include "../rule_engine/Expression.h"
 #include "../rule_engine/VariableStorage.h"
 
-#include "../ps_stl/ps_stl.h"
+#include <ps_stl.h>
 
 void test_storage();
 void test_expression();

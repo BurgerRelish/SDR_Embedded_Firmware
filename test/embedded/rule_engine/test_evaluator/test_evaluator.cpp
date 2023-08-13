@@ -1,12 +1,10 @@
 #include <Arduino.h>
 #include <unity.h>
 
-#include "../rule_engine/Evaluator.h"
+#include "../rule_engine/src/Function.h"
 #include "../sdr_containers/SDRUnit.h"
 #include "../sdr_containers/SDRModule.h"
-#include "ps_vector.h"
-#include "ps_string.h"
-#include "ps_stack.h.h"
+
 
 void test_evaluator() {
     {    
@@ -42,7 +40,7 @@ void test_evaluator() {
     };
 
     Module sdr_module(mid, mtag_list, priority, address, offset, "mod");
-    sdr_module.addReading(test_reading_0);
+    sdr_module.add_reading(test_reading_0);
 
     const std::string uid = "unitID";
     const std::vector<std::string> utag_list = {"unit", "test_unit_tag"};

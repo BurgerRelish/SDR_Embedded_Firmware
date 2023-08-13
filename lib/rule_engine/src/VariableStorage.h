@@ -11,9 +11,7 @@
 #include <type_traits>
 #include <functional>
 
-#include "../sdr_containers/SDRUnit.h"
-#include "../sdr_containers/SDRModule.h"
-#include "../ps_stl/ps_stl.h"
+#include <ps_stl.h>
 
 #include "../rule_engine/Semantics.h"
 
@@ -35,7 +33,7 @@ enum VariableType {
 };
 
 
-class VariableStorage {
+class VariableStorage : public std::enable_shared_from_this<VariableStorage>{
     private:
     ps::unordered_map<ps::string, std::pair<VariableType, std::any>> storage;
 
@@ -43,17 +41,65 @@ class VariableStorage {
     VariableStorage() {}
     ~VariableStorage() {}
 
+    /**
+     * @brief Merges the Variables in the provided storage into this storage by copy.
+     * 
+     * @param other storage to copy variables from.
+     */
+    void merge_vars(const VariableStorage& other) {
+        for (const auto& pair : other.storage) {
+            storage.insert(pair);
+        }
+    }
+
+    /**
+     * @brief Merges the Variables in the provided storage into this storage by copy.
+     * 
+     * @param other storage to copy variables from.
+     */
+    void merge_vars(const std::shared_ptr<VariableStorage>& other) {
+        for (const auto& pair : other -> storage) {
+            storage.insert(pair);
+        }
+    }
+
+    /**
+     * @brief Gets the type of variable stored with the provided identifier, else VAR_UNKNOWN if no variable exists with that identifier.
+     * 
+     * @param identifier 
+     * @return VariableType 
+     */
     VariableType type(ps::string identifier);
+
+
+    /**
+     * @brief Add a variable to the map with the provided type, identifier and value.
+     * 
+     * @tparam T type of variable to add.
+     * @param type VariableType of variable to add.
+     * @param identifier name of the variable.
+     * @param value value of the variable
+     */
     template <typename T>
-    void set(VariableType type, ps::string identifier, const T value) {
-        ESP_LOGV("Set", "Id: %s, Tp: %d", identifier.c_str(), type);
-        storage.insert(std::make_pair(
-            identifier,
-            std::make_pair(
-                type, 
-                std::any(value)
-            )
-        ));
+    void set_var(VariableType type, ps::string identifier, const T value) {
+        auto curr = storage.find(identifier);
+
+        if (curr == storage.end()) { // Add a new variable
+            storage.insert(std::make_pair(
+                identifier,
+                std::make_pair(
+                    type, 
+                    std::any(value)
+                )
+            ));
+            ESP_LOGV("Insert", "Id: %s, Tp: %d", identifier.c_str(), type);
+            return;
+        }
+
+        // Else update the existing variable.
+        storage[identifier] = std::make_pair(type, std::any(value));
+        ESP_LOGV("Update", "Id: %s, Tp: %d", identifier.c_str(), type);
+        return;
     }
 
     /**
@@ -65,7 +111,7 @@ class VariableStorage {
      * @return T - The value of the variable with semantics matching the identifier, or the cast value of the identifier.
      */
     template <typename T>
-    T get(const ps::string& identifier) {
+    T get_var(const ps::string& identifier) {
         auto var = storage.find(identifier.c_str());
         if (var != storage.end()) {
             try { /* Execute lambda */
@@ -141,7 +187,7 @@ class VariableStorage {
     }
 
     /**
-     * @brief Method to get std::shared_ptr
+     * @brief Method to get the direct variable without casting. Used to get std::shared_ptr etc.
      * 
      * @tparam T 
      * @param identifier 

@@ -10,8 +10,8 @@
 #include <functional>
 #include <memory>
 #include <string>
-#include "../Communication/MessageDeserializer.h"
-#include "../ps_stl/ps_stl.h"
+#include "../Serialization/MessageDeserializer.h"
+#include <ps_stl.h>
 
 
 enum ConnectivityMode {

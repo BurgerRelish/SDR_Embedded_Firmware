@@ -3,7 +3,7 @@
 #ifndef RULE_ENGINE_H
 #define RULE_ENGINE_H
 
-#include "../ps_stl/ps_stl.h"
+#include <ps_stl.h>
 
 #include "src/Language.h"
 #include "Semantics.h"
@@ -16,7 +16,7 @@ struct RuleCompare {
     }
 };
 
-class RuleEngine {
+class RuleEngine : public VariableStorage {
     private:
     std::shared_ptr<VariableStorage> variables;
     std::shared_ptr<FunctionStorage> functions;
@@ -27,8 +27,6 @@ class RuleEngine {
 
     void load_rule_engine_vars();
 
-
-
     public:
     /**
      * @brief Construct a new Rule Engine object.
@@ -36,9 +34,10 @@ class RuleEngine {
      * @param variable_store Variable storage.
      * @param function_store Global function storage.
      */
-    RuleEngine(std::shared_ptr<VariableStorage>& variable_store, std::shared_ptr<FunctionStorage>& function_store) :
-    functions(function_store), variables(variable_store)
+    RuleEngine(std::shared_ptr<FunctionStorage>& function_store) :
+    functions(function_store), variables(VariableStorage::shared_from_this())
     {
+        load_rule_engine_vars();
     }
 
     /**
@@ -53,10 +52,31 @@ class RuleEngine {
     }
 
     /**
+     * @brief Adds a rule with the given priority to the evaluation queue.
+     * 
+     * @param rule tuple of rule (priority, expression, command)
+     */
+    void add_rule(std::tuple<int, ps::string, ps::string> rule) {
+        rule_queue.push(ps::make_shared<Rule>(std::get<0>(rule), std::get<1>(rule), std::get<2>(rule), variables, functions));
+    }
+
+
+    /**
+     * @brief Adds a rule with the given priority to the evaluation queue.
+     * 
+     * @param rules vector of tuple of rule (priority, expression, command)
+     */
+    void add_rule(ps::vector<std::tuple<int, ps::string, ps::string>> rules) {
+        for (auto& rule : rules) {
+            rule_queue.push(ps::make_shared<Rule>(std::get<0>(rule), std::get<1>(rule), std::get<2>(rule), variables, functions));
+        }
+    }
+
+    /**
      * @brief Clears all currently saved rules from the evaluator.
      * 
      */
-    void clear_rules() {
+    virtual void clear_rules() {
         while (!rule_queue.empty()) rule_queue.pop();
     }
 
@@ -69,7 +89,7 @@ class RuleEngine {
      */
     bool execute(const ps::string& command_str) {
         auto exec = Executor(command_str, functions, variables);
-        last_time = variables->get<uint64_t>(CURRENT_TIME);
+        last_time = variables->get_var<uint64_t>(CURRENT_TIME);
         return exec.execute();
     }
 
@@ -85,7 +105,7 @@ class RuleEngine {
         auto eval = Expression(expression_str, variables);
         if (eval.evaluate()) {
             auto exec = Executor(command_str, functions, variables);
-            last_time = variables->get<uint64_t>(CURRENT_TIME);
+            last_time = variables->get_var<uint64_t>(CURRENT_TIME);
             return exec.execute();
         }
         return false;
@@ -102,7 +122,7 @@ class RuleEngine {
             rules.pop();
         }
 
-        last_time = variables->get<uint64_t>(CURRENT_TIME);
+        last_time = variables->get_var<uint64_t>(CURRENT_TIME);
     }
 };
 

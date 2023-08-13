@@ -4,7 +4,7 @@
 #define LEXER_H
 
 #include "Language.h"
-#include "../ps_stl/ps_stl.h"
+#include <ps_stl.h>
 
 
 /**

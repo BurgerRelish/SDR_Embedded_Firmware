@@ -3,7 +3,7 @@
 #ifndef SEMANTICS_H
 #define SEMANTICS_H
 
-/* Rule Enginge Variables */
+/* Rule Engine Variables */
 #define LAST_EXECUTION_TIME "LEX"
 #define CURRENT_TIME "TS"
 

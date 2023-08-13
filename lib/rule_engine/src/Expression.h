@@ -7,7 +7,7 @@
 #include "Lexer.h"
 #include "ShuntingYard.h"
 
-#include "../ps_stl/ps_stl.h"
+#include <ps_stl.h>
 
 namespace re {
 

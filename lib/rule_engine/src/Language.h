@@ -3,7 +3,7 @@
 #ifndef SDR_LANGUAGE_H
 #define SDR_LANGUAGE_H
 
-#include "../ps_stl/ps_stl.h"
+#include <ps_stl.h>
 
 #include "../rule_engine/Semantics.h"
 
