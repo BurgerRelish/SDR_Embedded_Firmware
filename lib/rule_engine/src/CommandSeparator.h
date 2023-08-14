@@ -3,7 +3,7 @@
 #ifndef COMMAND_SEPARATOR_H
 #define COMMAND_SEPARATOR_H
 
-#include "../rule_engine/Semantics.h"
+#include "Semantics.h"
 #include "Language.h"
 #include "Lexer.h"
 #include <ps_stl.h>
@@ -16,7 +16,7 @@ class CommandSeparator {
     public:
     CommandSeparator() {}
 
-    static ps::vector<std::pair<ps::string, ps::vector<Token>>> separate(ps::string& command);
+    ps::vector<std::tuple<ps::string, ps::vector<ps::string>>> separate(ps::string command);
 };
 
 }

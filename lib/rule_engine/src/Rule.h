@@ -12,7 +12,7 @@ class Rule : private Expression, private Executor {
     public:
     int priority;
 
-    Rule(const int rule_priority, const ps::string& expression_str, const ps::string& command_str, std::shared_ptr<VariableStorage>& variables, std::shared_ptr<FunctionStorage>& functions) : 
+    Rule(const int rule_priority, const ps::string& expression_str, const ps::string& command_str, VariableStorage& variables, std::shared_ptr<FunctionStorage>& functions) : 
         priority(rule_priority), Expression(expression_str, variables), Executor(command_str, functions, variables)
     {}
 

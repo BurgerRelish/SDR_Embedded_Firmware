@@ -1,31 +1,19 @@
-#include "sentry_task.h"
+#include "rtos/tasks.h"
 #include "config.h"
 
 #include <Arduino.h>
-
-#include <FastLED.h>
-#include <WiFi.h>
-#include <Preferences.h>
-#include <string>
-#include <sstream>
-#include <HTTPClient.h>
-
-#include "SDRApp.h"
-
-#include "VariableDelay.h"
 #include <ps_stl.h>
 
-#include "../Communication/MessageDeserializer.h"
-#include "../sdr_containers/SDRUnit.h"
+#include "App.h"
 
-#include "../hardware_interface/InterfaceMaster.h"
+#include "VariableDelay.h"
 
 #define TARGET_LOOP_FREQUENCY 10
 
 void checkTaskStatus(TaskHandle_t task);
-void bootSequence(std::shared_ptr<SDR::AppClass>&);
+void bootSequence(std::shared_ptr<sdr::App>&);
 
-void sentryPrintInfo(std::shared_ptr<SDR::AppClass> app) {
+void sentryPrintInfo(std::shared_ptr<sdr::App> app) {
 
     ESP_LOGI("SENTRY", "\n======= Task Information =======");
     log_printf("|    Task     | State |  Stack |");
@@ -44,9 +32,9 @@ void sentryPrintInfo(std::shared_ptr<SDR::AppClass> app) {
 }
 
 void sentryTaskFunction(void* global_class) {
-    std::shared_ptr<SDR::AppClass> app;
+    std::shared_ptr<sdr::App> app;
     {
-        auto appClass = static_cast<SDR::AppClass*>(global_class);
+        auto appClass = static_cast<sdr::App*>(global_class);
         app = appClass -> get_shared_ptr();
     }
 
@@ -74,8 +62,8 @@ void sentryTaskFunction(void* global_class) {
             
             vd.loop();
         }
-    } catch (SDR::Exception &e) {
-        ESP_LOGE("SENTRY", "SDR Exception: %s", e.what());
+    } catch (sdr::Exception &e) {
+        ESP_LOGE("SENTRY", "sdr Exception: %s", e.what());
     } catch (std::exception &e) {
         ESP_LOGE("SENTRY", "Exception: %s", e.what());
     }
@@ -108,7 +96,7 @@ void checkTaskStatus(TaskHandle_t task) {
     }
 }
 
-void bootSequence(std::shared_ptr<SDR::AppClass>& app) {
+void bootSequence(std::shared_ptr<sdr::App>& app) {
     /* Start Comms Task and Wait for communications setup to complete. */
     ESP_LOGI("BOOT", "Resuming Comms Task.");
     if(xSemaphoreGive(app -> comms_task_semaphore) != pdTRUE) ESP_LOGE("BOOT", "Failed to release comms semaphore.");

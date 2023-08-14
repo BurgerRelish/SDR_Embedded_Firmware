@@ -11,14 +11,14 @@ namespace re {
 
 class FunctionStorage {
     private:        
-        ps::unordered_map<ps::string, std::function<bool(ps::vector<Token>&, std::shared_ptr<VariableStorage>&)>> function_map;
+        ps::unordered_map<ps::string, std::function<bool(ps::vector<ps::string>&, VariableStorage*)>> function_map;
 
     public:
-        void add(const ps::string& identifier, std::function<bool(ps::vector<Token>&, std::shared_ptr<VariableStorage>&)> function) {
+        void add(const ps::string& identifier, std::function<bool(ps::vector<ps::string>&, VariableStorage*)> function) {
             function_map[identifier] = function;
         }
 
-        bool execute(const ps::string& identifier, ps::vector<Token>& args, std::shared_ptr<VariableStorage>& vars) {
+        bool execute(const ps::string& identifier, ps::vector<ps::string>& args, VariableStorage* vars) {
             auto lambda = function_map.find(identifier);
 
             if (lambda == function_map.end()) {
@@ -40,12 +40,13 @@ class FunctionStorage {
 class Executor {
     private:
     std::shared_ptr<FunctionStorage> fn_store;
-    std::shared_ptr<VariableStorage>& var_store;
-    ps::vector<std::pair<ps::string, ps::vector<Token>>> commands;
+    VariableStorage& var_store;
+    ps::vector<std::tuple<ps::string, ps::vector<ps::string>>> commands;
 
     public:
-    Executor(ps::string command, std::shared_ptr<FunctionStorage>& functions, std::shared_ptr<VariableStorage>& variables) : fn_store(functions), var_store(variables) {
-        commands = CommandSeparator::separate(command);
+    Executor(ps::string command, std::shared_ptr<FunctionStorage>& functions, VariableStorage& variables) : fn_store(functions), var_store(variables) {
+        CommandSeparator separator;
+        commands = separator.separate(command);
     }
 
     bool execute() {
@@ -53,17 +54,17 @@ class Executor {
         for (auto& command : commands) {
             try {
                 auto result = fn_store -> execute(
-                    command.first,
-                    command.second,
-                    var_store
+                    std::get<0>(command),
+                    std::get<1>(command),
+                    &var_store
                 );
 
                 if (result != true) {
-                    ESP_LOGE("Fail", "Command %s failed.", command.first.c_str());
+                    ESP_LOGE("Fail", "Command %s failed.", std::get<0>(command).c_str());
                 }
                 ret = ret && result;
             } catch (...) {
-                ESP_LOGE("Except", "Command %s failed.", command.first.c_str());
+                ESP_LOGE("Except", "Command %s failed.", std::get<0>(command).c_str());
             }
         }
 

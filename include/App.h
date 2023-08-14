@@ -5,28 +5,18 @@
 #include <Arduino.h>
 #include <FastLED.h>
 #include <LittleFS.h>
-#include <memory>
-#include <unordered_map>
+#include <ps_stl.h>
 #include "time.h"
 
-#include "../Serialization/MessageSerializer.h"
-#include "../Serialization/MessageDeserializer.h"
-#include "../Communication/MQTTClient.h"
-
+#include "config.h"
 #include "pin_map.h"
+#include "Persistence.h"
 #include "../hardware_interface/StatusLED.h"
 #include "../hardware_interface/InterfaceMaster.h"
 
-#include "Persistence.h"
 
-#include <ps_stl.h>
 
-#include "config.h"
-
-#include "../app/rtos/sentry_task.h"
-#include "../app/rtos/rule_engine_task.h"
-#include "../app/rtos/communication_task.h"
-#include "../app/rtos/control_task.h"
+#include "rtos/tasks.h"
 
 #include "../sdr/Unit.h"
 #include "../sdr/Module.h"

@@ -1,6 +1,6 @@
-#include "communication_task.h"
+#include "rtos/tasks.h"
 
-#include "../app/App.h"
+#include "App.h"
 #include <memory>
 #include "FS.h"
 #include "LittleFS.h"
@@ -15,7 +15,6 @@
 #include "../Serialization/MessageSerializer.h"
 #include "../Serialization/MessageDeserializer.h"
 #include "../Communication/MQTTClient.h"
-#include "../Serialization/MessageCompressor.h"
 
 #include "../webpages/webpage_setup.h"
 

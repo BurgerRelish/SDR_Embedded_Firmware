@@ -5,7 +5,7 @@
 
 #include <ps_stl.h>
 
-#include "../rule_engine/Semantics.h"
+#include "Semantics.h"
 
 enum TokenType {
     LEFT_PARENTHESES, // (

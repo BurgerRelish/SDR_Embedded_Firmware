@@ -5,8 +5,8 @@
 #include <Arduino.h>
 #include <FastLED.h>
 
-#include "../app/config.h"
-#include "../app/pin_map.h"
+#include "config.h"
+#include "pin_map.h"
 
 enum statusLEDState {
     STATUS_LED_SETUP,

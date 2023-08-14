@@ -8,7 +8,8 @@
 #include "../rule_engine/RuleEngine.h"
 
 namespace re {
-    class RuleEngineBase : public RuleEngine {
+
+class RuleEngineBase : public RuleEngine {
     private:
     ps::vector<ps::string> class_tags;
     ps::vector<std::tuple<int, ps::string, ps::string>> rules;

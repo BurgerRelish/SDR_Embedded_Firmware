@@ -1,26 +1,30 @@
 #include "CommandSeparator.h"
-#include "esp_log.h"
-
+#include "esp32-hal-log.h"
+#include <utility>
 
 namespace re {
 
-ps::vector<std::pair<ps::string, ps::vector<Token>>> CommandSeparator::separate(ps::string& command) {
+ps::vector<std::tuple<ps::string, ps::vector<ps::string>>> CommandSeparator::separate(ps::string command) {
+    ESP_LOGV("Separator", "started.");
     Lexer lexer;
-    auto tokens = lexer.tokenize(command);
-    ps::vector<std::pair<ps::string, ps::vector<Token>>> ret;
+    ps::queue<Token> tokens = lexer.tokenize(command);
+    ps::vector<std::tuple<ps::string, ps::vector<ps::string>>> ret;
     ps::queue<Token> current_command;
 
     while (!tokens.empty()) {
         /* Get the command */
         while (!tokens.empty() && tokens.front().lexeme != COMMAND_SEPARATOR) {
+            ESP_LOGV("Get cmd", "Adding lexeme: %s", tokens.front().lexeme.c_str());
             current_command.push(tokens.front());
             tokens.pop();
         }
 
+        tokens.pop(); // remove COMMAND_SEPARATOR
+
         uint8_t state = 0;
         ps::string name;
-        ps::vector<Token> args;
-
+        ps::vector<ps::string> args;
+        ESP_LOGV("Parse", "Parsing command");
         while (!current_command.empty()) {
             auto& token = current_command.front();
 
@@ -43,7 +47,7 @@ ps::vector<std::pair<ps::string, ps::vector<Token>>> CommandSeparator::separate(
                     if (token.lexeme == ")") {
                         state = 3;
                     } else if (token.lexeme != ARGUMENT_SEPARATOR) { // ,
-                        args.push_back(token);
+                        args.push_back(token.lexeme);
                     }
                     break;
                 case 3:
@@ -53,10 +57,11 @@ ps::vector<std::pair<ps::string, ps::vector<Token>>> CommandSeparator::separate(
 
             current_command.pop();
         }
-
-        ret.push_back(std::make_pair(name, args));
+        ESP_LOGV("", "Saving");
+        auto pr = std::make_tuple(name, args);
+        ret.push_back(pr);
     }
-
+    ESP_LOGV("Done", "done.");
     return ret;
 }
 }

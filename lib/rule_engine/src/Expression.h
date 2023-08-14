@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../rule_engine/Semantics.h"
+#include "Semantics.h"
 #include "Language.h"
 #include "VariableStorage.h"
 #include "ArraySeparator.h"
@@ -14,7 +14,7 @@ namespace re {
 class Expression {
     private:
     ps::vector<Token> _expression;
-    std::shared_ptr<VariableStorage>& variables;
+    VariableStorage& variables;
     ps::unordered_map<ps::string, ps::vector<ps::string>> array_lookup;
 
     bool evaluateRPN();
@@ -32,7 +32,7 @@ class Expression {
     const bool arrayEqualityComparison(const ps::vector<ps::string>& lhs_array, const ps::vector<ps::string>& rhs_array) const;
     const bool arraySubsetComparison(const ps::vector<ps::string>& lhs_array, const ps::vector<ps::string>& rhs_array) const;
     public:
-    Expression(const ps::string& expression, std::shared_ptr<VariableStorage>& vars) : variables(vars)
+    Expression(const ps::string& expression, VariableStorage& vars) : variables(vars)
     {
         Lexer lexer;
         auto expr = lexer.tokenize(expression);

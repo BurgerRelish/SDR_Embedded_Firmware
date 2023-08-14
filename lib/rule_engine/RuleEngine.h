@@ -6,7 +6,7 @@
 #include <ps_stl.h>
 
 #include "src/Language.h"
-#include "Semantics.h"
+#include "src/Semantics.h"
 #include "src/Rule.h"
 
 namespace re {
@@ -18,14 +18,27 @@ struct RuleCompare {
 
 class RuleEngine : public VariableStorage {
     private:
-    std::shared_ptr<VariableStorage> variables;
     std::shared_ptr<FunctionStorage> functions;
 
     ps::priority_queue<std::shared_ptr<Rule>, RuleCompare> rule_queue;
 
     uint64_t last_time = 0;
 
-    void load_rule_engine_vars();
+    void load_rule_engine_vars() {
+        VariableStorage::set_var(VAR_UINT64_T, LAST_EXECUTION_TIME, std::function<uint64_t()>([this]() { return this->last_time; }));
+
+        VariableStorage::set_var(VAR_UINT64_T, CURRENT_TIME, std::function<uint64_t()>([]() {
+            // time_t now;
+            // struct tm timeinfo;
+            // if(!getLocalTime(&timeinfo)){
+            //     ESP_LOGE("Time", "Failed to get time.");
+            //     return static_cast<uint64_t>(0);
+            // }
+
+            // time(&now); 
+            return static_cast<uint64_t>(0);
+            }));
+    }
 
     public:
     /**
@@ -35,7 +48,7 @@ class RuleEngine : public VariableStorage {
      * @param function_store Global function storage.
      */
     RuleEngine(std::shared_ptr<FunctionStorage>& function_store) :
-    functions(function_store), variables(VariableStorage::shared_from_this())
+    functions(function_store)
     {
         load_rule_engine_vars();
     }
@@ -48,7 +61,7 @@ class RuleEngine : public VariableStorage {
      * @param command_str Commands of rule.
      */
     void add_rule(const int rule_priority, const ps::string& expression_str, const ps::string& command_str) {
-        rule_queue.push(ps::make_shared<Rule>(rule_priority, expression_str, command_str, variables, functions));
+        rule_queue.push(ps::make_shared<Rule>(rule_priority, expression_str, command_str, *this, functions));
     }
 
     /**
@@ -57,7 +70,9 @@ class RuleEngine : public VariableStorage {
      * @param rule tuple of rule (priority, expression, command)
      */
     void add_rule(std::tuple<int, ps::string, ps::string> rule) {
-        rule_queue.push(ps::make_shared<Rule>(std::get<0>(rule), std::get<1>(rule), std::get<2>(rule), variables, functions));
+        auto new_rule = ps::make_shared<Rule>(std::get<0>(rule), std::get<1>(rule), std::get<2>(rule), *this, functions);
+        ESP_LOGV("rule", "Created, adding to queue.");
+        rule_queue.push(new_rule);
     }
 
 
@@ -68,7 +83,9 @@ class RuleEngine : public VariableStorage {
      */
     void add_rule(ps::vector<std::tuple<int, ps::string, ps::string>> rules) {
         for (auto& rule : rules) {
-            rule_queue.push(ps::make_shared<Rule>(std::get<0>(rule), std::get<1>(rule), std::get<2>(rule), variables, functions));
+            auto new_rule = ps::make_shared<Rule>(std::get<0>(rule), std::get<1>(rule), std::get<2>(rule), *this, functions);
+            ESP_LOGV("rule", "Created, adding to queue.");
+            rule_queue.push(new_rule);
         }
     }
 
@@ -88,8 +105,8 @@ class RuleEngine : public VariableStorage {
      * @return false Command failed to execute.
      */
     bool execute(const ps::string& command_str) {
-        auto exec = Executor(command_str, functions, variables);
-        last_time = variables->get_var<uint64_t>(CURRENT_TIME);
+        auto exec = Executor(command_str, functions, *this);
+        last_time = VariableStorage::get_var<uint64_t>(CURRENT_TIME);
         return exec.execute();
     }
 
@@ -102,27 +119,27 @@ class RuleEngine : public VariableStorage {
      * @return false Either the Expression evaluated false, or the command execution failed.
      */
     bool execute_if(const ps::string& expression_str, const ps::string& command_str) {
-        auto eval = Expression(expression_str, variables);
+        auto eval = Expression(expression_str, *this);
         if (eval.evaluate()) {
-            auto exec = Executor(command_str, functions, variables);
-            last_time = variables->get_var<uint64_t>(CURRENT_TIME);
+            auto exec = Executor(command_str, functions, *this);
+            last_time = VariableStorage::get_var<uint64_t>(CURRENT_TIME);
             return exec.execute();
         }
         return false;
     }
 
     /**
-     * @brief Evaluates all rules in the rule engine, and executes them if they evaluate true.
+     * @brief Evaluates all rules in the rule engine, and executes the highest priority to evaluate true.
      * 
      */
     void reason() {
         auto rules = rule_queue;
         while (!rules.empty()) {
-            rules.top() -> reason();
+            if(rules.top() -> reason()) break;
             rules.pop();
         }
 
-        last_time = variables->get_var<uint64_t>(CURRENT_TIME);
+        last_time = VariableStorage::get_var<uint64_t>(CURRENT_TIME);
     }
 };
 

@@ -13,7 +13,7 @@
 
 #include <ps_stl.h>
 
-#include "../rule_engine/Semantics.h"
+#include "Semantics.h"
 
 #include "var_cast.h"
 
@@ -33,7 +33,7 @@ enum VariableType {
 };
 
 
-class VariableStorage : public std::enable_shared_from_this<VariableStorage>{
+class VariableStorage {
     private:
     ps::unordered_map<ps::string, std::pair<VariableType, std::any>> storage;
 
@@ -111,55 +111,76 @@ class VariableStorage : public std::enable_shared_from_this<VariableStorage>{
      * @return T - The value of the variable with semantics matching the identifier, or the cast value of the identifier.
      */
     template <typename T>
-    T get_var(const ps::string& identifier) {
+    T get_var(const ps::string identifier) {
         auto var = storage.find(identifier.c_str());
         if (var != storage.end()) {
             try { /* Execute lambda */
                 switch (var -> second.first) {
                         case (VAR_INT): {
-                            ESP_LOGV("Int", "Found: %s", identifier.c_str());
-                            auto fn = std::any_cast<std::function<int(void)> >(var->second.second);
-                            auto ret = fn();
-                            ESP_LOGV("Int", "Got: %d", ret);
+                            int ret = 0;
+                            try {
+                                auto fn = std::any_cast<std::function<int(void)> >(var->second.second);
+                                ret = fn();
+                            } catch (...) {
+                                ret = std::any_cast<int>(var -> second.second);
+                            }
+                            ESP_LOGV("Int", "ID: %s Val: %d",identifier.c_str(), ret);
                             return var_cast<int>(ret);
-                            
-                            break;
                         }
                         case (VAR_BOOL): {
-                            ESP_LOGV("Bool", "Found: %s", identifier.c_str());
-                            auto fn = std::any_cast<std::function<bool(void)> >(var->second.second);
-                            auto ret = fn();
-                            ESP_LOGV("Bool", "Got: %u", ret);
+                            bool ret = 0;
+                            try {
+                                auto fn = std::any_cast<std::function<bool(void)> >(var->second.second);
+                                ret = fn();
+                            } catch (...) {
+                                ret = std::any_cast<bool>(var -> second.second);
+                            }
+                            ESP_LOGV("Bool", "ID: %s Val: %d",identifier.c_str(), ret);
                             return var_cast<bool>(ret);
-                            break;
                         }
                         case (VAR_DOUBLE): {
-                            auto fn = std::any_cast<std::function<double(void)> >(var->second.second);
-                            auto ret = fn();
-                            ESP_LOGV("Dbl", "Got: %f", ret);
+                            double ret = 0;
+                            try {
+                                auto fn = std::any_cast<std::function<double(void)> >(var->second.second);
+                                ret = fn();
+                            } catch (...) {
+                                ret = std::any_cast<double>(var -> second.second);
+                            }
+                            ESP_LOGV("Dbl", "ID: %s Val: %f",identifier.c_str(), ret);
                             return var_cast<double>(ret);
-                            break;
                         }
                         case (VAR_STRING): {
-                            auto fn = std::any_cast<std::function<ps::string(void)> >(var->second.second);
-                            auto ret = fn();
-                            ESP_LOGV("Str", "Got: %s", ret.c_str());
-                            return (T) var_cast<ps::string>(ret);
-                            break;
+                            ps::string ret = 0;
+                            try {
+                                auto fn = std::any_cast<std::function<ps::string(void)> >(var->second.second);
+                                ret = fn();
+                            } catch (...) {
+                                ret = std::any_cast<ps::string>(var -> second.second);
+                            }
+                            ESP_LOGV("Str", "ID: %s Val: %s",identifier.c_str(), ret);
+                            return var_cast<ps::string>(ret);
                         }
                         case (VAR_UINT64_T): {
-                            auto fn = std::any_cast<std::function<uint64_t(void)> >(var->second.second);
-                            auto ret = fn();
-                            ESP_LOGV("uint64", "Got: %u", ret);
-                            return (T) var_cast<uint64_t>(ret);
-                            break;
+                            uint64_t ret = 0;
+                            try {
+                                auto fn = std::any_cast<std::function<uint64_t(void)> >(var->second.second);
+                                ret = fn();
+                            } catch (...) {
+                                ret = std::any_cast<uint64_t>(var -> second.second);
+                            }
+                            ESP_LOGV("UINT64", "ID: %s Val: %u",identifier.c_str(), ret);
+                            return var_cast<uint64_t>(ret);
                         }
                         case (VAR_ARRAY): {
-                            auto fn = std::any_cast<std::function<ps::vector<ps::string>(void)> >(var->second.second);
-                            auto ret = var_cast<ps::vector<ps::string>>(fn());
-                            ESP_LOGV("arr", "Got.");
-                            return ret;
-                            break;
+                            ps::vector<ps::string> ret;
+                            try {
+                                auto fn = std::any_cast<std::function<ps::vector<ps::string>(void)> >(var->second.second);
+                                ret = fn();
+                            } catch (...) {
+                                ret = std::any_cast<ps::vector<ps::string>>(var -> second.second);
+                            }
+                            ESP_LOGV("ARRAY", "ID: %s Val: %u",identifier.c_str(), ret.at(0).c_str());
+                            return var_cast<ps::vector<ps::string>>(ret);
                         }
                         default: throw;
                 }
@@ -171,9 +192,9 @@ class VariableStorage : public std::enable_shared_from_this<VariableStorage>{
                 }
             } catch (...) {}
 
-        } else {
-            ESP_LOGV("find", "Unknown variable name: \'%s\'.", identifier.c_str());
         }
+
+        ESP_LOGV("cast", "ID: \'%s\'.", identifier.c_str());
 
         /* If all else fails, try cast the identifier to the return value. */
         try {
@@ -194,7 +215,7 @@ class VariableStorage : public std::enable_shared_from_this<VariableStorage>{
      * @return T 
      */
     template <typename T>
-    T get_direct(const ps::string& identifier) {
+    T get_direct(const ps::string identifier) {
         auto var = storage.find(identifier);
         if (var != storage.end()) {
             try {
