@@ -40,11 +40,11 @@ class FunctionStorage {
 class Executor {
     private:
     std::shared_ptr<FunctionStorage> fn_store;
-    VariableStorage& var_store;
+    VariableStorage* var_store;
     ps::vector<std::tuple<ps::string, ps::vector<ps::string>>> commands;
 
     public:
-    Executor(ps::string command, std::shared_ptr<FunctionStorage>& functions, VariableStorage& variables) : fn_store(functions), var_store(variables) {
+    Executor(ps::string command, std::shared_ptr<FunctionStorage>& functions, VariableStorage* variables) : fn_store(functions), var_store(variables) {
         CommandSeparator separator;
         commands = separator.separate(command);
     }
@@ -56,7 +56,7 @@ class Executor {
                 auto result = fn_store -> execute(
                     std::get<0>(command),
                     std::get<1>(command),
-                    &var_store
+                    var_store
                 );
 
                 if (result != true) {

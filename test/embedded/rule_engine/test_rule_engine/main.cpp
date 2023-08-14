@@ -12,19 +12,21 @@ void log_memory_usage() {
     size_t free_psram = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
     size_t free_sram = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
 
-    log_printf("\n- PSRAM Usage: %f/%u kB (%f%%)", ((float)(tot_psram - free_psram)) / 1024, tot_psram / 1024, 100 *( 1 - ((float) free_psram) / ((float) tot_psram)));
-    log_printf("\n- SRAM Usage: %f/%u kB (%f%%)\n\n", ((float)(tot_sram - free_sram)) / 1024, tot_sram / 1024, 100 *( 1 - ((float) free_sram) / ((float) tot_sram)));
+    log_printf("- PSRAM Usage: %.4f/%u KB (%f%%)\n", ((float)(tot_psram - free_psram)) / 1024, tot_psram / 1024, 100 *( 1 - ((float) free_psram) / ((float) tot_psram)));
+    log_printf("- SRAM Usage: %.4f/%u KB (%f%%)\n", ((float)(tot_sram - free_sram)) / 1024, tot_sram / 1024, 100 *( 1 - ((float) free_sram) / ((float) tot_sram)));
 }
 
 void load_test_functions(std::shared_ptr<re::FunctionStorage>& functions) {
-    std::function<bool(ps::vector<ps::string>&, re::VariableStorage*)> fn_0 = [](ps::vector<ps::string>& args, re::VariableStorage * vars){
+    std::function<bool(ps::vector<ps::string>&, re::VariableStorage*)> fn_0 = 
+
+    [](ps::vector<ps::string>& args, re::VariableStorage * vars) {
         ps::stringstream arg_str;
         for (auto& arg : args) {
             arg_str << arg;
             arg_str << ",";
         }
-        ESP_LOGI("fn_0", "Arg Val: %d, args: \'%s\'", vars->get_var<int>(args.at(0)), arg_str.str().c_str());
-        vars->set_var<int>(re::VAR_INT, "res0", 45);
+       // ESP_LOGI("fn_0", "Arg Val: %d, args: \'%s\'", vars->get_var<int>(args.at(0)), arg_str.str().c_str());
+        vars->set_var<int>(re::VAR_INT, "res0", 10);
         return true;
     };
 
@@ -32,7 +34,8 @@ void load_test_functions(std::shared_ptr<re::FunctionStorage>& functions) {
     functions -> add(id, fn_0);
 
     std::function<bool(ps::vector<ps::string>&, re::VariableStorage*)> fn_1 = [](ps::vector<ps::string>& args, re::VariableStorage * vars){
-        ESP_LOGI("fn_1", "%s", args.at(0).c_str());
+        ESP_LOGI("fn_1", "%s - %d", args.at(0).c_str(), vars -> get_var<int>(args.at(0)));
+        vars->set_var<int>(re::VAR_INT, "res0", 45);
         return true;
     };
     log_memory_usage();
@@ -44,13 +47,18 @@ void load_test_functions(std::shared_ptr<re::FunctionStorage>& functions) {
 }
 
 void load_test_rules(std::shared_ptr<re::RuleEngineBase> engine) {
+    /**
+     * @brief fn_0 runs first (higher priority) and sets res0 to 10. On the next execution, fn_0's expression
+     * will no longer evaluate true, thus fn_0 will no longer run, allowing fn_1 to run, setting to value of
+     * res0 to 45.
+     */
     engine->set_var<int>(re::VAR_INT, "res0", 0);
 
-    auto expr_0 = ps::string("(Val0 - 5) == 5 && res0 != 45"); // IF <this is true>
+    auto expr_0 = ps::string("(Val0 - 5) == 5 && res0 == 0"); // IF <this is true>
     auto fn_0 = ps::string("fn_0(Val0);");       // THEN <do this>
 
-    auto expr_1 = ps::string("res0 == 45");
-    auto fn_1 = ps::string("fn_1(res0)");
+    auto expr_1 = ps::string("res0 == 10");
+    auto fn_1 = ps::string("fn_1(res0);");
 
     auto rule_0 = std::make_tuple(2, expr_0, fn_0); // Highest Priority runs first.
     engine -> add_rule(rule_0);
@@ -85,6 +93,7 @@ void test_rule_engine() {
     rule_engine -> reason();
     uint64_t end_tm = esp_timer_get_time();
     log_memory_usage();
+    rule_engine -> reason();
 
     ESP_LOGD("Reason", "Took %u us", end_tm - start_tm);
     TEST_ASSERT_EQUAL_INT(45, rule_engine -> get_var<int>("res0"));

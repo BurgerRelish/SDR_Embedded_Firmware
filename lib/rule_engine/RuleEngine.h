@@ -40,6 +40,14 @@ class RuleEngine : public VariableStorage {
             }));
     }
 
+    void create_rule(int rule_priority, ps::string expression_str, ps::string command_str) {
+        VariableStorage* vars = this;
+        auto rule = ps::make_shared<Rule>(rule_priority, expression_str, command_str, vars, functions);
+        
+        ESP_LOGV("rule", "Created, adding to queue.");
+        rule_queue.push(rule);
+    }
+
     public:
     /**
      * @brief Construct a new Rule Engine object.
@@ -61,7 +69,7 @@ class RuleEngine : public VariableStorage {
      * @param command_str Commands of rule.
      */
     void add_rule(const int rule_priority, const ps::string& expression_str, const ps::string& command_str) {
-        rule_queue.push(ps::make_shared<Rule>(rule_priority, expression_str, command_str, *this, functions));
+        create_rule(rule_priority, expression_str, command_str);
     }
 
     /**
@@ -70,9 +78,7 @@ class RuleEngine : public VariableStorage {
      * @param rule tuple of rule (priority, expression, command)
      */
     void add_rule(std::tuple<int, ps::string, ps::string> rule) {
-        auto new_rule = ps::make_shared<Rule>(std::get<0>(rule), std::get<1>(rule), std::get<2>(rule), *this, functions);
-        ESP_LOGV("rule", "Created, adding to queue.");
-        rule_queue.push(new_rule);
+        create_rule(std::get<0>(rule), std::get<1>(rule), std::get<2>(rule));
     }
 
 
@@ -83,9 +89,7 @@ class RuleEngine : public VariableStorage {
      */
     void add_rule(ps::vector<std::tuple<int, ps::string, ps::string>> rules) {
         for (auto& rule : rules) {
-            auto new_rule = ps::make_shared<Rule>(std::get<0>(rule), std::get<1>(rule), std::get<2>(rule), *this, functions);
-            ESP_LOGV("rule", "Created, adding to queue.");
-            rule_queue.push(new_rule);
+            create_rule(std::get<0>(rule), std::get<1>(rule), std::get<2>(rule));
         }
     }
 
@@ -105,7 +109,7 @@ class RuleEngine : public VariableStorage {
      * @return false Command failed to execute.
      */
     bool execute(const ps::string& command_str) {
-        auto exec = Executor(command_str, functions, *this);
+        auto exec = Executor(command_str, functions, this);
         last_time = VariableStorage::get_var<uint64_t>(CURRENT_TIME);
         return exec.execute();
     }
@@ -119,9 +123,9 @@ class RuleEngine : public VariableStorage {
      * @return false Either the Expression evaluated false, or the command execution failed.
      */
     bool execute_if(const ps::string& expression_str, const ps::string& command_str) {
-        auto eval = Expression(expression_str, *this);
+        auto eval = Expression(expression_str, this);
         if (eval.evaluate()) {
-            auto exec = Executor(command_str, functions, *this);
+            auto exec = Executor(command_str, functions, this);
             last_time = VariableStorage::get_var<uint64_t>(CURRENT_TIME);
             return exec.execute();
         }

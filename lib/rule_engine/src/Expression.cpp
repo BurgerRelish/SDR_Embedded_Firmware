@@ -58,11 +58,11 @@ bool Expression::evaluateRPN() {
 
 void Expression::evaluateOperator(ps::stack<Token>& tokens, Token& operator_token) {
     Token rhs = tokens.top();
-    VariableType rhs_type = variables.type(rhs.lexeme);
+    VariableType rhs_type = variables->type(rhs.lexeme);
     tokens.pop();
 
     Token lhs = tokens.top();
-    VariableType lhs_type = variables.type(lhs.lexeme);
+    VariableType lhs_type = variables->type(lhs.lexeme);
     tokens.pop();
 
     Token result;
@@ -105,8 +105,8 @@ void Expression::evaluateOperator(ps::stack<Token>& tokens, Token& operator_toke
 }
 
 bool Expression::applyBooleanOperator(Token& lhs, Token& rhs, Token& operator_token) {
-    bool lhs_val = variables.get_var<bool>(lhs.lexeme);
-    bool rhs_val = variables.get_var<bool>(rhs.lexeme);
+    bool lhs_val = variables->get_var<bool>(lhs.lexeme);
+    bool rhs_val = variables->get_var<bool>(rhs.lexeme);
 
     #ifdef DEBUG_RULE_ENGINE
     ESP_LOGD("bool", "\n==== Apply Operator ====");
@@ -134,8 +134,8 @@ bool Expression::applyBooleanOperator(Token& lhs, Token& rhs, Token& operator_to
 }
 
 double Expression::applyArithmeticOperator(Token& lhs, Token& rhs, Token& operator_token) {
-    double lhs_val = variables.get_var<double>(lhs.lexeme);
-    double rhs_val = variables.get_var<double>(rhs.lexeme);
+    double lhs_val = variables->get_var<double>(lhs.lexeme);
+    double rhs_val = variables->get_var<double>(rhs.lexeme);
 
     #ifdef DEBUG_RULE_ENGINE
     ESP_LOGD("Arithmetic", "\n==== Apply Operator ====");
@@ -169,10 +169,10 @@ double Expression::applyArithmeticOperator(Token& lhs, Token& rhs, Token& operat
 }
 
 bool Expression::applyComparisonOperator(Token& lhs, Token& rhs, Token& operator_token) {
-    if (variables.type(lhs.lexeme) == VAR_UINT64_T || variables.type(rhs.lexeme) == VAR_UINT64_T) return applyComparisonOperatorUint64(lhs, rhs, operator_token);
+    if (variables->type(lhs.lexeme) == VAR_UINT64_T || variables->type(rhs.lexeme) == VAR_UINT64_T) return applyComparisonOperatorUint64(lhs, rhs, operator_token);
     
-    double lhs_val = variables.get_var<double>(lhs.lexeme);
-    double rhs_val = variables.get_var<double>(rhs.lexeme);
+    double lhs_val = variables->get_var<double>(lhs.lexeme);
+    double rhs_val = variables->get_var<double>(rhs.lexeme);
 
     #ifdef DEBUG_RULE_ENGINE
     ESP_LOGD("Comparison", "\n==== Apply Operator ====");
@@ -205,8 +205,8 @@ bool Expression::applyComparisonOperator(Token& lhs, Token& rhs, Token& operator
 }
 
 bool Expression::applyComparisonOperatorUint64(Token& lhs, Token& rhs, Token& operator_token) {
-    uint64_t lhs_val = variables.get_var<uint64_t>(lhs.lexeme);
-    uint64_t rhs_val = variables.get_var<uint64_t>(rhs.lexeme);
+    uint64_t lhs_val = variables->get_var<uint64_t>(lhs.lexeme);
+    uint64_t rhs_val = variables->get_var<uint64_t>(rhs.lexeme);
 
     #ifdef DEBUG_RULE_ENGINE
     ESP_LOGD("uint64_t", "\n==== Apply Comparison Operator ====");
@@ -247,11 +247,11 @@ bool Expression::applyArrayComparison(Token& lhs, Token& rhs, Token& operator_to
 
     Token arr_name;
 
-    VariableType lhs_type = variables.type(lhs.lexeme);
-    VariableType rhs_type = variables.type(rhs.lexeme);
+    VariableType lhs_type = variables->type(lhs.lexeme);
+    VariableType rhs_type = variables->type(rhs.lexeme);
     /* If the array is of a string type, */
     if (lhs_type == VAR_STRING || lhs.type == STRING_LITERAL) {
-        lhs_array.push_back(variables.get_var<ps::string>(lhs.lexeme));
+        lhs_array.push_back(variables->get_var<ps::string>(lhs.lexeme));
     } else if (lhs.type == ARRAY) {
         auto it = array_lookup.find(rhs.lexeme);
         if (it != array_lookup.end()) { // Array already exists.
@@ -262,11 +262,11 @@ bool Expression::applyArrayComparison(Token& lhs, Token& rhs, Token& operator_to
             array_lookup.insert(std::make_pair(rhs.lexeme, lhs_array));
         }
     } else if (lhs_type == VAR_ARRAY) {
-        lhs_array = variables.get_var<ps::vector<ps::string>>(lhs.lexeme);
+        lhs_array = variables->get_var<ps::vector<ps::string>>(lhs.lexeme);
     }
 
     if (rhs_type == VAR_STRING || rhs.type == STRING_LITERAL) {
-        rhs_array.push_back(variables.get_var<ps::string>(rhs.lexeme));
+        rhs_array.push_back(variables->get_var<ps::string>(rhs.lexeme));
     } else if (rhs.type == ARRAY) {
         auto it = array_lookup.find(lhs.lexeme);
         if (it != array_lookup.end()) { // Array already exists.
@@ -277,7 +277,7 @@ bool Expression::applyArrayComparison(Token& lhs, Token& rhs, Token& operator_to
             array_lookup.insert(std::make_pair(lhs.lexeme, rhs_array));
         }
     } else if (rhs_type == VAR_ARRAY) {
-        rhs_array = variables.get_var<ps::vector<ps::string>>(rhs.lexeme);
+        rhs_array = variables->get_var<ps::vector<ps::string>>(rhs.lexeme);
     }
 
     #ifdef DEBUG_RULE_ENGINE
@@ -323,8 +323,8 @@ bool Expression::applyArrayComparison(Token& lhs, Token& rhs, Token& operator_to
  * @brief Handles the comparison between two string literals or variables of string literal type.
 */
 bool Expression::applyStringComparison(Token& lhs, Token& rhs, Token& operator_token) {
-    ps::string lhs_str = variables.get_var<ps::string>(lhs.lexeme);
-    ps::string rhs_str = variables.get_var<ps::string>(rhs.lexeme);
+    ps::string lhs_str = variables->get_var<ps::string>(lhs.lexeme);
+    ps::string rhs_str = variables->get_var<ps::string>(rhs.lexeme);
 
     #ifdef DEBUG_RULE_ENGINE
     ESP_LOGD("", "\n==== Apply Comparison Operator String ====");
