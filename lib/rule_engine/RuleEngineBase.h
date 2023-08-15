@@ -3,6 +3,7 @@
 #ifndef RULE_ENGINE_BASE_H
 #define RULE_ENGINE_BASE_H
 
+#include <ArduinoJson.h>
 #include <ps_stl.h>
 
 #include "../rule_engine/RuleEngine.h"
@@ -16,15 +17,15 @@ class RuleEngineBase : public RuleEngine {
 
     public:
     RuleEngineBase(const ps::string& tag_array_name, std::shared_ptr<FunctionStorage>& function_store) : RuleEngine(function_store) {
-        RuleEngine::set_var(VAR_ARRAY, tag_array_name, class_tags);
+        RuleEngine::set_var(VAR_ARRAY, tag_array_name, [this](){return this -> class_tags;});
     }  
 
     RuleEngineBase(const ps::string& tag_array_name, std::shared_ptr<FunctionStorage>& function_store, ps::vector<ps::string>& tag_list) : RuleEngine(function_store), class_tags(tag_list) {
-        RuleEngine::set_var(VAR_ARRAY, tag_array_name, class_tags);
+        RuleEngine::set_var(VAR_ARRAY, tag_array_name, [this](){return this -> class_tags;});
     }
 
     RuleEngineBase(const ps::string& tag_array_name, std::shared_ptr<FunctionStorage>& function_store, ps::vector<ps::string>& tag_list, ps::vector<std::tuple<int, ps::string, ps::string>> rule_list) : RuleEngine(function_store), class_tags(tag_list), rules(rule_list) {
-        RuleEngine::set_var(VAR_ARRAY, tag_array_name, class_tags);
+        RuleEngine::set_var(VAR_ARRAY, tag_array_name, [this](){return this -> class_tags;});
     }
 
     ps::vector<std::tuple<int, ps::string, ps::string>>& get_rules() {
@@ -128,6 +129,36 @@ class RuleEngineBase : public RuleEngine {
         class_tags.push_back(tag);
     }
 
+    void load_rule_engine(JsonObject& obj) {
+        JsonArray rule_arr = obj["rules"].as<JsonArray>();
+        
+        for (auto& rule : rule_arr) {
+            auto tp = std::make_tuple(rule["pr"].as<int>(), rule["exp"].as<ps::string>(), rule["cmd"].as<ps::string>());
+            add_rule(tp);
+        }
+
+        JsonArray tag_arr = obj["tags"].as<JsonArray>();
+        for (auto& tag : tag_arr) {
+            class_tags.push_back(tag.as<ps::string>());
+        }
+    }
+
+    void save_rule_engine(JsonObject& obj) {
+        JsonArray rule_arr = obj.createNestedArray("rules");
+
+        for (auto& rule : rules) {
+            auto rule_obj = rule_arr.createNestedObject();
+            rule_obj["pr"] = std::get<0>(rule);
+            rule_obj["exp"] = std::get<1>(rule).c_str();
+            rule_obj["cmd"] = std::get<2>(rule).c_str();
+        }
+
+        JsonArray tag_arr = obj.createNestedArray("tags");
+
+        for (auto& tag : class_tags) {
+            tag_arr.add(tag.c_str());
+        }
+    }
 };
 
 }

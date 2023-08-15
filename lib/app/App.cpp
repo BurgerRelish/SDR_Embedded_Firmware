@@ -4,7 +4,6 @@
 #include <LittleFS.h>
 #include "config.h"
 
-
 namespace sdr {
 
 void App::initRTOS() {
@@ -120,11 +119,6 @@ std::shared_ptr<App> App::get_shared_ptr() {
     return shared_from_this();
 }
 
-void App::set_unit(std::shared_ptr<Unit> _unit) {
-    xSemaphoreTake(unit_mutex, portMAX_DELAY);
-    unit = _unit;
-    xSemaphoreGive(unit_mutex);
-}
 
 bool App::generate_module_map() {
     bool ret = false;
@@ -144,9 +138,9 @@ bool App::generate_module_map() {
     return ret;
 }
 
-void App::configure_time(uint32_t gmtOffsetSec, int daylightOffsetSec, const char* ntp_server) {
+void App::configure_time() {
     xSemaphoreTake(time_mutex, portMAX_DELAY);
-    configTime(gmtOffsetSec, daylightOffsetSec, ntp_server);
+    configTime(GMT_OFFSET, 0, NTP_SERVER);
     xSemaphoreGive(time_mutex);
 }
 

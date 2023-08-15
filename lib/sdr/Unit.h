@@ -6,9 +6,6 @@
 #include <stdint.h>
 #include <ArduinoJson.h>
 
-#include "RuleStore.h"
-#include "TagSearch.h"
-
 #include <ps_stl.h>
 
 #include "../rule_engine/RuleEngineBase.h"
@@ -30,15 +27,25 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
     bool update;
     bool save;
 
+    void load_vars() {
+        re::RuleEngineBase::set_var(re::VAR_CLASS, UNIT_CLASS, std::enable_shared_from_this<Unit>::shared_from_this());
+
+        re::RuleEngineBase::set_var(re::VAR_DOUBLE, TOTAL_ACTIVE_POWER, std::function<double()>([this]() { return this->totalActivePower(); }));
+        re::RuleEngineBase::set_var(re::VAR_DOUBLE, TOTAL_REACTIVE_POWER, std::function<double()>([this]() { return this->totalReactivePower(); }));
+        re::RuleEngineBase::set_var(re::VAR_DOUBLE, TOTAL_APPARENT_POWER, std::function<double()>([this]() { return this->totalApparentPower(); }));
+        re::RuleEngineBase::set_var(re::VAR_BOOL, POWER_STATUS, std::function<bool()>([this]() { return this->powerStatus(); }));
+        re::RuleEngineBase::set_var(re::VAR_STRING, UNIT_ID, std::function<ps::string()>([this]() { return this->id(); }));
+        re::RuleEngineBase::set_var(re::VAR_ARRAY, UNIT_TAG_LIST, std::function<ps::vector<ps::string>()>([this]() { return this->get_tags(); }));
+        re::RuleEngineBase::set_var(re::VAR_INT, MODULE_COUNT, std::function<int()>([this]() { return this->moduleCount(); }));
+    }
+
     public:
-    Unit(std::shared_ptr<re::FunctionStorage> functions, const std::string unit_id, const int module_count, const std::vector<std::string>& tag_list, const std::vector<Rule> rule_list, bool update_required = false) : 
-    number_of_modules(module_count),
+    Unit(std::shared_ptr<re::FunctionStorage> functions, const std::string unit_id) : 
     total_active_power(0),
     total_reactive_power(0),
     total_apparent_power(0),
     power_status(false),
     save(false),
-    update(update_required),
     RuleEngineBase(UNIT_TAG_LIST, functions)
     {
         unit_id_ <<= unit_id;
@@ -123,15 +130,7 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
     }
 
     void load_unit() {
-        re::RuleEngineBase::set_var(re::VAR_CLASS, UNIT_CLASS, std::enable_shared_from_this<Unit>::shared_from_this());
 
-        re::RuleEngineBase::set_var(re::VAR_DOUBLE, TOTAL_ACTIVE_POWER, std::function<double()>([this]() { return this->totalActivePower(); }));
-        re::RuleEngineBase::set_var(re::VAR_DOUBLE, TOTAL_REACTIVE_POWER, std::function<double()>([this]() { return this->totalReactivePower(); }));
-        re::RuleEngineBase::set_var(re::VAR_DOUBLE, TOTAL_APPARENT_POWER, std::function<double()>([this]() { return this->totalApparentPower(); }));
-        re::RuleEngineBase::set_var(re::VAR_BOOL, POWER_STATUS, std::function<bool()>([this]() { return this->powerStatus(); }));
-        re::RuleEngineBase::set_var(re::VAR_STRING, UNIT_ID, std::function<ps::string()>([this]() { return this->id(); }));
-        re::RuleEngineBase::set_var(re::VAR_ARRAY, UNIT_TAG_LIST, std::function<ps::vector<ps::string>()>([this]() { return this->get_tags(); }));
-        re::RuleEngineBase::set_var(re::VAR_INT, MODULE_COUNT, std::function<int()>([this]() { return this->moduleCount(); }));
     }
 
 };

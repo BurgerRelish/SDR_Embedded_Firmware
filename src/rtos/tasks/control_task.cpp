@@ -1,11 +1,9 @@
-#include "rtos/tasks.h"
+#include "tasks.h"
 
 #include "App.h"
-#include <memory>
-#include <unordered_map>
-#include <tuple>
-
 #include <ps_stl.h>
+
+#include "sdr_semantics.h"
 
 struct InterfaceRxMessage {
     uint16_t address;
@@ -14,7 +12,6 @@ struct InterfaceRxMessage {
 
 std::shared_ptr<ps::queue<InterfaceRxMessage>> incoming_message;
 
-using ModuleParameterMap = std::unordered_map<std::string, std::tuple<int, std::vector<std::string>, std::vector<Rule>>>;
 using ModuleAddressMap = std::unordered_map<uint16_t, std::shared_ptr<sdr::Module>>;
 
 void interfaceRxCallback(uint16_t, std::string);
@@ -22,7 +19,8 @@ void handleControlMessage(std::shared_ptr<sdr::App>&, std::shared_ptr<InterfaceM
 void handleInterfaceMessage(std::shared_ptr<sdr::App>&, InterfaceRxMessage&, ModuleAddressMap&);
 void sendStateChanges(std::shared_ptr<sdr::App>&, std::shared_ptr<InterfaceMaster>&);
 
-ModuleParameterMap loadModuleParameters(Persistence<fs::LittleFSFS>&);
+
+void setModuleState(std::shared_ptr<sdr::Module>&);
 
 uint16_t countChar(std::string, char);
 
@@ -71,28 +69,9 @@ void controlTaskFunction(void* global_class) {
                     auto found_module = module_map.find(incoming_message->front().message);
 
                     if (found_module == module_map.end()) { // Found unknown module
-                        modules.data().push_back(
-                                ps::make_shared<sdr::Module>(                // Create a new sdr::Module class on PSRAM.
-                                    incoming_message->front().message,   // ID
-                                    -1,                                 // Priority
-                                    std::vector<std::string>(),         // Tag List
-                                    std::vector<Rule>(),                // Rule List
-                                    address,                            // SWI Address
-                                    interface_no,                       // RS485 Interface
-                                    true                                // Requires an update.
-                                )
-                        );
+
                     } else { // Found known module.
-                        modules.data().push_back(
-                            ps::make_shared<sdr::Module>(                 // Create a new sdr::Module class on PSRAM.
-                                found_module -> first,               // ID
-                                std::get<0>(found_module -> second), // Priority
-                                std::get<1>(found_module -> second), // Tag List
-                                std::get<2>(found_module -> second), // Rule List
-                                address,                             // SWI Address
-                                interface_no                         // RS485 Interface
-                                )                                    // Does not require an update
-                        );
+
                     }
 
                     /* Store module address in */
@@ -126,29 +105,14 @@ void controlTaskFunction(void* global_class) {
             }
 
             /* Load rule list */
-            std::vector<Rule> rule_list;
+
             {
-                auto rule_array = nvs.document["rules"].as<JsonArray>();
-                for (auto rule : rule_array) {
-                    Rule new_rule {
-                        rule["pr"].as<int>(),
-                        rule["exp"].as<ps::string>(),
-                        rule["cmd"].as<ps::string>()
-                    };
-                    rule_list.push_back(new_rule);
-                }
+
             }
 
 
             /* Create a new unit class and update the global variable of it. */
-            app -> set_unit(
-                ps::make_shared<sdr::Unit>(
-                    nvs.document["uid"].as<std::string>(), // Unit ID
-                    app -> get_modules().data().size(), // sdr::Module Count
-                    tag_list, // Unit Tag List
-                    rule_list
-                )
-            );
+
         } // Return sdr::VarGuard semaphores.
         
         /* Notify Sentry Task that setup has completed. */
@@ -269,57 +233,38 @@ void sendStateChanges(std::shared_ptr<sdr::App>& app, std::shared_ptr<InterfaceM
     }
 }
 
-/**
- * @brief Loads the module parameters from flash into an unordered map for module discovery.
- * 
- * @param nvs 
- * @return ModuleParameterMap 
- */
-ModuleParameterMap loadModuleParameters(Persistence<fs::LittleFSFS>& nvs) {
-    auto known_modules = nvs.document.as<JsonArray>();
+// /**
+//  * @brief Loads the module parameters from flash into an unordered map for module discovery.
+//  * 
+//  * @param nvs 
+//  * @return ModuleParameterMap 
+//  */
+// ModuleParameterMap loadModuleParameters(Persistence<fs::LittleFSFS>& nvs) {
+//     auto known_modules = nvs.document.as<JsonArray>();
 
-    ModuleParameterMap module_map;
+//     ModuleParameterMap module_map;
 
-    for (auto module : known_modules) {
-        std::vector<std::string> tags;
-        {     /* Load tags into vector */
-            auto tag_list = module["tags"].as<JsonArray>();
-            for (auto tag : tag_list) {
-                tags.push_back(tag);
-            }
-        }
+//     for (auto module : known_modules) {
+//         std::vector<std::string> tags;
+//         {     /* Load tags into vector */
+//             auto tag_list = module["tags"].as<JsonArray>();
+//             for (auto tag : tag_list) {
+//                 tags.push_back(tag);
+//             }
+//         }
 
-        /* Load rules into vector */
-        std::vector<Rule> rules;
-        {
-            auto rule_list = module["rules"].as<JsonArray>();
-            for (auto rule : rule_list) {
-                Rule new_rule {
-                    rule["pr"].as<int>(),
-                    rule["exp"].as<ps::string>(),
-                    rule["cmd"].as<ps::string>()
-                };
+//         /* Load rules into vector */
 
-                rules.push_back(new_rule);
-            }
-        }
+//         {
 
-        /* Insert new module into map */
-        module_map.insert(
-            std::make_pair (
-                module["mid"].as<std::string>(), // sdr::Module ID
-                std::make_tuple(
-                    module["pr"].as<int>(), // sdr::Module Priority
-                    tags, // sdr::Module Tag List
-                    rules // sdr::Module Rule List
-                )
-            )
-        );
+//         }
 
-    }
+//         /* Insert new module into map */
 
-    return module_map;
-}
+//     }
+
+//     return module_map;
+// }
 
 /**
  * @brief Counts the number of occurences of a char in a string.
@@ -337,5 +282,9 @@ uint16_t countChar(std::string message, char ch) {
     return count;
 }
 
+void setModuleState(std::shared_ptr<sdr::Module>& module) {
+    bool state = module -> get_var<bool>(SWITCH_STATUS);
 
+    
+}
 

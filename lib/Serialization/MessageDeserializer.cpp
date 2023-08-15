@@ -33,7 +33,7 @@ void MessageDeserializer::deserialize_json(const ps::string& message) {
         if (!temp_doc.containsKey("enc")) throw;
 
         if (temp_doc["enc"] == "br") {
-            decompress_str <<= temp_doc["msg"];
+            decompress_str = temp_doc["msg"].as<ps::string>();
             deserializeJson(document,  brotli::decompress(decompress_str).c_str());
         } else {
             ESP_LOGE(TAG_MESSAGE_DESERIALIZER, "Unknown message encoding. Ignoring...");

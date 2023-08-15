@@ -14,9 +14,7 @@
 #include "../hardware_interface/StatusLED.h"
 #include "../hardware_interface/InterfaceMaster.h"
 
-
-
-#include "rtos/tasks.h"
+#include "tasks.h"
 
 #include "../sdr/Unit.h"
 #include "../sdr/Module.h"
@@ -125,7 +123,6 @@ class App : public StatusLED, public std::enable_shared_from_this<App> {
 
         bool begin();
         bool generate_module_map();
-        void set_unit(std::shared_ptr<sdr::Unit> _unit);
 
         VarGuard<sdr::Unit> get_unit();
         VarGuard<ps::vector<std::shared_ptr<Module>>> get_modules();
@@ -134,7 +131,7 @@ class App : public StatusLED, public std::enable_shared_from_this<App> {
 
         std::shared_ptr<App> get_shared_ptr();
 
-        void configure_time(uint32_t gmtOffsetSec, int daylightOffsetSec, const char* ntp_server);
+        void configure_time();
         uint64_t get_epoch_time();
         struct tm get_local_time();
 

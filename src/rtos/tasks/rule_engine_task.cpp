@@ -1,22 +1,11 @@
-#include "rtos/tasks.h"
-
-#include <memory>
+#include "tasks.h"
 
 #include "App.h"
 #include "config.h"
-#include "VariableDelay.h"
-
-#include "Persistence.h"
-
-#include "App.h"
 #include <ps_stl.h>
 
 #include "../sdr/Unit.h"
 #include "../sdr/Module.h"
-
-#define TARGET_LOOP_FREQUENCY 10
-
-void create_global_functions(std::shared_ptr<sdr::App>&);
 
 void ruleEngineTaskFunction(void* global_class) {
     std::shared_ptr<sdr::App> app(nullptr);
@@ -29,22 +18,24 @@ void ruleEngineTaskFunction(void* global_class) {
     xSemaphoreTake(app -> control_task_semaphore, portMAX_DELAY);
     xSemaphoreGive(app -> control_task_semaphore);
 
-
-
-    /* Create a new variable delay class to set target loop frequency. */
-    VariableDelay vd("RULE_ENGINE", TARGET_LOOP_FREQUENCY);
     while(1) {
-        /* Check that class has not been paused. */
+        /* Check that task has not been paused. */
         xSemaphoreTake(app -> control_task_semaphore, portMAX_DELAY);
         xSemaphoreGive(app -> control_task_semaphore);
 
+        try {
+            auto modules = app -> get_modules();
+            auto unit = app -> get_unit();
 
+            unit.data().reason();
 
-        /* Wait till target loop time has been reached. */
-        vd.delay();
+            for (auto& module : modules.data()) {
+                module -> reason();
+            }
+        } catch (...) {
+            ESP_LOGE("Except", "Something went wrong during reasoning.");
+        }
+
+        vTaskDelay(10000 / portTICK_PERIOD_MS);
     }
-}
-
-void create_global_functions(std::shared_ptr<sdr::App>& app) {
-    auto functions = ps::make_shared<re::FunctionStorage>();
 }

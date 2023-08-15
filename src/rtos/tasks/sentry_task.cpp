@@ -1,4 +1,4 @@
-#include "rtos/tasks.h"
+#include "tasks.h"
 #include "config.h"
 
 #include <Arduino.h>

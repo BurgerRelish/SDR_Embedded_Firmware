@@ -1,12 +1,10 @@
-#include "rtos/tasks.h"
+#include "tasks.h"
 
 #include "App.h"
 #include <memory>
 #include "FS.h"
 #include "LittleFS.h"
 #include <WiFi.h>
-#include <AsyncTCP.h>
-#include <ESPAsyncWebServer.h>
 
 #include "config.h"
 #include "VariableDelay.h"
@@ -40,8 +38,8 @@ void loadUnitCommand(std::shared_ptr<MessageDeserializer>&, std::shared_ptr<sdr:
 void loadModuleCommand(std::shared_ptr<MessageDeserializer>&, std::shared_ptr<sdr::App>&);
 
 void connectWiFi(Persistence<fs::LittleFSFS>&);
-void startWebServerSetup(fs::LittleFSFS&&);
-bool checkSetupParameters(AsyncWebServerRequest *);
+// void startWebServerSetup(fs::LittleFSFS&&);
+// bool checkSetupParameters(AsyncWebServerRequest *);
 
 void commsTaskFunction(void* global_class) {
     std::shared_ptr<sdr::App> app;
@@ -141,9 +139,8 @@ void commsTaskFunction(void* global_class) {
     } catch (std::exception& e) {
         ESP_LOGE("MQTT", "Except: %s", e.what());
     }
-    /* Connect to MQTT Broker */
-   
 
+    /* Connect to MQTT Broker */
     if(!mqtt_client -> begin()) throw sdr::Exception("MQTT Client not ready.");
     
     SentryQueueMessage msg;
@@ -296,32 +293,32 @@ void connectWiFi(Persistence<fs::LittleFSFS>& nvs) {
 }
 
 
-void startWebServerSetup(fs::LittleFSFS& file_system) {
-    WiFi.mode(WIFI_MODE_APSTA);
-    WiFi.softAP(WIFI_HOSTNAME, WIFI_SETUP_AP_PASSWORD);
-    AsyncWebServer server(80);
+// void startWebServerSetup(fs::LittleFSFS& file_system) {
+//     WiFi.mode(WIFI_MODE_APSTA);
+//     WiFi.softAP(WIFI_HOSTNAME, WIFI_SETUP_AP_PASSWORD);
+//     AsyncWebServer server(80);
 
-    server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
-        request->send(200, "text/html", setup_html);
-    });
+//     server.on("/", HTTP_GET, [](AsyncWebServerRequest *request){
+//         request->send(200, "text/html", setup_html);
+//     });
 
-    std::string url = "/save";
-    server.on(url.c_str(),
-        HTTP_POST,
-        [&file_system](AsyncWebServerRequest *request) {
-            if (checkSetupParameters(request)) {
-                Persistence<fs::LittleFSFS> nvs(file_system, "/conn.txt", 1024, true);
+//     std::string url = "/save";
+//     server.on(url.c_str(),
+//         HTTP_POST,
+//         [&file_system](AsyncWebServerRequest *request) {
+//             if (checkSetupParameters(request)) {
+//                 Persistence<fs::LittleFSFS> nvs(file_system, "/conn.txt", 1024, true);
                 
-            }
+//             }
 
-            request->send(200, "text/plain", "");
-        }
-    );
+//             request->send(200, "text/plain", "");
+//         }
+//     );
 
-}
+// }
 
-bool checkSetupParameters(AsyncWebServerRequest *request) {
-    return (request -> hasParam("ssid") && 
-            request -> hasParam("password") &&
-            request -> hasParam("connectivityType"));
-}
+// bool checkSetupParameters(AsyncWebServerRequest *request) {
+//     return (request -> hasParam("ssid") && 
+//             request -> hasParam("password") &&
+//             request -> hasParam("connectivityType"));
+// }

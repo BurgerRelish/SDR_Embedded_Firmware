@@ -3,7 +3,7 @@
 #ifndef SDR_SEMANTICS_H
 #define SDR_SEMANTICS_H
 
-/* SDR Unit Variables */
+/* Unit Variables */
 #define UNIT_CLASS "UNIT"
 #define TOTAL_ACTIVE_POWER "TAP"
 #define TOTAL_REACTIVE_POWER "TRP"
@@ -12,6 +12,8 @@
 #define UNIT_ID "UID"
 #define UNIT_TAG_LIST "UTL"
 #define MODULE_COUNT "MC"
+
+
 
 
 /* Module Variables */
@@ -28,17 +30,17 @@
 #define MODULE_TAG_LIST "MTL"
 #define SWITCH_STATUS "MS"
 
-/* Commands */
-#define MOD_ON "ON" // ()
-#define MOD_OFF "OFF" // ()
+/* Module Commands */
+#define SET_MODULE_STATE "setState" // (state)
 
-#define RE_CLR_QUEUE "CLRQUE" // ()
-#define RE_DELAY "DELAY" // ()
+/* Unit Commands */
+#define PUBLISH_READINGS "pubRead" // ()
+#define REQUEST_UPDATE "reqUpdate" // ()
+#define RESTART_UNIT "restart" // ()
+#define SLEEP_UNIT "sleep" // (uint64_t time_us)
 
-#define REQUEST_UPDATE "REQUPD" // ()
-#define PUBLISH_READINGS "PUBREAD" // ()
 #define NOTIFY "NOTIFY" // ()
 
-#define RESTART_UNIT "RESTART" // ()
+
 
 #endif
