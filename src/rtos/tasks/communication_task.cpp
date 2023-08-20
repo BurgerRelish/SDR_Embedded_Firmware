@@ -14,8 +14,6 @@
 #include "../Serialization/MessageDeserializer.h"
 #include "../Communication/MQTTClient.h"
 
-#include "../webpages/webpage_setup.h"
-
 #include <ps_stl.h>
 
 std::shared_ptr<MQTTClient> mqtt_client;
@@ -221,8 +219,7 @@ void sendReadings(std::shared_ptr<sdr::App> app) {
     auto reading_arr = serializer.document.createNestedArray("readings");
     auto status_change_arr = serializer.document.createNestedArray("statusUpdates");
     for (auto& module : modules.data()) {
-        module -> serializeReadings(reading_arr);
-        module -> serializeStatusChange(status_change_arr);
+        module -> serialize(reading_arr);
     }
 
     return;

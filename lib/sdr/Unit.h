@@ -11,6 +11,7 @@
 #include "../rule_engine/RuleEngineBase.h"
 #include "../hardware_interface/Persistence.h"
 #include "sdr_semantics.h"
+#include "json_fields.h"
 
 
 namespace sdr {
@@ -66,33 +67,15 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
         save = true;
         update = false;
 
-        auto rule_arr = update_obj["rules"].as<JsonArray>();
-        ps::vector<std::tuple<int, ps::string, ps::string>> rule_vect;
-        for (auto rule : rule_arr) {
-            rule_vect.push_back(
-                std::make_tuple(
-                    rule["priority"].as<int>(),
-                    rule["expression"].as<ps::string>(),
-                    rule["command"].as<ps::string>()
-                )
-            );
+        if (update_obj[JSON_RULE_ACTION].as<ps::string>() == JSON_REPLACE) {
+            RuleEngineBase::clear_rules();
+        }
+        
+        if (update_obj[JSON_TAG_ACTION].as<ps::string>() == JSON_REPLACE) {
+            RuleEngineBase::clear_tags();
         }
 
-        auto tag_arr = update_obj["tags"].as<JsonArray>();
-        ps::vector<ps::string> tag_vect;
-        for (auto tag : tag_arr) {
-            tag_vect.push_back(
-                tag.as<ps::string>()
-            );
-        }
-
-        if (update_obj["action"].as<ps::string>() == "replace") {
-            replace_rules(rule_vect);
-            replace_tag(tag_vect);
-        } else {
-            add_rule(rule_vect);
-            add_tag(tag_vect);
-        }
+        RuleEngineBase::load_rule_engine(update_obj);
 
         return;
     }

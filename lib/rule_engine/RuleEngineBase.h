@@ -6,6 +6,8 @@
 #include <ArduinoJson.h>
 #include <ps_stl.h>
 
+#include "json_fields.h"
+
 #include "../rule_engine/RuleEngine.h"
 
 namespace re {
@@ -130,31 +132,29 @@ class RuleEngineBase : public RuleEngine {
     }
 
     void load_rule_engine(JsonObject& obj) {
-        JsonArray rule_arr = obj["rules"].as<JsonArray>();
+        auto rule_arr = obj[JSON_RULES].as<JsonArray>();
         
-        for (auto& rule : rule_arr) {
-            auto tp = std::make_tuple(rule["pr"].as<int>(), rule["exp"].as<ps::string>(), rule["cmd"].as<ps::string>());
+        for (auto rule : rule_arr) {
+            auto tp = std::make_tuple(rule[JSON_PRIORITY].as<int>(), rule[JSON_EXPRESSION].as<ps::string>(), rule[JSON_COMMAND].as<ps::string>());
             add_rule(tp);
         }
 
-        JsonArray tag_arr = obj["tags"].as<JsonArray>();
-        for (auto& tag : tag_arr) {
+        JsonArray tag_arr = obj[JSON_TAGS].as<JsonArray>();
+        for (auto tag : tag_arr) {
             class_tags.push_back(tag.as<ps::string>());
         }
     }
 
     void save_rule_engine(JsonObject& obj) {
-        JsonArray rule_arr = obj.createNestedArray("rules");
-
+        JsonArray rule_arr = obj.createNestedArray(JSON_RULES);
         for (auto& rule : rules) {
             auto rule_obj = rule_arr.createNestedObject();
-            rule_obj["pr"] = std::get<0>(rule);
-            rule_obj["exp"] = std::get<1>(rule).c_str();
-            rule_obj["cmd"] = std::get<2>(rule).c_str();
+            rule_obj[JSON_PRIORITY] = std::get<0>(rule);
+            rule_obj[JSON_EXPRESSION] = std::get<1>(rule).c_str();
+            rule_obj[JSON_COMMAND] = std::get<2>(rule).c_str();
         }
 
-        JsonArray tag_arr = obj.createNestedArray("tags");
-
+        JsonArray tag_arr = obj.createNestedArray(JSON_TAGS);
         for (auto& tag : class_tags) {
             tag_arr.add(tag.c_str());
         }

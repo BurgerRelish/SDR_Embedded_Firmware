@@ -173,5 +173,9 @@ struct tm App::get_local_time() {
     return timeinfo;
 }
 
+void create_module(ps::string& id,) {
+
+}
+
 
 }

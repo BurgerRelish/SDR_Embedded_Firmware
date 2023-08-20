@@ -3,6 +3,8 @@
 #ifndef READING_H
 #define READING_H
 
+#include <ArduinoJson.h>
+
 namespace sdr {
     
 class Reading {
@@ -45,6 +47,7 @@ class Reading {
         kwh_usage(kwh),
         timestamp(ts)
         {}
+
 };
 
 }

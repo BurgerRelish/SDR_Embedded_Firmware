@@ -19,7 +19,6 @@ void handleControlMessage(std::shared_ptr<sdr::App>&, std::shared_ptr<InterfaceM
 void handleInterfaceMessage(std::shared_ptr<sdr::App>&, InterfaceRxMessage&, ModuleAddressMap&);
 void sendStateChanges(std::shared_ptr<sdr::App>&, std::shared_ptr<InterfaceMaster>&);
 
-
 void setModuleState(std::shared_ptr<sdr::Module>&);
 
 uint16_t countChar(std::string, char);
@@ -58,7 +57,7 @@ void controlTaskFunction(void* global_class) {
         { /* Create a module class for every discovered module. */
             auto filesys = app -> get_fs(); // Get lock on global variables.
             Persistence<fs::LittleFSFS> nvs(filesys.data(), "/modules.txt", 4096, true); // Load existing Modules and their Tags, and allow for updates to be written to fs.
-            auto module_map = loadModuleParameters(nvs);
+            //auto module_map = loadModuleParameters(nvs);
 
             for (uint8_t interface_no = 0; interface_no <= 1; interface_no++) {
                 for (uint8_t address = 0; address <= interface -> get_end_device_address(interface_no); address++) {

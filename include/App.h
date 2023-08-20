@@ -91,6 +91,8 @@ class App : public StatusLED, public std::enable_shared_from_this<App> {
         void initRTOS();
         void deinitRTOS();
 
+        std::shared_ptr<re::FunctionStorage> functions;
+
         std::shared_ptr<sdr::Unit> unit;
         std::shared_ptr<ps::vector<std::shared_ptr<Module>>> modules;
         std::shared_ptr<ModuleMap> module_map;
