@@ -1,0 +1,13 @@
+#pragma once
+
+#ifndef MODBUS_CONFIG_H
+#define MODBUS_CONFIG_H
+
+#define RELAY_STATUS_COIL 0x01
+#define ACTIVE_POWER_COIL 0x02
+#define REACTIVE_POWER_COIL 0x03
+#define APPARENT_POWER_COIL 0x04
+#define POWER_FACTOR_COIL 0x05
+#define KWH_USAGE_COIL 0x06
+
+#endif

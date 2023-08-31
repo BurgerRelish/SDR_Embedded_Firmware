@@ -28,8 +28,9 @@ class Module : public re::RuleEngineBase, public std::enable_shared_from_this<Mo
 
     ps::string module_id;
     int circuit_priority;
-    uint8_t swi_address = 0;
-    uint8_t io_offset = 0;
+
+    uint8_t slave_address = 0;
+    uint8_t interface = 0;
 
     bool update;
     bool save;
@@ -54,10 +55,10 @@ class Module : public re::RuleEngineBase, public std::enable_shared_from_this<Mo
     void load_re_vars();
 
     public:
-    Module(std::shared_ptr<re::FunctionStorage> functions, const ps::string& id, const int& priority, const uint8_t& address, const uint8_t& offset, bool update_required = false) :
+    Module(std::shared_ptr<re::FunctionStorage> functions, const ps::string& id, const int& priority, const uint8_t& address, const uint8_t& _interface, bool update_required = false) :
     module_id(id),
-    swi_address(address),
-    io_offset(offset),
+    slave_address(address),
+    interface(_interface),
     circuit_priority(priority),
     update(update_required),
     save(false),
@@ -69,6 +70,8 @@ class Module : public re::RuleEngineBase, public std::enable_shared_from_this<Mo
     void load(JsonObject&);
     void save(JsonObject&);
     bool serialize(JsonArray&);
+
+    bool refresh();
     
     const ps::string& id();
     const int& priority();

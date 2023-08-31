@@ -10,7 +10,7 @@ class InterfaceCommand {
     uint16_t command;
 
     InterfaceCommand(){}
-    InterfaceCommand(uint16_t _address, uint8_t _command) : address(_address), command(_command) {}
+    InterfaceCommand(uint16_t _address, uint16_t _command) : address(_address), command(_command) {}
 
     operator ps::string() {
         ps::ostringstream ret;
