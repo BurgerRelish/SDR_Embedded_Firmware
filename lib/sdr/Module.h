@@ -18,6 +18,17 @@
 
 namespace sdr {
 
+struct ReadingPacket {
+    uint8_t status;
+    float voltage;
+    float frequency;
+    float current;
+    float active_power;
+    float power_factor;
+    float energy_usage;
+};
+
+
 
 class Module : public re::RuleEngineBase, public std::enable_shared_from_this<Module> {
     private:
