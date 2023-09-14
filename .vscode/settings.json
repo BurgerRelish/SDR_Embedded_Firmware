@@ -58,7 +58,9 @@
         "bitset": "cpp",
         "regex": "cpp",
         "any": "cpp",
-        "ruleenginebase": "cpp"
+        "ruleenginebase": "cpp",
+        "u8g2.h": "c",
+        "mui_u8g2.h": "c"
     },
     "docwriter.style": "Doxygen"
 }

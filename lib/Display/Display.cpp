@@ -15,8 +15,6 @@ Display::~Display() {
     display.setPowerSave(1);
 }
 
-
-
 void Display::begin(SummaryFrameData summary) {
     display_semaphore = xSemaphoreCreateBinary();
     summary_data = summary;
@@ -59,39 +57,6 @@ bool Display::showBlank() {
     return true; 
 }
 
-bool Display::showLoadingFrame1() {
-    if(xSemaphoreTake(display_semaphore, 250 / portTICK_PERIOD_MS) != pdTRUE) return false;  // Return if we cannot take display semaphore.
-    state = DISPLAY_SHOW_LOADING_1;
-    update_required = true;
-    xSemaphoreGive(display_semaphore);
-    return true;
-}
-
-bool Display::showLoadingFrame2() {
-    if(xSemaphoreTake(display_semaphore, 250 / portTICK_PERIOD_MS) != pdTRUE) return false;  // Return if we cannot take display semaphore.
-    state = DISPLAY_SHOW_LOADING_2;
-    update_required = true;
-    xSemaphoreGive(display_semaphore);
-    return true;
-}
-
-bool Display::showLoadingFrame3() {
-    if(xSemaphoreTake(display_semaphore, 250 / portTICK_PERIOD_MS) != pdTRUE) return false;  // Return if we cannot take display semaphore.
-    state = DISPLAY_SHOW_LOADING_3;
-    update_required = true;
-    xSemaphoreGive(display_semaphore);
-    return true;
-}
-
-
-bool Display::showLoadingComplete() {
-    if(xSemaphoreTake(display_semaphore, 250 / portTICK_PERIOD_MS) != pdTRUE) return false;  // Return if we cannot take display semaphore.
-    state = DISPLAY_SHOW_LOADING_COMPLETE;
-    update_required = true;
-    xSemaphoreGive(display_semaphore);
-    return true;
-}
-
 bool Display::showSummary() {
     if(xSemaphoreTake(display_semaphore, 250 / portTICK_PERIOD_MS) != pdTRUE) return false;  // Return if we cannot take display semaphore.
     state = DISPLAY_SHOW_SUMMARY;
@@ -103,7 +68,7 @@ bool Display::showSummary() {
 void displayTask(void* pvParameters) {
     Display* dsp = (Display*) pvParameters;
     uint32_t start_tm = 0;
-    uint8_t counter = 0;
+    uint8_t animation_state = 0;
 
     while(1) {
         if ( ! dsp -> update_required ) { // Do not update the display for no reason, to save power.
@@ -115,57 +80,99 @@ void displayTask(void* pvParameters) {
         start_tm = millis();
         
         dsp -> display.firstPage();
-        do {
-            switch ( dsp -> state ) {
-                case Display::DISPLAY_START_LOADING:
-                    if (counter == 0){
-                        dsp -> drawLoadingFrame1();
-                        break;
-                    } else if (counter == 1) {
-                        dsp -> drawLoadingFrame2();
-                        break;
-                    }
+        /* Display Frame Rendering State Machine. */
+        switch ( dsp -> state ) {
+            case Display::DISPLAY_START_LOADING: {
+                uint8_t* bitmap = nullptr;
 
-                    dsp -> drawLoadingFrame3();
-                    break;
-                case Display::DISPLAY_FINISH_LOADING: {
-                    if (counter == 0) {
-                        auto bitmap = dsp -> combineBitMaps(128, 64, 2, (uint8_t*) &epd_bitmap_Loading_Screen_1, (uint8_t*) &epd_bitmap_Loading_Screen_2);
-                        dsp -> display.drawXBMP(0, 0, 128, 64, bitmap);
-                        free(bitmap);           
-                    } else if (counter == 1) {
-                        auto bitmap = dsp -> combineBitMaps(128, 64, 2, (uint8_t*) &epd_bitmap_Loading_Screen_2, (uint8_t*) &epd_bitmap_Loading_Screen_3);
-                        dsp -> display.drawXBMP(0, 0, 128, 64, bitmap);
-                        free(bitmap); 
-                    } else if (counter == 2) {
-                        auto bitmap = dsp -> combineBitMaps(128, 64, 2, (uint8_t*) &epd_bitmap_Loading_Screen_1, (uint8_t*) &epd_bitmap_Loading_Screen_3);
-                        dsp -> display.drawXBMP(0, 0, 128, 64, bitmap);
-                        free(bitmap); 
-                    }
-
-                    auto bitmap = dsp -> combineBitMaps(128, 64, 3, (uint8_t*) &epd_bitmap_Loading_Screen_1, (uint8_t*) &epd_bitmap_Loading_Screen_2, (uint8_t*) &epd_bitmap_Loading_Screen_3);
-                    dsp -> display.drawXBMP(0, 0, 128, 64, bitmap);
-                    free(bitmap); 
+                switch( animation_state ) {
+                    case 0:
+                        bitmap = (uint8_t*) &epd_bitmap_Loading_Screen_1;
+                        break;
+                    case 1:
+                        bitmap = (uint8_t*) &epd_bitmap_Loading_Screen_2;
+                        break;
+                    default:
+                        bitmap = (uint8_t*) &epd_bitmap_Loading_Screen_3;
+                        break;
                 }
+
+                do {
+                    dsp -> display.drawXBMP(0, 0, 128, 64, bitmap);
+                } while(dsp -> display.nextPage());
 
                 break;
             }
-        } while (dsp -> display.nextPage());
 
+            case Display::DISPLAY_FINISH_LOADING: {
+                uint8_t* bitmap = nullptr;
+
+                switch( animation_state ) {
+                    case 0:
+                        bitmap = dsp -> combineBitMaps(128, 64, 2, (uint8_t*) &epd_bitmap_Loading_Screen_1, (uint8_t*) &epd_bitmap_Loading_Screen_3);
+                        break;
+                    case 1:
+                        bitmap = dsp -> combineBitMaps(128, 64, 2, (uint8_t*) &epd_bitmap_Loading_Screen_1, (uint8_t*) &epd_bitmap_Loading_Screen_2);
+                        break;
+                    case 2:
+                        bitmap = dsp -> combineBitMaps(128, 64, 2, (uint8_t*) &epd_bitmap_Loading_Screen_2, (uint8_t*) &epd_bitmap_Loading_Screen_3);
+                        break;
+                    default:
+                        bitmap = dsp -> combineBitMaps(128, 64, 3, (uint8_t*) &epd_bitmap_Loading_Screen_1, (uint8_t*) &epd_bitmap_Loading_Screen_2, (uint8_t*) &epd_bitmap_Loading_Screen_3);
+                        break;
+                }
+
+                do {
+                    dsp -> display.drawXBMP(0, 0, 128, 64, bitmap);
+                } while(dsp -> display.nextPage());
+
+                free(bitmap);
+                break;
+            }
+
+            case Display::DISPLAY_SHOW_SPLASH:
+                dsp -> display.firstPage();
+                do {
+                    dsp -> drawSplashFrame();
+                } while (dsp -> display.nextPage());
+                break;
+
+            case Display::DISPLAY_SHOW_BLANK:
+                dsp -> display.clear();
+                dsp -> update_required = false;
+                break;
+
+            case Display::DISPLAY_SHOW_SUMMARY:
+                dsp -> display.firstPage();
+                do {
+                    dsp -> drawSummaryFrame();
+                } while (dsp -> display.nextPage());
+                break;
+            
+            default:
+            break;
+        }
+
+        /* Animation logic state machine. */
         switch( dsp -> state ) {
             case Display::DISPLAY_START_LOADING:
-                if (counter >= 2) {
-                    counter = 0;
+                if (animation_state >= 2) {
+                    animation_state = 0;
                     break;
                 }
-                counter++;
+                animation_state++;
                 break;
             case Display::DISPLAY_FINISH_LOADING:
-                if (counter < 3) {
-                    counter = 3;
+                if (animation_state < 3) {
+                    animation_state = 3;
                     break;
                 }
-                counter = 5; // Stop Loading Screen Delay.
+                dsp -> state = Display::DISPLAY_SHOW_SPLASH;
+                break;
+
+            case Display::DISPLAY_SHOW_SPLASH:
+                animation_state = 5; // Stop Loading Screen Delay.
+                dsp -> update_required = false;
                 break;
         }
         
@@ -174,7 +181,7 @@ void displayTask(void* pvParameters) {
         xSemaphoreGive(dsp -> display_semaphore);
 
         uint32_t elapsed_tm = millis() - start_tm;
-        if (counter <= 3) 
+        if (animation_state <= 3) 
             vTaskDelay(500 / portTICK_PERIOD_MS); // Loading Screen Speed.
         else if (elapsed_tm < (1000 / DISPLAY_UPDATE_HZ)) // Do not delay the task if the frame rate is below desired.
             vTaskDelay(((1000 / DISPLAY_UPDATE_HZ) - elapsed_tm) / portTICK_PERIOD_MS); // Delay to acheive desired frame rate.
@@ -188,31 +195,33 @@ void displayTask(void* pvParameters) {
 
 }
 
-void Display::drawLoadingFrame1() {
-    display.drawXBMP(0, 0, 128, 64, epd_bitmap_Loading_Screen_1);
-}
-
-void Display::drawLoadingFrame2() {
-    display.drawXBMP(0, 0, 128, 64, epd_bitmap_Loading_Screen_2);
-
-}
-
-void Display::drawLoadingFrame3() {
-    display.drawXBMP(0, 0, 128, 64, epd_bitmap_Loading_Screen_3);
-}
-
-
-void Display::drawLoadingFrameComplete() {
-    display.firstPage();
-    do {
-        display.drawXBMP(0, 0, 128, 64, epd_bitmap_Loading_Screen_Complete);
-    } while (display.nextPage());
-}
-
 void Display::drawSummaryFrame() {
-    
+    display.setBitmapMode(1);
+    display.drawFrame(1, 1, 126, 11);
+    display.drawLine(1, 14, 1, 18);
+    display.drawLine(126, 14, 126, 18);
+    display.drawLine(32, 14, 32, 16);
+    display.drawLine(64, 14, 64, 16);
+    display.drawLine(98, 14, 98, 16);
+    display.setFont(u8g2_font_haxrcorp4089_tr);
+    display.drawStr(1, 28, "0                      %NMD                       1");
+    display.drawBox(3, 3, 81, 7);
+    display.setFont(u8g2_font_profont22_tr);
+    display.drawStr(2, 44, "13284VAh");
+    display.setFont(u8g2_font_helvB08_tr);
+    display.drawStr(100, 44, "1.234");
+    display.setFont(u8g2_font_haxrcorp4089_tr);
+    display.drawStr(3, 54, "230.25V");
+    display.setFont(u8g2_font_haxrcorp4089_tr);
+    display.drawStr(3, 63, "49.93Hz");
     display.setFont(u8g2_font_4x6_tr);
-    display.drawStr(1,54,"SDR Unit V1.0");
+    display.drawStr(51, 63, "21:49:15 14/09/2023");
+    display.drawBox(54, 53, 2, 3);
+    display.drawBox(58, 51, 2, 5);
+    display.drawBox(62, 49, 2, 7);
+    display.drawBox(66, 47, 2, 9);
+    display.setFont(u8g2_font_haxrcorp4089_tr);
+    display.drawStr(95, 56, "99/99");
 }
 
 
@@ -281,4 +290,22 @@ uint8_t* Display::combineBitMaps(uint8_t w, uint8_t h, uint8_t num_bitmaps, ...)
     va_end(args);
     
     return ret;
+}
+
+void Display::drawSplashFrame() {
+    display.setBitmapMode(1);
+    display.setFont(u8g2_font_profont22_tr);
+    display.drawStr(17, 15, "S");
+    display.setFont(u8g2_font_profont22_tr);
+    display.drawStr(39, 49, "R");
+    display.setFont(u8g2_font_4x6_tr);
+    display.drawStr(1, 63, "Version: 0000/0000");
+    display.setFont(u8g2_font_profont22_tr);
+    display.drawStr(28, 32, "D");
+    display.setFont(u8g2_font_helvB08_tr);
+    display.drawStr(31, 15, "MART");
+    display.setFont(u8g2_font_helvB08_tr);
+    display.drawStr(42, 32, "EMAND");
+    display.setFont(u8g2_font_helvB08_tr);
+    display.drawStr(53, 49, "ESPONSE");
 }

@@ -17,7 +17,8 @@ void test_display() {
     dsp.startLoading();
     delay(5000);
     dsp.finishLoading();
-    delay(2500);
+    delay(2000);
+    dsp.showSummary();
     TEST_ASSERT_TRUE(true);
 }
 
