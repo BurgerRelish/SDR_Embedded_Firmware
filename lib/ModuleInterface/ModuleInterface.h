@@ -12,9 +12,12 @@ struct AnnouncePacket {
     uint16_t hardware_version;
 };
 
+struct OperationPacket {
+    uint16_t operation;
+};
+
 struct AddressPacket {
     uint16_t address;
-    uint16_t operation;
 };
 
 struct ReadingDataPacket {
@@ -27,6 +30,9 @@ struct ReadingDataPacket {
   float energy_usage;
 } reading_packet;
 
+
+#define RELAY_MASK 0x0001
+#define READ_METER_MASK 0x0002
 
 class ModuleInterface {
     public:
@@ -42,12 +48,18 @@ class ModuleInterface {
     uint8_t ctrl;
     uint8_t dir;
 
+    uint8_t current_address;
+
+    friend class EasyTransfer;
     EasyTransfer transfer_in;
     EasyTransfer transfer_out;
 
+    OperationPacket operation_packet;
+    ReadingDataPacket reading_packet;
+
     void clearStreamBuffer();
-    void transmit(uint8_t address);
-    void receive();
+    bool transmit(uint8_t address);
+    bool receive();
 
 };
 
