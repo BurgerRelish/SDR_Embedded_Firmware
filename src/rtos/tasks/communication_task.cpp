@@ -211,6 +211,7 @@ void checkUpdates(std::shared_ptr<sdr::App> app) {
 void sendReadings(std::shared_ptr<sdr::App> app) {
     uint16_t serialization_count = 0;
     ps::string packet_str;
+    WiFi.RSSI();
     
     auto modules = app -> get_modules();
     MessageSerializer serializer(mqtt_client, 0, 65535);
