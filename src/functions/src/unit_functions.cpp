@@ -26,7 +26,7 @@ std::function<bool(ps::vector<ps::string>&, re::VariableStorage*)> restart = [](
     return true;
 };
 
-std::function<bool(ps::vector<ps::string>&, re::VariableStorage*)> sleep = [](ps::vector<ps::string>& args, re::VariableStorage* vars){
+std::function<bool(ps::vector<ps::string>&, re::VariableStorage*)> sleep_fn = [](ps::vector<ps::string>& args, re::VariableStorage* vars){
     uint64_t sleep_tm = vars -> get_var<uint64_t>(args.at(0));
     esp_sleep_enable_timer_wakeup(sleep_tm);
     esp_deep_sleep_start();
@@ -35,7 +35,7 @@ std::function<bool(ps::vector<ps::string>&, re::VariableStorage*)> sleep = [](ps
 
 void load_unit_functions(std::shared_ptr<re::FunctionStorage>& storage) {
     storage -> add(PUBLISH_READINGS, publish_readings);
-    storage -> add(SLEEP_UNIT, sleep);
+    storage -> add(SLEEP_UNIT, sleep_fn);
     storage -> add(NOTIFY, notify);
     storage -> add(RESTART_UNIT, restart);
 }

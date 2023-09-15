@@ -9,6 +9,9 @@
 #include "esp32-hal.h"
 #include <ps_stl.h>
 
+#define UNIT_UUID "h1u212"
+
+#define RS485_BAUD_RATE 115200
 
 #define deltaHue 1
 #define BRIGHTNESS 25

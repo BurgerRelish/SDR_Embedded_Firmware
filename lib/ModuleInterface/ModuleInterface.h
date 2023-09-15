@@ -28,7 +28,7 @@ struct ReadingDataPacket {
   float apparent_power;
   float power_factor;
   float energy_usage;
-} reading_packet;
+};
 
 
 #define OPERATION_RELAY_SET 0x0001

@@ -92,7 +92,7 @@ T Module::calc_mean(T Reading::* attribute, ps::deque<Reading>& _readings) {
  */
 template <typename T>
 T Module::calc_stddev(T Reading::* attribute, ps::deque<Reading>& _readings) {
-    T mean = calc_mean(_readings, attribute);
+    T mean = calc_mean(attribute, _readings);
     T variance = 0;
 
     for (const auto& reading : _readings) {
@@ -141,7 +141,7 @@ T Module::calc_iqr(T Reading::* attribute, ps::deque<Reading>& _readings) {
  */
 template <typename T>
 T Module::calc_kurt(T mean, T Reading::* attribute, ps::deque<Reading>& _readings) {
-    T variance = calc_stddev<T>(_readings, attribute);
+    T variance = calc_stddev<T>(attribute, _readings);
 
     auto n = _readings.size();
 

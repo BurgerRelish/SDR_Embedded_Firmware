@@ -67,6 +67,18 @@ class Module : public re::RuleEngineBase, public std::enable_shared_from_this<Mo
     uint64_t getTime();
 
     public:
+    Module(std::shared_ptr<re::FunctionStorage> functions, std::shared_ptr<ModuleInterface> interface, uint16_t address, ps::string id, uint16_t firmware_version, uint16_t hardware_version) : 
+    RuleEngineBase(MODULE_TAG_LIST, functions),
+    module_id(id),
+    interface(interface),
+    slave_address(address),
+    update_required(true),
+    save_required(false),
+    new_readings(0)
+    {
+        load_re_vars();
+    }
+
     Module(std::shared_ptr<re::FunctionStorage> functions, const ps::string& id, const int& priority, const uint8_t& address, std::shared_ptr<ModuleInterface> _interface, bool update_required = false) :
     module_id(id),
     slave_address(address),

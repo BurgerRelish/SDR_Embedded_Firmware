@@ -20,99 +20,67 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
     std::shared_ptr<ModuleInterface> interface_1;
     std::shared_ptr<ModuleInterface> interface_2;
     ps::vector<std::shared_ptr<Module>> module_map;
+    std::shared_ptr<re::FunctionStorage> functions;
+
+    uint8_t power_sense_pin;
 
     double total_active_power;
     double total_reactive_power;
     double total_apparent_power;
+    double mean_pf;
+    double mean_voltage;
+    double mean_frequency;
+    
     bool power_status;
+    
+    uint16_t active_modules;
     uint16_t number_of_modules;
 
     ps::string unit_id_;
+
     bool update;
     bool save;
 
     void load_vars();
+    void loadUnitVarsInModule(std::shared_ptr<Module>& module);
 
     public:
-    Unit(std::shared_ptr<re::FunctionStorage> functions, const std::string unit_id) : 
+    Unit(std::shared_ptr<re::FunctionStorage> functions, const std::string unit_id, uint8_t power_sense) : 
     total_active_power(0),
     total_reactive_power(0),
     total_apparent_power(0),
     power_status(false),
     save(false),
+    power_sense_pin(power_sense),
+    functions(functions),
     RuleEngineBase(UNIT_TAG_LIST, functions)
     {
         unit_id_ <<= unit_id;
     }
 
-    void saveParameters(Persistence<fs::LittleFSFS>& nvs) {
-        auto unit_obj = nvs.document.createNestedObject();
-        unit_obj["uid"] = unit_id_.c_str();
-        auto tag_arr = unit_obj["tags"].createNestedArray();
+    void begin(Stream* stream_1, uint8_t ctrl_1, uint8_t dir_1, Stream* stream_2, uint8_t ctrl_2, uint8_t dir_2);
 
-
-        auto rule_arr = unit_obj["rules"].createNestedArray();
-
-        save = false;
-    }
-
-    void loadUpdate(JsonObject& update_obj) {
-        save = true;
-        update = false;
-
-        if (update_obj[JSON_RULE_ACTION].as<ps::string>() == JSON_REPLACE) {
-            RuleEngineBase::clear_rules();
-        }
-        
-        if (update_obj[JSON_TAG_ACTION].as<ps::string>() == JSON_REPLACE) {
-            RuleEngineBase::clear_tags();
-        }
-
-        RuleEngineBase::load_rule_engine(update_obj);
-
-        return;
-    }
+    bool& updateRequired() {return update; }
+    bool& saveRequired() { return save; }
+    void saveParameters(Persistence<fs::LittleFSFS>& nvs);
+    void loadUpdate(JsonObject& update_obj);
 
     bool evaluateAll();
     bool evaluateModules();
 
-    double& totalActivePower() {
-        return total_active_power;
-    }
-
-    double& totalReactivePower() {
-        return total_reactive_power;
-    }
-
-    double& totalApparentPower() {
-        return total_apparent_power;
-    }
-
-    bool& powerStatus() {
-        return power_status;
-    }
-
+    const ps::string& id() { return unit_id_; }
     uint16_t& moduleCount() { return number_of_modules; }
 
-    uint16_t activeModules() {
-        uint16_t ret = 0;
-        for (auto module: module_map) {
-            if (module -> getRelayState()) ret++;
-        }
-        return ret;
-    }
+    double& totalActivePower() { return total_active_power; }
+    double& totalReactivePower() { return total_reactive_power; }
+    double& totalApparentPower() { return total_apparent_power; }
+    double& meanVoltage() { return mean_voltage; }
+    double& meanFrequency() { return mean_frequency; }
+    double& meanPowerFactor() { return mean_pf; }
+    bool& powerStatus() { return power_status; }    
+    uint16_t activeModules();
 
-    const ps::string& id() {
-        return unit_id_;
-    }
-
-    bool& updateRequired() {
-        return update;
-    }
-    
-    bool& saveRequired() {
-        return save;
-    }
+    bool refresh();
 
     void load_unit() {
 

@@ -8,6 +8,9 @@
 #define TOTAL_ACTIVE_POWER "TAP"
 #define TOTAL_REACTIVE_POWER "TRP"
 #define TOTAL_APPARENT_POWER "TSP"
+#define MEAN_VOLTAGE "MNV"
+#define MEAN_FREQUENCY "MNF"
+#define MEAN_POWER_FACTOR "MPF"
 #define POWER_STATUS "PS"
 #define UNIT_ID "UID"
 #define UNIT_TAG_LIST "UTL"
@@ -18,9 +21,11 @@
 
 /* Module Variables */
 #define MODULE_CLASS "MODULE"
+
 #define ACTIVE_POWER "AP"
 #define REACTIVE_POWER "RP"
 #define APPARENT_POWER "SP"
+
 #define VOLTAGE "V"
 #define FREQUENCY "FR"
 #define POWER_FACTOR "PF"
