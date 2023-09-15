@@ -5,14 +5,10 @@
 
 #include <stdlib.h>
 
-namespace sdr {
-
 class StatusChange {
     public:
     uint64_t timestamp;
     bool status;
 };
-
-}
 
 #endif

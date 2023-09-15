@@ -54,11 +54,19 @@ bool ModuleInterface::sendOperation(uint8_t address, uint16_t operation){
     return transmit(address);
 }
 
+/**
+ * @brief Sends a read meter operation to the address provided, then returns the reading data.
+ * @note voltage will be set to -1 of the reading fails.
+ * @return The reading data packet.
+*/
 ReadingDataPacket ModuleInterface::getReading(uint8_t address){
     reading_packet = ReadingDataPacket();
 
     clearStreamBuffer();
-    sendOperation(address, READ_METER_MASK);
+    if (!sendOperation(address, OPERATION_READ_METER)) {
+        reading_packet.voltage = -1;
+        return reading_packet;
+    }
 
     receive();
 

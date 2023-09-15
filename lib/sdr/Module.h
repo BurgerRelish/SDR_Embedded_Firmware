@@ -11,12 +11,10 @@
 #include "../hardware_interface/Persistence.h"
 #include "sdr_semantics.h"
 #include "../rule_engine/RuleEngineBase.h"
+#include "../ModuleInterface/ModuleInterface.h"
 
 #include "Reading.h"
 #include "StatusChange.h"
-
-
-namespace sdr {
 
 struct ReadingPacket {
     uint8_t status;
@@ -32,19 +30,21 @@ struct ReadingPacket {
 
 class Module : public re::RuleEngineBase, public std::enable_shared_from_this<Module> {
     private:
-    ps::deque<Reading> readings;
-    ps::deque<Reading> new_readings;
+    std::shared_ptr<ModuleInterface> interface;
+    std::shared_ptr<re::FunctionStorage> functions;
+    uint16_t slave_address;
+    bool update_required;
+    bool save_required;
 
-    ps::vector<StatusChange> status_updates;
+    ps::deque<Reading> readings;
+    uint16_t new_readings;
+
+    ps::deque<StatusChange> status_updates;
 
     ps::string module_id;
     int circuit_priority;
 
-    uint8_t slave_address = 0;
-    uint8_t interface = 0;
 
-    bool update;
-    bool save;
 
     template <typename T>
     T calc_max(T Reading::*, ps::deque<Reading>&);
@@ -64,15 +64,17 @@ class Module : public re::RuleEngineBase, public std::enable_shared_from_this<Mo
     std::tuple<double, double, double, double> get_summary(double Reading::*);
 
     void load_re_vars();
+    uint64_t getTime();
 
     public:
-    Module(std::shared_ptr<re::FunctionStorage> functions, const ps::string& id, const int& priority, const uint8_t& address, const uint8_t& _interface, bool update_required = false) :
+    Module(std::shared_ptr<re::FunctionStorage> functions, const ps::string& id, const int& priority, const uint8_t& address, std::shared_ptr<ModuleInterface> _interface, bool update_required = false) :
     module_id(id),
     slave_address(address),
     interface(_interface),
     circuit_priority(priority),
-    update(update_required),
-    save(false),
+    update_required(update_required),
+    save_required(false),
+    new_readings(0),
     RuleEngineBase(MODULE_TAG_LIST, functions)
     {
         load_re_vars();
@@ -83,20 +85,16 @@ class Module : public re::RuleEngineBase, public std::enable_shared_from_this<Mo
     bool serialize(JsonArray&);
 
     bool refresh();
-    
-    const ps::string& id();
-    const int& priority();
-    const uint8_t& address();
-    const uint8_t& offset();
-    const bool& status();
-    const uint64_t& switch_time();
-    bool status_changed();
-    ps::vector<StatusChange>& get_status_changes();
-    void new_status_change(StatusChange);
-    void set_relay_state(bool);
-    void add_reading(const Reading&);
-    const Reading& latestReading();
+    bool setRelayState(bool);
+    const bool& getRelayState();
+    const uint64_t& getRelayStateChangeTime();
+    const ps::deque<StatusChange>& getRelayStateChanges();
+
+    const ps::string& getModuleID();
+    const int& getModulePriority();
+    const Reading& getLatestReading();
     const ps::deque<Reading>& getReadings();
+
     bool& updateRequired();
     bool& saveRequired();
 
@@ -116,8 +114,6 @@ class Module : public re::RuleEngineBase, public std::enable_shared_from_this<Mo
     T kurt(T Reading::* attribute);
 
 };
-
-}
 
 #include "Module.inl"
 

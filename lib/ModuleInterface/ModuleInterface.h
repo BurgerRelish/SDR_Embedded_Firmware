@@ -25,14 +25,15 @@ struct ReadingDataPacket {
   float voltage;
   float frequency;
   float current;
-  float active_power;
+  float apparent_power;
   float power_factor;
   float energy_usage;
 } reading_packet;
 
 
-#define RELAY_MASK 0x0001
-#define READ_METER_MASK 0x0002
+#define OPERATION_RELAY_SET 0x0001
+#define OPERATION_RELAY_RESET 0x0002
+#define OPERATION_READ_METER 0x0004
 
 class ModuleInterface {
     public:

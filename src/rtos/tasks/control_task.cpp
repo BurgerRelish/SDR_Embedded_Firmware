@@ -227,7 +227,7 @@ void sendStateChanges(std::shared_ptr<sdr::App>& app, std::shared_ptr<InterfaceM
         interface -> send(
             module -> offset(),
             module -> address(),
-            (module -> status()) ? 31 : 30 // ON / OFF
+            (module -> getRelayState()) ? 31 : 30 // ON / OFF
         );
     }
 }

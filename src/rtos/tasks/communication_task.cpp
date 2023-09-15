@@ -201,7 +201,7 @@ void checkUpdates(std::shared_ptr<sdr::App> app) {
     auto module_id_arr = serializer.document.createNestedArray("moduleID");
     for (auto module : modules.data()) {
         if (module -> updateRequired()) {
-            module_id_arr.add(module -> id().c_str());
+            module_id_arr.add(module -> getModuleID().c_str());
         }
     }
     

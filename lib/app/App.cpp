@@ -128,7 +128,7 @@ bool App::generate_module_map() {
         for (size_t i = 0; i < modules -> size(); i++) {
             module_map -> insert(
                 std::make_pair(
-                    std::string(modules -> at(i) -> id().c_str()),
+                    std::string(modules -> at(i) -> getModuleID().c_str()),
                     modules -> at(i)
                 )
             );

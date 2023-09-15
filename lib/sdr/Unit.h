@@ -12,33 +12,26 @@
 #include "../hardware_interface/Persistence.h"
 #include "sdr_semantics.h"
 #include "json_fields.h"
-
-
-namespace sdr {
+#include "Module.h"
+#include "../ModuleInterface/ModuleInterface.h"
 
 class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit> {
     private:
+    std::shared_ptr<ModuleInterface> interface_1;
+    std::shared_ptr<ModuleInterface> interface_2;
+    ps::vector<std::shared_ptr<Module>> module_map;
+
     double total_active_power;
     double total_reactive_power;
     double total_apparent_power;
     bool power_status;
-    int number_of_modules;
+    uint16_t number_of_modules;
 
     ps::string unit_id_;
     bool update;
     bool save;
 
-    void load_vars() {
-        re::RuleEngineBase::set_var(re::VAR_CLASS, UNIT_CLASS, std::enable_shared_from_this<Unit>::shared_from_this());
-
-        re::RuleEngineBase::set_var(re::VAR_DOUBLE, TOTAL_ACTIVE_POWER, std::function<double()>([this]() { return this->totalActivePower(); }));
-        re::RuleEngineBase::set_var(re::VAR_DOUBLE, TOTAL_REACTIVE_POWER, std::function<double()>([this]() { return this->totalReactivePower(); }));
-        re::RuleEngineBase::set_var(re::VAR_DOUBLE, TOTAL_APPARENT_POWER, std::function<double()>([this]() { return this->totalApparentPower(); }));
-        re::RuleEngineBase::set_var(re::VAR_BOOL, POWER_STATUS, std::function<bool()>([this]() { return this->powerStatus(); }));
-        re::RuleEngineBase::set_var(re::VAR_STRING, UNIT_ID, std::function<ps::string()>([this]() { return this->id(); }));
-        re::RuleEngineBase::set_var(re::VAR_ARRAY, UNIT_TAG_LIST, std::function<ps::vector<ps::string>()>([this]() { return this->get_tags(); }));
-        re::RuleEngineBase::set_var(re::VAR_INT, MODULE_COUNT, std::function<int()>([this]() { return this->moduleCount(); }));
-    }
+    void load_vars();
 
     public:
     Unit(std::shared_ptr<re::FunctionStorage> functions, const std::string unit_id) : 
@@ -80,6 +73,9 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
         return;
     }
 
+    bool evaluateAll();
+    bool evaluateModules();
+
     double& totalActivePower() {
         return total_active_power;
     }
@@ -96,8 +92,14 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
         return power_status;
     }
 
-    int& moduleCount() {
-        return number_of_modules;
+    uint16_t& moduleCount() { return number_of_modules; }
+
+    uint16_t activeModules() {
+        uint16_t ret = 0;
+        for (auto module: module_map) {
+            if (module -> getRelayState()) ret++;
+        }
+        return ret;
     }
 
     const ps::string& id() {
@@ -118,6 +120,5 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
 
 };
 
-} // namespace SDR
 
 #endif

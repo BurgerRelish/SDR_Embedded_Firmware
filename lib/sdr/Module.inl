@@ -5,8 +5,6 @@
 
 #include "Module.h"
 
-namespace sdr {
-
 /**
  * @brief Gets the maximum value of the attribute
  * 
@@ -195,7 +193,6 @@ T Module::kurt(T Reading::* attribute) {
     return calc_kurt(mn, attribute, readings);
 }
 
-}
 
 
 #endif
