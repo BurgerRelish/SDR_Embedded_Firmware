@@ -1,0 +1,24 @@
+{
+    "name": "esp-brotli",
+    "version": "1.0.1",
+    "description": "Google Brotli Compression on the ESP32 using PSRAM.",
+    "keywords": "PSRAM, Compression, Brotli, Google Brotli",
+    "repository":
+    {
+      "type": "git",
+      "url": "https://github.com/BurgerRelish/esp-brotli"
+    },
+    "authors":
+    [
+      {
+        "name": "Nicholas Watt",
+        "email": "wattnicholas8@gmail.com"
+      }
+    ],
+    "dependencies": {
+      "burgerrelish/PSRAM Containers": "1.0.0"
+    },
+    "license": "MIT",
+    "frameworks": "arduino",
+    "platforms": "esp32"
+  }
