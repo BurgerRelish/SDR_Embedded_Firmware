@@ -2,6 +2,9 @@
 #include <ps_stl.h>
 #include <esp_brotli.h>
 #include <WiFi.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+#include <AsyncElegantOTA.h>
 
 //#include "App.h"
 
@@ -28,6 +31,8 @@ SummaryFrameData summary_data;
 
 std::shared_ptr<MQTTClient> mqtt_client;
 
+AsyncWebServer server(80);
+
 void setup() {
   pinMode(U1_CTRL, OUTPUT);
   digitalWrite(U1_CTRL, HIGH);
@@ -49,6 +54,8 @@ void setup() {
   Serial1.begin(RS485_BAUD_RATE, SERIAL_8N1, U1_RXD, U1_TXD);
   Serial2.begin(RS485_BAUD_RATE, SERIAL_8N1, U2_RXD, U2_TXD);
 
+  AsyncElegantOTA.begin(&server);
+  server.begin();
 
 }
 
