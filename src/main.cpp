@@ -82,8 +82,6 @@ void setup() {
 
   ESP_LOGI("RTOS", "Semaphores created.");
 
-  
-  display -> startLoading();
   delay(100);
 
   // ESP_LOGI("Pins", "Serial ports started.");
@@ -181,7 +179,7 @@ void taskComms(void* pvParameters) {
   vTaskDelay(10 / portTICK_PERIOD_MS);
   xSemaphoreGive(main_task_semaphore);
   xSemaphoreGive(comms_task_semaphore);
-  
+
   xTaskCreate(
     taskMain,
     "Main Task",

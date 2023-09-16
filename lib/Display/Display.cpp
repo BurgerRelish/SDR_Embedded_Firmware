@@ -4,30 +4,32 @@
 #include "./frames/LoadingFrames.h"
 #include <time.h>
 
-Display::Display(uint8_t scl_pin, uint8_t sda_pin, const char* version) : display(U8G2_R0, U8X8_PIN_NONE, scl_pin, sda_pin), version(version) {
-    state = DISPLAY_SHOW_BLANK;
-    update_required = false;
+
+Display::Display(uint8_t scl_pin, uint8_t sda_pin, const char* version) : oled(U8G2_R0, U8X8_PIN_NONE, scl_pin, sda_pin), version(version) {
+    state = DISPLAY_SHOW_SPLASH;
 }
 
 Display::~Display() {
     xSemaphoreTake(display_semaphore, portMAX_DELAY);
     vTaskDelete(display_task);
     vSemaphoreDelete(display_semaphore);
-    display.setPowerSave(1);
+    oled.setPowerSave(1);
 }
 
 void Display::begin(SummaryFrameData* summary) {
     display_semaphore = xSemaphoreCreateMutex();
+    display_queue = xQueueCreate(10, sizeof(DisplayQueuePacket));
+
     summary_data = summary;
-    //display.setBusClock(DISPLAY_I2C_CLK_FREQUENCY_KHZ * 1000);
-    display.begin();
+    oled.setBusClock(DISPLAY_I2C_CLK_FREQUENCY_KHZ * 1000);
+    oled.begin();
     ESP_LOGI("Display", "begun.");
     if (xTaskCreate(
         displayTask,
         "Display",
-        5000,
+        5 * 1024,
         this,
-        tskIDLE_PRIORITY,
+        5,
         &display_task
     ) != pdTRUE) {
         ESP_LOGE("RTOS", "Failed to start display task.");
@@ -36,39 +38,25 @@ void Display::begin(SummaryFrameData* summary) {
     xSemaphoreGive(display_semaphore);
 }
 
-bool Display::startLoading() {
-    if(xSemaphoreTake(display_semaphore, portMAX_DELAY) != pdTRUE) return false;  // Return if we cannot take display semaphore.
-    state = DISPLAY_SHOW_SPLASH;
-    update_required = true;
-    xSemaphoreGive(display_semaphore); 
-    ESP_LOGI("Display", "Loading started.");
-    return true; 
-}
-
 bool Display::finishLoading() {
-    if(xSemaphoreTake(display_semaphore, portMAX_DELAY) != pdTRUE) return false;  // Return if we cannot take display semaphore.
-    state = DISPLAY_FINISH_LOADING;
-    update_required = true;
-    xSemaphoreGive(display_semaphore);
+    DisplayQueuePacket packet;
+    packet.state = DISPLAY_LOADED_ANIMATION;
     ESP_LOGI("Display", "Loading finished.");
-    return true; 
+    return (xQueueSendToBack(display_queue, &packet, 50 / portTICK_PERIOD_MS) == pdTRUE);
 }
 
 bool Display::showBlank() {
-    if(xSemaphoreTake(display_semaphore, portMAX_DELAY) != pdTRUE) return false;  // Return if we cannot take display semaphore.
-    state = DISPLAY_SHOW_BLANK;
-    update_required = true;
-    xSemaphoreGive(display_semaphore);   
-    return true; 
+    DisplayQueuePacket packet;
+    packet.state = DISPLAY_SHOW_BLANK;
+    ESP_LOGI("Display", "Showing Blank.");
+    return (xQueueSendToBack(display_queue, &packet, 50 / portTICK_PERIOD_MS) == pdTRUE);
 }
 
 bool Display::showSummary() {
-    if(xSemaphoreTake(display_semaphore, portMAX_DELAY) != pdTRUE) return false;  // Return if we cannot take display semaphore.
-    state = DISPLAY_SHOW_SUMMARY;
-    update_required = true;
-    xSemaphoreGive(display_semaphore);
-    ESP_LOGI("Display", "Show summary.");
-    return true;
+    DisplayQueuePacket packet;
+    packet.state = DISPLAY_SHOW_SUMMARY;
+    ESP_LOGI("Display", "Showing Blank.");
+    return (xQueueSendToBack(display_queue, &packet, 50 / portTICK_PERIOD_MS) == pdTRUE);
 }
 
 bool Display::pause() {
@@ -78,38 +66,58 @@ bool Display::pause() {
 
 void Display::resume() {
     xSemaphoreGive(display_semaphore);
+
     return;
 }
 
 
 void displayTask(void* pvParameters) {
-    Display* dsp = (Display*) pvParameters;
+    Display* display = (Display*) pvParameters;
     ESP_LOGI("RTOS", "Display Task Started.");
 
     uint32_t start_tm = 0;
     uint8_t animation_state = 0;
     uint32_t delay_tm = 0;
+    bool go_to_next_screen = true;
+    bool check_next = false;
+
+    enum QueueCheckType {
+        BLOCK,
+        TIMEOUT,
+        SKIP
+    } check_type = SKIP;
 
     while(1) {
-        ESP_LOGI("DISPLAY", "Stack: %d", uxTaskGetStackHighWaterMark(NULL));
-        xSemaphoreTake(dsp -> display_semaphore, portMAX_DELAY);
-        if ( ! dsp -> update_required ) { // Do not update the display for no reason, to save power.
-            xSemaphoreGive(dsp -> display_semaphore);
-            vTaskDelay((1000 / DISPLAY_UPDATE_CHECK_FREQUENCY_HZ) / portTICK_PERIOD_MS);
-            continue; 
+        {
+            Display::DisplayQueuePacket packet;
+
+            switch (check_type) {
+                case BLOCK:
+                    if (xQueueReceive(display -> display_queue, &packet, portMAX_DELAY) == pdFALSE) continue; // Wait till we have a screen to display
+                    display -> state = packet.state;
+                case TIMEOUT:
+                    if (xQueueReceive(display -> display_queue, &packet, 50 / portTICK_PERIOD_MS) == pdTRUE ) {
+                        display -> state = packet.state;// Check if loading completed yet.
+                    }
+                    break;
+                case SKIP:
+                    break;
+            }
+
         }
-        xSemaphoreGive(dsp -> display_semaphore);
+
+        ESP_LOGI("DISPLAY", "State: %d, Stack: %d", display -> state, uxTaskGetStackHighWaterMark(NULL));
+
         if (delay_tm > 0) vTaskDelay(delay_tm / portTICK_PERIOD_MS);
-        else vTaskDelay(1 / portTICK_PERIOD_MS);
-        xSemaphoreTake(dsp -> display_semaphore, portMAX_DELAY);
+        xSemaphoreTake(display -> display_semaphore, portMAX_DELAY);
 
         start_tm = millis();
         
-        dsp -> display.firstPage();
+        display -> oled.firstPage();
 
         /* Display Frame Rendering State Machine. */
-        switch ( dsp -> state ) {
-            case Display::DISPLAY_START_LOADING: {
+        switch ( display -> state ) {
+            case Display::DISPLAY_LOADING_WHEEL: {
                 uint8_t* bitmap = nullptr;
 
                 switch( animation_state ) {
@@ -125,13 +133,13 @@ void displayTask(void* pvParameters) {
                 }
 
                 do {
-                    dsp -> display.drawXBMP(0, 0, 128, 64, bitmap);
-                } while(dsp -> display.nextPage());
+                    display -> oled.drawXBMP(0, 0, 128, 64, bitmap);
+                } while(display -> oled.nextPage());
 
                 break;
             }
 
-            case Display::DISPLAY_FINISH_LOADING: {
+            case Display::DISPLAY_LOADED_ANIMATION: {
                 // Allocate memory for the combined bitmap
                 #ifdef BOARD_HAS_PSRAM
                     uint8_t* bitmap = (uint8_t*) heap_caps_malloc(sizeof(uint8_t) * 128 * 64, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
@@ -141,24 +149,29 @@ void displayTask(void* pvParameters) {
 
                 switch( animation_state ) {
                     case 0:
-                        dsp -> combineBitMaps(bitmap ,128 * 64, 2, (uint8_t*) &epd_bitmap_Loading_Screen_1, (uint8_t*) &epd_bitmap_Loading_Screen_3);
+                        ESP_LOGI("Display", "Intermediate loading screen 0.");
+                        display -> combineBitMaps(bitmap ,128 * 64, 2, (uint8_t*) &epd_bitmap_Loading_Screen_1, (uint8_t*) &epd_bitmap_Loading_Screen_3);
                         break;
                     case 1:
-                        dsp -> combineBitMaps(bitmap, 128 * 64, 2, (uint8_t*) &epd_bitmap_Loading_Screen_1, (uint8_t*) &epd_bitmap_Loading_Screen_2);
+                        ESP_LOGI("Display", "Intermediate loading screen 1.");
+                        display -> combineBitMaps(bitmap, 128 * 64, 2, (uint8_t*) &epd_bitmap_Loading_Screen_1, (uint8_t*) &epd_bitmap_Loading_Screen_2);
                         break;
                     case 2:
-                        dsp -> combineBitMaps(bitmap, 128 * 64, 2, (uint8_t*) &epd_bitmap_Loading_Screen_2, (uint8_t*) &epd_bitmap_Loading_Screen_3);
+                        ESP_LOGI("Display", "Intermediate loading screen 2.");
+                        display -> combineBitMaps(bitmap, 128 * 64, 2, (uint8_t*) &epd_bitmap_Loading_Screen_2, (uint8_t*) &epd_bitmap_Loading_Screen_3);
                         break;
                     default:
-                        dsp -> combineBitMaps(bitmap, 128 * 64, 3, (uint8_t*) &epd_bitmap_Loading_Screen_1, (uint8_t*) &epd_bitmap_Loading_Screen_2, (uint8_t*) &epd_bitmap_Loading_Screen_3);
+                        ESP_LOGI("Display", "Intermediate loading screen.");
+                        display -> combineBitMaps(bitmap, 128 * 64, 3, (uint8_t*) &epd_bitmap_Loading_Screen_1, (uint8_t*) &epd_bitmap_Loading_Screen_2, (uint8_t*) &epd_bitmap_Loading_Screen_3);
                         break;
                 }
-
+                
                 if (bitmap != nullptr) {
                     do {
-                        dsp -> display.drawXBMP(0, 0, 128, 64, bitmap);
-                    } while(dsp -> display.nextPage());
+                        display -> oled.drawXBMP(0, 0, 128, 64, bitmap);
+                    } while(display -> oled.nextPage());
 
+                    ESP_LOGI("Display", "Loaded.");
                     free(bitmap);
                     break;
                 }
@@ -170,19 +183,18 @@ void displayTask(void* pvParameters) {
 
             case Display::DISPLAY_SHOW_SPLASH:
                 do {
-                    dsp -> drawSplashFrame();
-                } while (dsp -> display.nextPage());
+                    display -> drawSplashFrame();
+                } while (display -> oled.nextPage());
                 break;
 
             case Display::DISPLAY_SHOW_BLANK:
-                dsp -> display.clear();
-                dsp -> update_required = false;
+                display -> oled.clear();
                 break;
 
             case Display::DISPLAY_SHOW_SUMMARY:
                 do {
-                    dsp -> drawSummaryFrame();
-                } while (dsp -> display.nextPage());
+                    display -> drawSummaryFrame();
+                } while (display -> oled.nextPage());
                 break;
             
             default:
@@ -193,8 +205,10 @@ void displayTask(void* pvParameters) {
 
 
         /* Animation logic state machine. */
-        switch( dsp -> state ) {
-            case Display::DISPLAY_START_LOADING:
+        switch( display -> state ) {
+            case Display::DISPLAY_LOADING_WHEEL:
+                check_type = TIMEOUT;
+
                 if (elapsed_tm < LOADING_SCROLL_SPEED) { // Wait till next frame.
                     delay_tm = LOADING_SCROLL_SPEED - elapsed_tm;
                 } else delay_tm = 0;
@@ -205,50 +219,71 @@ void displayTask(void* pvParameters) {
                 }
 
                 animation_state++;
+                
                 break;
-            case Display::DISPLAY_FINISH_LOADING:
+            case Display::DISPLAY_LOADED_ANIMATION:
                 if (elapsed_tm < LOADING_SCROLL_SPEED) {
                     delay_tm = LOADING_SCROLL_SPEED - elapsed_tm;
                 } else delay_tm = 0;
                 
                 if (animation_state < 3) {
                     animation_state = 3;
+                    check_type = SKIP;
                     break;
                 }
 
-                dsp -> update_required = false;
+                check_type = BLOCK; // Loading Screen animation finished playing, get the next screen.
                 break;
 
             case Display::DISPLAY_SHOW_SPLASH:
-                dsp -> state = Display::DISPLAY_START_LOADING;
+                display -> state = Display::DISPLAY_LOADING_WHEEL; // Show loading wheel
+                check_type = SKIP;
+                if (elapsed_tm > SPLASH_DURATION_MS) {
+                    delay_tm = 0;
+                    break;
+                }
                 delay_tm = SPLASH_DURATION_MS - elapsed_tm;
                 break;
 
             case Display::DISPLAY_SHOW_SUMMARY:
+                
+                check_type = TIMEOUT;
+                if (elapsed_tm > SUMMARY_POLL_RATE_MS) {
+                    delay_tm = 0;
+                    break;
+                }
                 delay_tm = SUMMARY_POLL_RATE_MS - elapsed_tm;
+                break;
+
+            default:
+                if (elapsed_tm < LOADING_SCROLL_SPEED) {
+                    delay_tm = LOADING_SCROLL_SPEED - elapsed_tm;
+                } else delay_tm = 0;
+                check_type = TIMEOUT;
                 break;
         }
         
-        ESP_LOGI("DISPLAY", "Updated display. Took: %u", elapsed_tm);
-        xSemaphoreGive(dsp -> display_semaphore);
-        
+        ESP_LOGI("DISPLAY", "Updated display. Took: %u, Delay: %d, Check Type:%d", elapsed_tm, delay_tm, check_type);
+        xSemaphoreGive(display -> display_semaphore);
+
     }
+
     ESP_LOGE("Display", "Deleted self.");
     vTaskDelete(NULL);
 }
 
 void Display::drawSummaryFrame() {
-    display.setBitmapMode(1);
-    display.drawFrame(1, 1, 126, 11);
-    display.drawLine(1, 14, 1, 18);
-    display.drawLine(126, 14, 126, 18);
-    display.drawLine(32, 14, 32, 16);
-    display.drawLine(64, 14, 64, 16);
-    display.drawLine(98, 14, 98, 16);
+    oled.setBitmapMode(1);
+    oled.drawFrame(1, 1, 126, 11);
+    oled.drawLine(1, 14, 1, 18);
+    oled.drawLine(126, 14, 126, 18);
+    oled.drawLine(32, 14, 32, 16);
+    oled.drawLine(64, 14, 64, 16);
+    oled.drawLine(98, 14, 98, 16);
     
     uint8_t nmd_bar_width = map(summary_data -> total_apparent_power, 0, summary_data -> nmd, 0, 125);
-    display.drawBox(3, 3, nmd_bar_width, 7);
-    display.setFont(u8g2_font_profont22_tr);
+    oled.drawBox(3, 3, nmd_bar_width, 7);
+    oled.setFont(u8g2_font_profont22_tr);
 
     if ((summary_data->total_apparent_power) >= 10000) {
         drawStrf(2, 44, "%05.0fVA", (summary_data->total_apparent_power));
@@ -258,14 +293,14 @@ void Display::drawSummaryFrame() {
         drawStrf(2, 44, "%03.2fVA", (summary_data->total_apparent_power));
     }
     
-    display.setFont(u8g2_font_helvB08_tr);
-    drawStrf(100, 44, "%1.3f", (summary_data->mean_power_factor));
-    display.setFont(u8g2_font_haxrcorp4089_tr);
-    drawStrf(3, 54, "%3.2fV", (summary_data->mean_voltage));
-    display.drawStr(1, 28, "0                      %NMD                       1");
-    drawStrf(95, 56, "%d/%d", (summary_data->on_modules), (summary_data->total_modules));
-    drawStrf(3, 63, "%2.2fHz", (summary_data->mean_frequency));
-    display.setFont(u8g2_font_4x6_tr);
+    oled.setFont(u8g2_font_helvB08_tr);
+    drawStrf(100, 44, "%01.3f", (summary_data->mean_power_factor));
+    oled.setFont(u8g2_font_haxrcorp4089_tr);
+    drawStrf(3, 54, "%03.2fV", (summary_data->mean_voltage));
+    oled.drawStr(1, 28, "0                      %NMD                       1");
+    drawStrf(3, 63, "%d/%d", (summary_data->on_modules), (summary_data->total_modules));
+    drawStrf(51, 56, "%.2fHz", (summary_data->mean_frequency));
+    oled.setFont(u8g2_font_4x6_tr);
 
     struct tm timeinfo;
     getLocalTime(&timeinfo);
@@ -279,22 +314,22 @@ void Display::drawSummaryFrame() {
 
 
 void Display::drawSignalStrengthIndicator() {
-    if (summary_data->connection_strength == 0) return; // No connection.
-        
-    if (summary_data->connection_strength > -80) { // Not good
-        display.drawBox(54, 53, 2, 3);
+    if (summary_data->connection_strength == 0) return; // Signal is Non-Existent.
+
+    if (summary_data->connection_strength > -80) { // Signal is Not Good.
+        oled.drawBox(102, 53, 2, 3);
     }
 
-    if (summary_data->connection_strength > -70) { // Okay
-        display.drawBox(58, 51, 2, 5);
+    if (summary_data->connection_strength > -70) { // Signal is Okay.
+        oled.drawBox(106, 51, 2, 5);
     }
 
-    if (summary_data->connection_strength > -67) { // Good
-        display.drawBox(62, 49, 2, 7);
+    if (summary_data->connection_strength > -67) { // Signal is Good.
+        oled.drawBox(110, 49, 2, 7);
     }
 
-    if (summary_data->connection_strength > -55) { // Very Good
-        display.drawBox(66, 47, 2, 9);
+    if (summary_data->connection_strength > -55) { // Signal is Very Good.
+        oled.drawBox(114, 47, 2, 9);
     }
 }
 
@@ -303,7 +338,7 @@ void Display::drawStrf(uint8_t x, uint8_t y, const char* format, ...) {
     va_start(args, format);
     char* str = (char*) malloc(sizeof(char) * 128);
     vsnprintf(str, 128, format, args);
-    display.drawStr(x, y, str);
+    oled.drawStr(x, y, str);
 
     free(str);
     va_end(args);
@@ -349,18 +384,18 @@ void Display::combineBitMaps(uint8_t* bitmap, size_t size, uint8_t num_bitmaps, 
 }
 
 void Display::drawSplashFrame() {
-    display.setBitmapMode(1);
+    oled.setBitmapMode(1);
 
-    display.setFont(u8g2_font_profont22_tr);
-    display.drawStr(17, 15, "S");
-    display.drawStr(28, 32, "D");
-    display.drawStr(39, 49, "R");
+    oled.setFont(u8g2_font_profont22_tr);
+    oled.drawStr(17, 15, "S");
+    oled.drawStr(28, 32, "D");
+    oled.drawStr(39, 49, "R");
 
-    display.setFont(u8g2_font_helvB08_tr);
-    display.drawStr(29, 15, "MART");
-    display.drawStr(40, 32, "EMAND");
-    display.drawStr(51, 49, "ESPONSE");
+    oled.setFont(u8g2_font_helvB08_tr);
+    oled.drawStr(29, 15, "MART");
+    oled.drawStr(40, 32, "EMAND");
+    oled.drawStr(51, 49, "ESPONSE");
 
-    display.setFont(u8g2_font_4x6_tr);
+    oled.setFont(u8g2_font_4x6_tr);
     drawStrf(1, 63, "Version: %s", version);
 }

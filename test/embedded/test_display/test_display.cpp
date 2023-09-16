@@ -4,7 +4,7 @@
 #include <FS.h>
 #include "Display.h"
 
-Display dsp(1, 2);
+Display dsp(1, 2, "test_display");
 
 SummaryFrameData summary_data;
 
@@ -18,13 +18,6 @@ uint16_t total_modules = 5;
 bool power_status = true;
 
 void test_display() {
-
-    dsp.begin(&summary_data);
-    dsp.startLoading();
-    delay(5000);
-    dsp.finishLoading();
-    delay(500);
-
     summary_data.connection_strength = rssi;
     summary_data.mean_frequency = mean_frequency;
     summary_data.mean_voltage = mean_voltage;
@@ -35,11 +28,13 @@ void test_display() {
     summary_data.power_status = power_status;
     summary_data.nmd = 13284;
 
+    dsp.begin(&summary_data);
+    delay(4000);
+    dsp.finishLoading();
     dsp.showSummary();
-
-    delay(1000);
+    delay(2000);
     summary_data.total_apparent_power = 6500.13;
-    
+    delay(1000);
     TEST_ASSERT_TRUE(true);
 }
 

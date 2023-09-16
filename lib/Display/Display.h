@@ -11,7 +11,7 @@
 #define DISPLAY_UPDATE_CHECK_FREQUENCY_HZ 10
 #define DISPLAY_I2C_CLK_FREQUENCY_KHZ 400
 #define LOADING_SCROLL_SPEED 350 // Only values above > 130 ms due to I2C speed.
-#define SPLASH_DURATION_MS 500
+#define SPLASH_DURATION_MS 1000
 #define LOADING_CPLT_DURATION_MS 350
 #define SUMMARY_POLL_RATE_MS 1000
 
@@ -36,9 +36,16 @@ class Display {
     Display(uint8_t scl_pin, uint8_t sda_pin, const char* version);
     ~Display();
 
+    enum DisplayState {
+        DISPLAY_LOADING_WHEEL,
+        DISPLAY_LOADED_ANIMATION,
+        DISPLAY_SHOW_SPLASH,
+        DISPLAY_SHOW_SUMMARY,
+        DISPLAY_SHOW_BLANK
+    };
+
     void begin(SummaryFrameData* summary);
     
-    bool startLoading();
     bool finishLoading();
 
     bool showBlank();
@@ -49,22 +56,20 @@ class Display {
 
     private:
     friend void displayTask(void* pvParameters);
-    enum DisplayState {
-        DISPLAY_START_LOADING,
-        DISPLAY_FINISH_LOADING,
-        DISPLAY_SHOW_SPLASH,
-        DISPLAY_SHOW_SUMMARY,
-        DISPLAY_SHOW_BLANK
-    } state;
+    DisplayState state;
 
-    OLED_PANEL display;
-    bool update_required;
-    
-    const char* version;
+    OLED_PANEL oled;
 
+    QueueHandle_t display_queue;
     TaskHandle_t display_task;
     SemaphoreHandle_t display_semaphore;
     SummaryFrameData* summary_data;
+
+    struct DisplayQueuePacket {
+        DisplayState state;
+    };
+
+    const char* version;
 
     void drawSplashFrame();
     void drawSummaryFrame();
