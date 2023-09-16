@@ -250,14 +250,12 @@
  lib/sdr/../rule_engine/../rule_engine/src/Expression.h \
  lib/sdr/../rule_engine/../rule_engine/src/ArraySeparator.h \
  lib/sdr/../rule_engine/../rule_engine/src/ShuntingYard.h \
- lib/sdr/../hardware_interface/Persistence.h \
+ lib/sdr/../Serialization/Persistence.h \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/libraries/LittleFS/src/LittleFS.h \
- lib/sdr/../hardware_interface/../Serialization/json_allocator.h \
- lib/sdr/sdr_semantics.h lib/sdr/Module.h \
- lib/sdr/../ModuleInterface/ModuleInterface.h \
- lib/sdr/../ModuleInterface/./EasyTransfer/src/EasyTransfer.h \
- lib/sdr/Reading.h lib/sdr/StatusChange.h lib/sdr/Module.inl \
- lib/Display/Display.h \
+ lib/sdr/../Serialization/src/json_allocator.h lib/sdr/sdr_semantics.h \
+ lib/sdr/Module.h lib/sdr/../ModuleInterface/ModuleInterface.h \
+ lib/sdr/../ModuleInterface/EasyTransfer.h lib/sdr/Reading.h \
+ lib/sdr/StatusChange.h lib/sdr/Module.inl lib/Display/Display.h \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src/Wire.h \
  .pio/libdeps/esp32-s3-devkitc-1/U8g2/src/U8g2lib.h \
  .pio/libdeps/esp32-s3-devkitc-1/U8g2/src/U8x8lib.h \
@@ -267,4 +265,4 @@
  lib/Communication/MQTTClient.h \
  .pio/libdeps/esp32-s3-devkitc-1/PubSubClient/src/PubSubClient.h \
  lib/Communication/../Serialization/MessageDeserializer.h \
- lib/Serialization/MessageSerializer.h src/functions/functions.h
+ src/../lib/Serialization/MessageSerializer.h src/functions/functions.h

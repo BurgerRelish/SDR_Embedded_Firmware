@@ -9,6 +9,8 @@
 #include "esp32-hal.h"
 #include <ps_stl.h>
 
+#define VERSION "0001/0001"
+
 #define UNIT_UUID "h1u212"
 
 #define RS485_BAUD_RATE 115200

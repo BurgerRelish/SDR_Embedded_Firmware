@@ -15,6 +15,9 @@
 #define JSON_APPEND "ap"
 #define JSON_REPLACE "rp"
 
+#define JSON_UNIT_UID "uid"
+#define JSON_MODULE_UID "mid"
+
 #define JSON_VOLTAGE "vo"
 #define JSON_FREQUENCY "fr"
 #define JSON_APPARENT_POWER "sp"
@@ -25,5 +28,8 @@
 #define JSON_KWH_USAGE "kwh"
 #define JSON_STATUS_OBJ "st"
 #define JSON_STATUS "state"
+
+#define JSON_READING_OBJECT "read"
+#define JSON_NEW_READINGS "nr"
 
 #endif

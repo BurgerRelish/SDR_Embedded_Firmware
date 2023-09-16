@@ -2,14 +2,13 @@
 #include <time.h>
 
 uint64_t Module::getTime() {
-    time_t now;
     struct tm timeinfo;
     if (!getLocalTime(&timeinfo)) {
         //Serial.println("Failed to obtain time");
         return 0;
     }
-    time(&now);
-    return now;
+
+    return (uint64_t) mktime(&timeinfo);
 }
 
 /**
@@ -115,6 +114,25 @@ bool Module::serialize(JsonArray& reading_array) {
 void Module::save(JsonObject& update_obj) {
     update_obj[JSON_MODULE_ID] = module_id;
     update_obj[JSON_PRIORITY] = circuit_priority;
+
+    auto reading_obj = update_obj[JSON_READING_OBJECT].as<JsonObject>();
+    reading_obj[JSON_NEW_READINGS] = new_readings;
+
+    auto voltage_arr = reading_obj[JSON_VOLTAGE].as<JsonArray>();
+    auto frequency_arr = reading_obj[JSON_FREQUENCY].as<JsonArray>();
+    auto apparent_power_arr = reading_obj[JSON_APPARENT_POWER].as<JsonArray>();
+    auto power_factor_arr = reading_obj[JSON_POWER_FACTOR].as<JsonArray>();
+    auto kwh_usage_arr = reading_obj[JSON_KWH_USAGE].as<JsonArray>();
+    auto timestamp_arr = reading_obj[JSON_TIMESTAMP].as<JsonArray>();
+
+    for (auto reading : readings) {
+        voltage_arr.add(reading.voltage);
+        frequency_arr.add(reading.frequency);
+        apparent_power_arr.add(reading.apparent_power);
+        kwh_usage_arr.add(reading.kwh_usage);
+        timestamp_arr.add(reading.timestamp);
+    }
+
     save_rule_engine(update_obj);
 }
 
@@ -126,8 +144,71 @@ void Module::save(JsonObject& update_obj) {
 void Module::load(JsonObject& update_obj) {
     module_id = update_obj[JSON_MODULE_ID].as<ps::string>();
     circuit_priority = update_obj[JSON_PRIORITY];
+
+    auto reading_obj = update_obj[JSON_READING_OBJECT].as<JsonObject>();
+    new_readings = reading_obj[JSON_NEW_READINGS].as<uint16_t>();
+
+    auto voltage_arr = reading_obj[JSON_VOLTAGE].as<JsonArray>();
+    auto frequency_arr = reading_obj[JSON_FREQUENCY].as<JsonArray>();
+    auto apparent_power_arr = reading_obj[JSON_APPARENT_POWER].as<JsonArray>();
+    auto power_factor_arr = reading_obj[JSON_POWER_FACTOR].as<JsonArray>();
+    auto kwh_usage_arr = reading_obj[JSON_KWH_USAGE].as<JsonArray>();
+    auto timestamp_arr = reading_obj[JSON_TIMESTAMP].as<JsonArray>();
+
+    auto voltage_it = voltage_arr.begin();
+    auto freq_it = frequency_arr.begin();
+    auto sp_it = apparent_power_arr.begin();
+    auto pf_it = power_factor_arr.begin();
+    auto kwh_it = kwh_usage_arr.begin();
+    auto ts_it = timestamp_arr.begin();
+
+    while(voltage_it != voltage_arr.end()) {
+        readings.push_back(
+            Reading (
+                voltage_it -> as<double>(),
+                freq_it -> as<double>(),
+                sp_it -> as<double>(),
+                pf_it -> as<double>(),
+                kwh_it -> as<double>(),
+                ts_it -> as<uint64_t>()
+            )
+        );
+
+        voltage_it += 1;
+        freq_it += 1;
+        sp_it += 1;
+        pf_it += 1;
+        kwh_it += 1;
+        ts_it += 1;
+    }
+
+    voltage_arr.clear();
+    frequency_arr.clear();
+    apparent_power_arr.clear();
+    power_factor_arr.clear();
+    kwh_usage_arr.clear();
+    timestamp_arr.clear();
+
     load_rule_engine(update_obj);
 }
+
+void Module::loadFromArray(JsonArray& array) {
+    for (auto item : array) {
+        if (item.containsKey(JSON_MODULE_ID)) {
+            if (item[JSON_MODULE_ID].as<ps::string>() == module_id) {
+                auto item_obj = item.as<JsonObject>();
+                load(item_obj);
+                break;
+            }
+        }
+    }
+}
+
+void Module::saveToArray(JsonArray& array) {
+    auto save_obj = array.createNestedObject();
+    save(save_obj);
+}
+
 
 /**
  * @brief Get the Statistical Summarization of the requested attribute from the new readings.
@@ -152,8 +233,8 @@ std::tuple<double, double, double, double> Module::get_summary(double Reading::*
 }
 
 void Module::load_re_vars() {
-    std::shared_ptr<Module> this_ptr = std::enable_shared_from_this<Module>::shared_from_this();
-    re::RuleEngineBase::set_var(re::VAR_CLASS, MODULE_CLASS, this_ptr);
+    //std::shared_ptr<Module> this_ptr = std::enable_shared_from_this<Module>::shared_from_this();
+    //re::RuleEngineBase::set_var(re::VAR_CLASS, MODULE_CLASS, this);
 
     re::RuleEngineBase::set_var(re::VAR_DOUBLE, ACTIVE_POWER, std::function<double()>([this]() { return this->getLatestReading().active_power(); }));
     re::RuleEngineBase::set_var(re::VAR_DOUBLE, REACTIVE_POWER, std::function<double()>([this]() { return this->getLatestReading().reactive_power(); }));
@@ -176,12 +257,16 @@ const int& Module::getModulePriority() {
     return circuit_priority;
 }
 
-const bool& Module::getRelayState() {
-    return status_updates.front().status;
+const bool Module::getRelayState() {
+    if (status_updates.size() > 0)
+        return status_updates.front().status;
+    return false;
 }
 
-const uint64_t& Module::getRelayStateChangeTime() {
-    return status_updates.front().timestamp;
+const uint64_t Module::getRelayStateChangeTime() {
+    if (status_updates.size() > 0)
+        return status_updates.front().timestamp;
+    return 0;
 }
 
 /**

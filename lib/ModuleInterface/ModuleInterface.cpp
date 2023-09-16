@@ -13,32 +13,37 @@ ps::vector<std::pair<AnnouncePacket, uint8_t>> ModuleInterface::begin(){
     digitalWrite(dir, LOW); // RX dir
     digitalWrite(ctrl, HIGH); // Not addressing yet.
 
-    AddressPacket address_packet;
-    transfer_out.begin(details(address_packet), stream, 0, dir);
+    ESP_LOGI("Addressing", "Creating Packets.");
+    AddressPacket* address_packet = (AddressPacket*) calloc(1, sizeof(AddressPacket));
+    transfer_out.begin((uint8_t*)address_packet, sizeof(AddressPacket), stream, 0, dir);
     
-    AnnouncePacket announce_packet;
-    transfer_in.begin(details(announce_packet), stream, 0, dir);
+    AnnouncePacket* announce_packet = (AnnouncePacket*) calloc(1, sizeof(AnnouncePacket));
+    transfer_in.begin((uint8_t*)announce_packet, sizeof(AnnouncePacket), stream, 0, dir);
 
     clearStreamBuffer();
 
-    digitalWrite(ctrl, LOW); // Start Addressing.
+    ESP_LOGI("Addressing", "Starting.");
     ps::vector<std::pair<AnnouncePacket, uint8_t>> ret;
-
-    address_packet.address = current_address;
-
+    address_packet -> address = current_address;
+    digitalWrite(ctrl, LOW); // Start Addressing.
+    vTaskDelay(10 / portTICK_PERIOD_MS);
     while(receive()) {
         if (transmit(0)) { // Send address to module.
-            address_packet.address = current_address++;
+            ESP_LOGI("Addressing", "Found Module: %s", &(announce_packet -> id[0]));
             ret.push_back( 
                 std::make_pair(
-                    announce_packet, current_address
+                    *announce_packet, address_packet->address
                 )
             );
+            address_packet->address ++;
         } else ESP_LOGE("TX", "Failed to send address.");
     }
 
+    ESP_LOGI("Addressing", "Finished.");
+    free(announce_packet);
+    free(address_packet);
     digitalWrite(ctrl, HIGH); // End Addressing
-
+    
     transfer_in.begin(details(reading_packet), stream, 0, dir); // Switch to receiving readings.
     transfer_out.begin(details(operation_packet), stream, 0, dir); // Switch to sending operations.
     
@@ -80,17 +85,21 @@ void ModuleInterface::clearStreamBuffer() {
 }
 
 bool ModuleInterface::transmit(uint8_t address) {
-    uint16_t attempts = 0;
-    while(!transfer_out.sendData(address) && attempts < 100) attempts++;
+    uint32_t start_tm = millis();
+    while((millis() - start_tm) < 1000) {
+        if (transfer_out.sendData(address)) return true;
+        vTaskDelay(250 / portTICK_PERIOD_MS);
+    };
 
-    if (attempts >= 100 ) return false;
-    return true;
+    return false;
 }
 
 bool ModuleInterface::receive() {
-    uint16_t attempts = 0;
-    while(!transfer_in.receiveData() && attempts < 100) attempts++;
+    uint32_t start_tm = millis();
+    while((millis() - start_tm) < 1000) {
+        if (transfer_in.receiveData()) return true;
+        vTaskDelay(25 / portTICK_PERIOD_MS);
+    };
 
-    if (attempts >= 100 ) return false;
-    return true;
+    return false;
 }

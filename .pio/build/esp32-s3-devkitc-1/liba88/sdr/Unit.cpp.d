@@ -206,11 +206,10 @@
  lib/sdr/../rule_engine/../rule_engine/src/Expression.h \
  lib/sdr/../rule_engine/../rule_engine/src/ArraySeparator.h \
  lib/sdr/../rule_engine/../rule_engine/src/ShuntingYard.h \
- lib/sdr/../hardware_interface/Persistence.h \
+ lib/sdr/../Serialization/Persistence.h \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/libraries/FS/src/FS.h \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/libraries/LittleFS/src/LittleFS.h \
- lib/sdr/../hardware_interface/../Serialization/json_allocator.h \
- lib/sdr/sdr_semantics.h lib/sdr/Module.h \
- lib/sdr/../ModuleInterface/ModuleInterface.h \
- lib/sdr/../ModuleInterface/./EasyTransfer/src/EasyTransfer.h \
- lib/sdr/Reading.h lib/sdr/StatusChange.h lib/sdr/Module.inl
+ lib/sdr/../Serialization/src/json_allocator.h lib/sdr/sdr_semantics.h \
+ lib/sdr/Module.h lib/sdr/../ModuleInterface/ModuleInterface.h \
+ lib/sdr/../ModuleInterface/EasyTransfer.h lib/sdr/Reading.h \
+ lib/sdr/StatusChange.h lib/sdr/Module.inl

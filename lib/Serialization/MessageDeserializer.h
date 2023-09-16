@@ -7,7 +7,7 @@
 #include <ps_stl.h>
 #include <esp_brotli.h>
 
-#include "json_allocator.h"
+#include "src/json_allocator.h"
 
 /**
  * @brief Automatically decompresses and deserializes the JSON formatted string. The JSON document can be used to get any data contained in the message. 

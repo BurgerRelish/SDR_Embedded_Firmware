@@ -193,12 +193,12 @@
  .pio/libdeps/esp32-s3-devkitc-1/PSRAM\ Containers/include/ps_stack.h \
  .pio/libdeps/esp32-s3-devkitc-1/PSRAM\ Containers/include/ps_string.h \
  .pio/libdeps/esp32-s3-devkitc-1/PSRAM\ Containers/include/ps_unordered_map.h \
- lib/sdr/../hardware_interface/Persistence.h \
+ lib/sdr/../Serialization/Persistence.h \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/libraries/FS/src/FS.h \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/libraries/LittleFS/src/LittleFS.h \
- lib/sdr/../hardware_interface/../Serialization/json_allocator.h \
- lib/sdr/sdr_semantics.h lib/sdr/../rule_engine/RuleEngineBase.h \
- lib/sdr/json_fields.h lib/sdr/../rule_engine/../rule_engine/RuleEngine.h \
+ lib/sdr/../Serialization/src/json_allocator.h lib/sdr/sdr_semantics.h \
+ lib/sdr/../rule_engine/RuleEngineBase.h lib/sdr/json_fields.h \
+ lib/sdr/../rule_engine/../rule_engine/RuleEngine.h \
  lib/sdr/../rule_engine/../rule_engine/src/Language.h \
  lib/sdr/../rule_engine/../rule_engine/src/Semantics.h \
  lib/sdr/../rule_engine/../rule_engine/src/Rule.h \
@@ -211,5 +211,5 @@
  lib/sdr/../rule_engine/../rule_engine/src/ArraySeparator.h \
  lib/sdr/../rule_engine/../rule_engine/src/ShuntingYard.h \
  lib/sdr/../ModuleInterface/ModuleInterface.h \
- lib/sdr/../ModuleInterface/./EasyTransfer/src/EasyTransfer.h \
- lib/sdr/Reading.h lib/sdr/StatusChange.h lib/sdr/Module.inl
+ lib/sdr/../ModuleInterface/EasyTransfer.h lib/sdr/Reading.h \
+ lib/sdr/StatusChange.h lib/sdr/Module.inl

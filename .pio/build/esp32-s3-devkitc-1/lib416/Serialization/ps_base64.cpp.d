@@ -1,5 +1,5 @@
 .pio/build/esp32-s3-devkitc-1/lib416/Serialization/ps_base64.cpp.o: \
- lib/Serialization/ps_base64.cpp lib/Serialization/ps_base64.h \
+ lib/Serialization/src/ps_base64.cpp lib/Serialization/src/ps_base64.h \
  .pio/libdeps/esp32-s3-devkitc-1/PSRAM\ Containers/include/ps_stl.h \
  .pio/libdeps/esp32-s3-devkitc-1/PSRAM\ Containers/include/ps_deque.h \
  .pio/libdeps/esp32-s3-devkitc-1/PSRAM\ Containers/include/ps_allocator.h \

@@ -31,6 +31,7 @@ void Unit::loadUnitVarsInModule(std::shared_ptr<Module>& module) {
 }
 
 void Unit::begin(Stream* stream_1, uint8_t ctrl_1, uint8_t dir_1, Stream* stream_2, uint8_t ctrl_2, uint8_t dir_2) {
+    number_of_modules = 0;
     interface_1 = ps::make_shared<ModuleInterface>(stream_1, ctrl_1, dir_1);
     auto found_modules_1 = interface_1 -> begin();
 
@@ -38,18 +39,22 @@ void Unit::begin(Stream* stream_1, uint8_t ctrl_1, uint8_t dir_1, Stream* stream
     auto found_modules_2 = interface_2 -> begin();
 
     for (auto found_module : found_modules_1) {
+        ESP_LOGI("Dynamic Address", "Found on Port 1: %s", &found_module.first.id[0]);
         module_map.push_back(
             ps::make_shared<Module>(functions, interface_1, found_module.second, ps::string(found_module.first.id), found_module.first.firmware_version, found_module.first.hardware_version)
         );
+        number_of_modules++;
     }
 
     for (auto found_module : found_modules_2) {
+        ESP_LOGI("Dynamic Address", "Found on Port 2: %s", &found_module.first.id[0]);
         module_map.push_back(
             ps::make_shared<Module>(functions, interface_2, found_module.second, ps::string(found_module.first.id), found_module.first.firmware_version, found_module.first.hardware_version)
         );
+        number_of_modules++;
     }
 
-
+    
 }
 
 bool Unit::evaluateAll() {
@@ -89,16 +94,11 @@ bool Unit::refresh() {
     for (auto module : module_map) {
         module -> refresh();
         auto reading = module -> getLatestReading();
+        total_apparent_power += reading.apparent_power;
+        total_reactive_power += reading.reactive_power();
+        total_active_power += reading.active_power();
 
-        if (module -> getRelayState()) {
-            
-            total_apparent_power += reading.apparent_power;
-            total_reactive_power += reading.reactive_power();
-            total_active_power += reading.active_power();
-
-            mean_pf += reading.power_factor / active_modules;
-        }
-
+        mean_pf += reading.power_factor / active_modules;
         mean_voltage += reading.voltage / number_of_modules;
         mean_frequency += reading.frequency / number_of_modules;
     }
@@ -109,18 +109,26 @@ bool Unit::refresh() {
 
 void Unit::saveParameters(Persistence<fs::LittleFSFS>& nvs) {
     auto unit_obj = nvs.document.createNestedObject();
-    unit_obj["uid"] = unit_id_.c_str();
-    auto tag_arr = unit_obj["tags"].createNestedArray();
+    unit_obj[JSON_UNIT_UID] = unit_id_.c_str();
 
+    save_required = false;
+    RuleEngineBase::save_rule_engine(unit_obj);
+}
 
-    auto rule_arr = unit_obj["rules"].createNestedArray();
-
-    save = false;
+void Unit::loadParameters(Persistence<fs::LittleFSFS>& nvs) {
+    auto array = nvs.document.as<JsonArray>();
+    for (auto item : array) {
+        if (item.containsKey(JSON_UNIT_UID)) {
+            auto val = item.as<JsonObject>();
+            RuleEngineBase::load_rule_engine(val);
+            break;
+        }
+    }
 }
 
 void Unit::loadUpdate(JsonObject& update_obj) {
-    save = true;
-    update = false;
+    save_required = true;
+    update_required = false;
 
     if (update_obj[JSON_RULE_ACTION].as<ps::string>() == JSON_REPLACE) {
         RuleEngineBase::clear_rules();

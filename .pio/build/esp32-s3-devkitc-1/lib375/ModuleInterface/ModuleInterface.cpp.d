@@ -191,4 +191,4 @@
  .pio/libdeps/esp32-s3-devkitc-1/PSRAM\ Containers/include/ps_stack.h \
  .pio/libdeps/esp32-s3-devkitc-1/PSRAM\ Containers/include/ps_string.h \
  .pio/libdeps/esp32-s3-devkitc-1/PSRAM\ Containers/include/ps_unordered_map.h \
- lib/ModuleInterface/./EasyTransfer/src/EasyTransfer.h
+ lib/ModuleInterface/EasyTransfer.h

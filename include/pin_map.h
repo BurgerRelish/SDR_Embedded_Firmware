@@ -8,13 +8,13 @@
 
 #define U1_RXD 18
 #define U1_TXD 17
-#define U1_DIR 10
-#define U1_CTRL 12
+#define U1_DIR 11
+#define U1_CTRL 9
 
-#define U2_RXD 2
-#define U2_TXD 1
-#define U2_DIR 11
-#define U2_CTRL 13
+#define U2_RXD 37
+#define U2_TXD 36
+#define U2_DIR 35
+#define U2_CTRL 10
 
 #define STATUS_LED_PIN 48
 

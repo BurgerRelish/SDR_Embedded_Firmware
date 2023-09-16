@@ -1,5 +1,6 @@
 .pio/build/esp32-s3-devkitc-1/lib416/Serialization/json_allocator.cpp.o: \
- lib/Serialization/json_allocator.cpp lib/Serialization/json_allocator.h \
+ lib/Serialization/src/json_allocator.cpp \
+ lib/Serialization/src/json_allocator.h \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/heap/include/esp_heap_caps.h \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/heap/include/multi_heap.h \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_common/include/esp_err.h \

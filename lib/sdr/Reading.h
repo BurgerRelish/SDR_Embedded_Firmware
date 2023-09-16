@@ -9,12 +9,12 @@
 
 class Reading {
     public:
-        double voltage;
-        double frequency;
-        double apparent_power;
-        double power_factor;
-        double kwh_usage;
-        uint64_t timestamp;
+        double voltage = 0;
+        double frequency = 0;
+        double apparent_power = 0;
+        double power_factor = 0;
+        double kwh_usage = 0;
+        uint64_t timestamp = 0;
 
         const double active_power() const {
             return apparent_power * power_factor;
@@ -35,6 +35,7 @@ class Reading {
             power_factor = data.power_factor;
             kwh_usage = data.energy_usage;
             Reading::timestamp = timestamp;
+            ESP_LOGI("Reading", "New Reading: %fV %fHz %fVA PF:%f TS:%d", voltage, frequency, apparent_power, power_factor, kwh_usage, timestamp);
         }
 
         Reading(ps::queue<double>& var, uint64_t ts) {

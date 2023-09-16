@@ -33,7 +33,7 @@ struct SummaryFrameData {
 
 class Display {
     public:
-    Display(uint8_t scl_pin, uint8_t sda_pin);
+    Display(uint8_t scl_pin, uint8_t sda_pin, const char* version);
     ~Display();
 
     void begin(SummaryFrameData* summary);
@@ -43,6 +43,9 @@ class Display {
 
     bool showBlank();
     bool showSummary();
+
+    bool pause();
+    void resume();
 
     private:
     friend void displayTask(void* pvParameters);
@@ -57,10 +60,10 @@ class Display {
     OLED_PANEL display;
     bool update_required;
     
+    const char* version;
 
     TaskHandle_t display_task;
     SemaphoreHandle_t display_semaphore;
-
     SummaryFrameData* summary_data;
 
     void drawSplashFrame();
@@ -68,7 +71,7 @@ class Display {
     void drawSignalStrengthIndicator();
     void drawStrf(uint8_t x, uint8_t y, const char* format, ...);
 
-    uint8_t* combineBitMaps(uint8_t w, uint8_t h, uint8_t num_bitmaps, ...);
+    void combineBitMaps(uint8_t* bitmap, size_t size, uint8_t num_bitmaps, ...);
 };
 
 #endif

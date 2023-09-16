@@ -8,7 +8,7 @@
 #include <ArduinoJson.h>
 #include <ps_stl.h>
 
-#include "../hardware_interface/Persistence.h"
+#include "../Serialization/Persistence.h"
 #include "sdr_semantics.h"
 #include "../rule_engine/RuleEngineBase.h"
 #include "../ModuleInterface/ModuleInterface.h"
@@ -91,15 +91,17 @@ class Module : public re::RuleEngineBase, public std::enable_shared_from_this<Mo
     {
         load_re_vars();
     }
-
+    
     void load(JsonObject&);
     void save(JsonObject&);
+    void loadFromArray(JsonArray&);
+    void saveToArray(JsonArray&);
     bool serialize(JsonArray&);
 
     bool refresh();
     bool setRelayState(bool);
-    const bool& getRelayState();
-    const uint64_t& getRelayStateChangeTime();
+    const bool getRelayState();
+    const uint64_t getRelayStateChangeTime();
     const ps::deque<StatusChange>& getRelayStateChanges();
 
     const ps::string& getModuleID();

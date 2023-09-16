@@ -217,4 +217,4 @@
  .pio/libdeps/esp32-s3-devkitc-1/PSRAM\ Containers/include/ps_unordered_map.h \
  .pio/libdeps/esp32-s3-devkitc-1/esp-brotli/include/esp_brotli.h \
  .pio/libdeps/esp32-s3-devkitc-1/PSRAM\ Containers/include/ps_string.h \
- lib/Communication/../Serialization/json_allocator.h
+ lib/Communication/../Serialization/src/json_allocator.h

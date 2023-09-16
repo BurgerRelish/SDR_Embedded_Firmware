@@ -9,7 +9,7 @@
 #include <ps_stl.h>
 
 #include "../rule_engine/RuleEngineBase.h"
-#include "../hardware_interface/Persistence.h"
+#include "../Serialization/Persistence.h"
 #include "sdr_semantics.h"
 #include "json_fields.h"
 #include "Module.h"
@@ -24,22 +24,22 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
 
     uint8_t power_sense_pin;
 
-    double total_active_power;
-    double total_reactive_power;
-    double total_apparent_power;
-    double mean_pf;
-    double mean_voltage;
-    double mean_frequency;
+    double total_active_power = 0;
+    double total_reactive_power = 0;
+    double total_apparent_power = 0;
+    double mean_pf = 0;
+    double mean_voltage = 0;
+    double mean_frequency = 0;
     
-    bool power_status;
+    bool power_status = false;
     
-    uint16_t active_modules;
-    uint16_t number_of_modules;
+    uint16_t active_modules = 0;
+    uint16_t number_of_modules = 0;
 
     ps::string unit_id_;
 
-    bool update;
-    bool save;
+    bool update_required = false;
+    bool save_required = false;
 
     void load_vars();
     void loadUnitVarsInModule(std::shared_ptr<Module>& module);
@@ -50,7 +50,8 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
     total_reactive_power(0),
     total_apparent_power(0),
     power_status(false),
-    save(false),
+    save_required(false),
+    update_required(false),
     power_sense_pin(power_sense),
     functions(functions),
     RuleEngineBase(UNIT_TAG_LIST, functions)
@@ -60,9 +61,10 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
 
     void begin(Stream* stream_1, uint8_t ctrl_1, uint8_t dir_1, Stream* stream_2, uint8_t ctrl_2, uint8_t dir_2);
 
-    bool& updateRequired() {return update; }
-    bool& saveRequired() { return save; }
+    bool& updateRequired() {return update_required; }
+    bool& saveRequired() { return save_required; }
     void saveParameters(Persistence<fs::LittleFSFS>& nvs);
+    void loadParameters(Persistence<fs::LittleFSFS>& nvs);
     void loadUpdate(JsonObject& update_obj);
 
     bool evaluateAll();
@@ -79,7 +81,7 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
     double& meanPowerFactor() { return mean_pf; }
     bool& powerStatus() { return power_status; }    
     uint16_t activeModules();
-
+    ps::vector<std::shared_ptr<Module>>& getModules() { return module_map; }
     bool refresh();
 
     void load_unit() {

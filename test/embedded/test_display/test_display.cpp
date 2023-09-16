@@ -1,5 +1,7 @@
 #include <Arduino.h>
 #include <unity.h>
+#include <WiFi.h>
+#include <FS.h>
 #include "Display.h"
 
 Display dsp(1, 2);

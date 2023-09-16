@@ -8,7 +8,7 @@
 #include <esp_brotli.h>
 
 #include <ArduinoJson.h>
-#include "json_allocator.h"
+#include "src/json_allocator.h"
 
 #include "MQTTClient.h"
 

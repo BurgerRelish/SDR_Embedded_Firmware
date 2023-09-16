@@ -4,7 +4,7 @@
 #define EASY_INTERFACE_H
 #include <Arduino.h>
 #include <ps_stl.h>
-#include "./EasyTransfer/src/EasyTransfer.h"
+#include "EasyTransfer.h"
 
 struct AnnouncePacket {
     char id[38];
@@ -28,7 +28,7 @@ struct ReadingDataPacket {
   float apparent_power;
   float power_factor;
   float energy_usage;
-};
+} __attribute__ ((packed));
 
 
 #define OPERATION_RELAY_SET 0x0001
