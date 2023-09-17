@@ -182,6 +182,10 @@ class VariableStorage {
                             ESP_LOGV("ARRAY", "ID: %s Val: %u",identifier.c_str(), ret.at(0).c_str());
                             return var_cast<ps::vector<ps::string>>(ret);
                         }
+                        case (VAR_CLASS) : {
+                            if (var -> second.first == VAR_CLASS) return std::any_cast<T> (var -> second.second);
+                            break;
+                        }
                         default: throw;
                 }
             } catch (const std::bad_any_cast& e) {

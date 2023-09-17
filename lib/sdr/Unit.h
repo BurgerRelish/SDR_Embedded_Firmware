@@ -79,7 +79,7 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
     double& meanVoltage() { return mean_voltage; }
     double& meanFrequency() { return mean_frequency; }
     double& meanPowerFactor() { return mean_pf; }
-    bool& powerStatus() { return power_status; }    
+    bool powerStatus() { return (analogRead(power_sense_pin) > 150); }    
     uint16_t activeModules();
     ps::vector<std::shared_ptr<Module>>& getModules() { return module_map; }
     bool refresh();

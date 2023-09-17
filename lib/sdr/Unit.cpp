@@ -1,7 +1,7 @@
 #include "Unit.h"
 
 void Unit::load_vars() {
-    re::RuleEngineBase::set_var(re::VAR_CLASS, UNIT_CLASS, std::enable_shared_from_this<Unit>::shared_from_this());
+    re::RuleEngineBase::set_var(re::VAR_CLASS, UNIT_CLASS, (void*)this);
 
     re::RuleEngineBase::set_var(re::VAR_DOUBLE, TOTAL_ACTIVE_POWER, std::function<double()>([this]() { return this->totalActivePower(); }));
     re::RuleEngineBase::set_var(re::VAR_DOUBLE, TOTAL_REACTIVE_POWER, std::function<double()>([this]() { return this->totalReactivePower(); }));
@@ -98,7 +98,7 @@ bool Unit::refresh() {
         total_reactive_power += reading.reactive_power();
         total_active_power += reading.active_power();
 
-        mean_pf += reading.power_factor / active_modules;
+        if (module -> getRelayState()) mean_pf += reading.power_factor / active_modules;
         mean_voltage += reading.voltage / number_of_modules;
         mean_frequency += reading.frequency / number_of_modules;
     }

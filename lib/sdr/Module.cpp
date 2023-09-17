@@ -234,7 +234,7 @@ std::tuple<double, double, double, double> Module::get_summary(double Reading::*
 
 void Module::load_re_vars() {
     //std::shared_ptr<Module> this_ptr = std::enable_shared_from_this<Module>::shared_from_this();
-    //re::RuleEngineBase::set_var(re::VAR_CLASS, MODULE_CLASS, this);
+    re::RuleEngineBase::set_var(re::VAR_CLASS, MODULE_CLASS, (void*) this);
 
     re::RuleEngineBase::set_var(re::VAR_DOUBLE, ACTIVE_POWER, std::function<double()>([this]() { return this->getLatestReading().active_power(); }));
     re::RuleEngineBase::set_var(re::VAR_DOUBLE, REACTIVE_POWER, std::function<double()>([this]() { return this->getLatestReading().reactive_power(); }));

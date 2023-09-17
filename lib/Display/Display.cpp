@@ -274,41 +274,97 @@ void displayTask(void* pvParameters) {
 
 void Display::drawSummaryFrame() {
     oled.setBitmapMode(1);
-    oled.drawFrame(1, 1, 126, 11);
-    oled.drawLine(1, 14, 1, 18);
-    oled.drawLine(126, 14, 126, 18);
-    oled.drawLine(32, 14, 32, 16);
-    oled.drawLine(64, 14, 64, 16);
-    oled.drawLine(98, 14, 98, 16);
-    
-    uint8_t nmd_bar_width = map(summary_data -> total_apparent_power, 0, summary_data -> nmd, 0, 125);
-    oled.drawBox(3, 3, nmd_bar_width, 7);
-    oled.setFont(u8g2_font_profont22_tr);
-
-    if ((summary_data->total_apparent_power) >= 10000) {
-        drawStrf(2, 44, "%05.0fVA", (summary_data->total_apparent_power));
-    } else if ((summary_data->total_apparent_power) >= 1000) {
-        drawStrf(2, 44, "%04.1fVA", (summary_data->total_apparent_power));
-    } else {
-        drawStrf(2, 44, "%03.2fVA", (summary_data->total_apparent_power));
-    }
-    
-    oled.setFont(u8g2_font_helvB08_tr);
-    drawStrf(100, 44, "%01.3f", (summary_data->mean_power_factor));
-    oled.setFont(u8g2_font_haxrcorp4089_tr);
-    drawStrf(3, 54, "%03.2fV", (summary_data->mean_voltage));
-    oled.drawStr(1, 28, "0                      %NMD                       1");
-    drawStrf(3, 63, "%d/%d", (summary_data->on_modules), (summary_data->total_modules));
-    drawStrf(51, 56, "%.2fHz", (summary_data->mean_frequency));
-    oled.setFont(u8g2_font_4x6_tr);
-
+    // Draw date & time.
     struct tm timeinfo;
     getLocalTime(&timeinfo);
-    
-    drawStrf(51, 63, "%02d:%02d:%02d %d/%d/%d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, timeinfo.tm_mday, timeinfo.tm_mon, ((timeinfo.tm_year) - 100) + 2000);
-    
+    oled.setFont(u8g2_font_4x6_tr);
+    drawStrf(40, 10, "%02d/%02d/%02d", timeinfo.tm_mday, timeinfo.tm_mon + 1, ((timeinfo.tm_year) - 100));
+    oled.setFont(u8g2_font_haxrcorp4089_tr);
+    drawStrf(1, 10, "%02d:%02d:%02d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+
+    // Draw  Information
+    oled.setFont(u8g2_font_haxrcorp4089_tr);
+    drawStrf(9, 62, "%.2fV", summary_data -> mean_voltage);
+    drawStrf(50, 62, "%.2fHz", summary_data -> mean_frequency);
+    drawStrf(93, 62, "PF%.3f", summary_data -> mean_power_factor);
+    oled.setFont(u8g2_font_profont22_tr);
+    if ((summary_data->total_apparent_power) >= 10000) {
+        drawStrf(0, 51, "%.0fVA", (summary_data->total_apparent_power));
+    } else if ((summary_data->total_apparent_power) >= 1000) {
+        drawStrf(0, 51, "%.1fVA", (summary_data->total_apparent_power));
+    } else {
+        drawStrf(0, 51, "%.2fVA", (summary_data->total_apparent_power));
+    }
+
+    oled.setFont(u8g2_font_4x6_tr);
+    oled.drawStr(95, 42, "MODULES");
+    oled.setFont(u8g2_font_haxrcorp4089_tr);
+    drawStrf(93, 51, "%02d/%02d", (summary_data->on_modules), (summary_data->total_modules));
 
     drawSignalStrengthIndicator();
+
+    // Draw Icons
+    if ( summary_data -> power_status ) oled.drawXBMP( -4, 51, 16, 16, image_Voltage_16x16_bits); // On mains
+    else oled.drawXBMP( -5, 50, 16, 16, image_Battery_16x16_bits); // On battery
+
+    oled.drawXBMP( 94, 0, 10, 10, image_loading_10px_bits);
+    oled.drawXBMP( 83, 2, 9, 8, image_Alert_9x8_bits);
+    oled.drawXBMP( 105, 6, 7, 4, image_ButtonDown_7x4_bits);
+    oled.drawXBMP( 105, 0, 7, 4, image_ButtonUp_7x4_bits);
+
+    
+
+    // Draw Demand Bar
+    oled.setFont(u8g2_font_haxrcorp4089_tr);
+    oled.drawStr(45, 21, "DEMAND");
+    oled.drawFrame(0, 22, 127, 11);
+    oled.drawBox(2, 24, (uint8_t) map(summary_data -> total_apparent_power, 0, summary_data -> nmd, 0, 124), 7);
+    oled.drawLine(1, 16, 1, 20);
+    oled.drawLine(127, 16, 127, 20);
+    oled.drawLine(32, 18, 32, 20);
+    oled.drawLine(96, 18, 96, 20);
+    oled.setFont(u8g2_font_4x6_tr);
+    oled.drawStr(3, 21, "0");
+    oled.drawStr(114, 21, "MAX");
+
+
+// /***/
+//     oled.setBitmapMode(1);
+//     oled.drawFrame(1, 1, 126, 11);
+//     oled.drawLine(1, 14, 1, 18);
+//     oled.drawLine(126, 14, 126, 18);
+//     oled.drawLine(32, 14, 32, 16);
+//     oled.drawLine(64, 14, 64, 16);
+//     oled.drawLine(98, 14, 98, 16);
+    
+//     uint8_t nmd_bar_width = map(summary_data -> total_apparent_power, 0, summary_data -> nmd, 0, 125);
+//     oled.drawBox(3, 3, nmd_bar_width, 7);
+//     oled.setFont(u8g2_font_profont22_tr);
+
+//     if ((summary_data->total_apparent_power) >= 10000) {
+//         drawStrf(2, 44, "%05.0fVA", (summary_data->total_apparent_power));
+//     } else if ((summary_data->total_apparent_power) >= 1000) {
+//         drawStrf(2, 44, "%04.1fVA", (summary_data->total_apparent_power));
+//     } else {
+//         drawStrf(2, 44, "%03.2fVA", (summary_data->total_apparent_power));
+//     }
+    
+//     oled.setFont(u8g2_font_helvB08_tr);
+//     drawStrf(100, 44, "%01.3f", (summary_data->mean_power_factor));
+//     oled.setFont(u8g2_font_haxrcorp4089_tr);
+//     drawStrf(3, 54, "%03.2fV", (summary_data->mean_voltage));
+//     oled.drawStr(1, 28, "0                      %NMD                       1");
+//     drawStrf(3, 63, "%d/%d", (summary_data->on_modules), (summary_data->total_modules));
+//     drawStrf(51, 56, "%.2fHz", (summary_data->mean_frequency));
+//     oled.setFont(u8g2_font_4x6_tr);
+
+//     struct tm timeinfo;
+//     getLocalTime(&timeinfo);
+    
+//     drawStrf(51, 63, "%02d:%02d:%02d %d/%d/%d", timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec, timeinfo.tm_mday, timeinfo.tm_mon, ((timeinfo.tm_year) - 100) + 2000);
+    
+
+//     drawSignalStrengthIndicator();
 }
 
 
@@ -317,19 +373,19 @@ void Display::drawSignalStrengthIndicator() {
     if (summary_data->connection_strength == 0) return; // Signal is Non-Existent.
 
     if (summary_data->connection_strength > -80) { // Signal is Not Good.
-        oled.drawBox(102, 53, 2, 3);
+        oled.drawBox(116, 7, 2, 3);
     }
 
     if (summary_data->connection_strength > -70) { // Signal is Okay.
-        oled.drawBox(106, 51, 2, 5);
+        oled.drawBox(119, 5, 2, 5);
     }
 
     if (summary_data->connection_strength > -67) { // Signal is Good.
-        oled.drawBox(110, 49, 2, 7);
+        oled.drawBox(122, 3, 2, 7);
     }
 
     if (summary_data->connection_strength > -55) { // Signal is Very Good.
-        oled.drawBox(114, 47, 2, 9);
+        oled.drawBox(125, 1, 2, 9);
     }
 }
 

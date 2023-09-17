@@ -122,10 +122,19 @@ void taskMain(void* pvParameters) {
   ESP_LOGI("Unit", "Started.");
 
   display -> finishLoading();
-  
-  vTaskDelay(900 / portTICK_PERIOD_MS);
-
   display -> showSummary();
+
+  if (unit -> getModules().size() > 0) {
+    auto modules = unit -> getModules();
+    ps::string expression_1 = "V > 220 && FR > 47.5"; // Turn on if valid voltage and frequency
+    ps::string command_1 = "setState(1);";
+
+    ps::string expression_2 = "V < 220 || FR < 47.5 || FR > 52.5"; // Turn off if out of range.
+    ps::string command_2 = "setState(0);";
+
+    modules.at(0) -> add_rule(1, expression_1, command_1);
+    modules.at(0) -> add_rule(2, expression_2, command_2); // Evaluate out of range first.
+  }
 
   while(1) {
     xSemaphoreTake(main_task_semaphore, portMAX_DELAY);
@@ -136,17 +145,18 @@ void taskMain(void* pvParameters) {
 
     //unit -> evaluateAll();
     //ESP_LOGI("Unit", "Evaluated.");
+    unit -> evaluateModules();
 
 
     if (display->pause()) {
-      ESP_LOGI("Display", "Main task updating summary.");
+      ESP_LOGI("Display", "Main task updating summary: %fVA, %fV %fHz %fPF %dPS.", unit -> totalApparentPower(), unit -> meanVoltage(), unit -> meanFrequency(),  unit -> meanPowerFactor(), unit -> powerStatus());
       summary_data->mean_voltage = unit -> meanVoltage();
       summary_data->mean_frequency = unit -> meanFrequency();
       summary_data->mean_power_factor = unit -> meanPowerFactor();
       summary_data->on_modules = unit -> activeModules();
       summary_data->total_modules = unit -> moduleCount();
       summary_data->total_apparent_power = unit -> totalApparentPower();
-
+      summary_data->power_status = unit -> powerStatus();
       display->resume();
     }
 

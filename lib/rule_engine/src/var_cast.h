@@ -133,6 +133,13 @@ public:
             throw std::runtime_error("Conversion not supported.");
         }
     }
+
+    operator void*() const {
+        if constexpr (std::is_same_v<T, void*>) {
+            return value;
+        }
+        return nullptr;
+    }   
 };
 
 #endif

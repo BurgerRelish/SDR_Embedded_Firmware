@@ -120,7 +120,7 @@ bool Expression::applyBooleanOperator(Token& lhs, Token& rhs, Token& operator_to
     if (operator_token.lexeme == BOOLEAN_AND) {
         retval = ((bool) lhs_val && (bool) rhs_val);
     } else if (operator_token.lexeme == BOOLEAN_OR) {
-        retval = ((bool) lhs_val && (bool) rhs_val);
+        retval = ((bool) lhs_val || (bool) rhs_val);
     } else if (operator_token.lexeme == BOOLEAN_NOT) {
         retval = (!(bool) lhs_val);
     } else throw std::invalid_argument("Invalid Boolean Operator");

@@ -34,9 +34,8 @@ class RuleEngine : public VariableStorage {
                         ESP_LOGE("Time", "Failed to get time.");
                         return static_cast<uint64_t>(0);
                     }
-
-                    time(&now); 
-                    return static_cast<uint64_t>(now);
+                    
+                    return static_cast<uint64_t>(mktime(&timeinfo));
                 }
             )
         );
