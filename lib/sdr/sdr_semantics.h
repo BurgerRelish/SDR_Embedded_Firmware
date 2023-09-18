@@ -3,6 +3,10 @@
 #ifndef SDR_SEMANTICS_H
 #define SDR_SEMANTICS_H
 
+/* Rule Engine Variables - See rule_engine/src/Semantics.h*/
+#define LAST_EXECUTION_TIME "LEX"
+#define CURRENT_TIME "TS"
+
 /* Unit Variables */
 #define UNIT_CLASS "UNIT"
 #define TOTAL_ACTIVE_POWER "TAP"
@@ -15,9 +19,6 @@
 #define UNIT_ID "UID"
 #define UNIT_TAG_LIST "UTL"
 #define MODULE_COUNT "MC"
-
-
-
 
 /* Module Variables */
 #define MODULE_CLASS "MODULE"
@@ -35,8 +36,12 @@
 #define MODULE_TAG_LIST "MTL"
 #define SWITCH_STATUS "MS"
 
+/* Common Commands */
+#define SET_VARIABLE "setVar" // (type, value) , type can be "dbl", "int" or "str"
+
 /* Module Commands */
 #define SET_MODULE_STATE "setState" // (state)
+#define READ_MODULE_DATA "readModule" // () 
 
 /* Unit Commands */
 #define PUBLISH_READINGS "pubRead" // ()

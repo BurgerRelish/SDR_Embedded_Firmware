@@ -208,7 +208,7 @@ class VariableStorage {
             ESP_LOGE("Cast", "Failed to reinterpret.");
         }
         
-        return T();
+        return var_cast<int>(0); // Otherwise just return 0;
     }
 
     /**

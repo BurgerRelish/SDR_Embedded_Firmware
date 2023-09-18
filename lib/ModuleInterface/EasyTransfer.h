@@ -46,6 +46,7 @@ GNU General Public License for more details.
 
 class EasyTransfer {
 public:
+EasyTransfer() : rx_buffer(nullptr) {}
 void begin(uint8_t * ptr, uint8_t length, Stream *theStream, uint8_t id, uint8_t dir_pin);
 //void begin(uint8_t *, uint8_t, NewSoftSerial *theSerial);
 bool sendData(uint8_t target_id);

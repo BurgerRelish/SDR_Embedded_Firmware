@@ -24,7 +24,11 @@ class Rule : private Expression, private Executor {
      */
     bool reason() {
         if (Expression::evaluate()) {
-            return Executor::execute();
+            if(!Executor::execute()) {
+                ESP_LOGE("RuleEngine", "Rule Failed to return true.");
+                return false;
+            }
+            return true;
         } else return false;
     }
     

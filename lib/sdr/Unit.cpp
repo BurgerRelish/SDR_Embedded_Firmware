@@ -92,7 +92,7 @@ bool Unit::refresh() {
     active_modules = activeModules();
 
     for (auto module : module_map) {
-        module -> refresh();
+        //module -> refresh();
         auto reading = module -> getLatestReading();
         total_apparent_power += reading.apparent_power;
         total_reactive_power += reading.reactive_power();

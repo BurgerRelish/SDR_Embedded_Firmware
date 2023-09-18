@@ -201,5 +201,5 @@
  lib/Display/../rule_engine/src/CommandSeparator.h \
  lib/Display/../rule_engine/src/Expression.h \
  lib/Display/../rule_engine/src/ArraySeparator.h \
- lib/Display/../rule_engine/src/ShuntingYard.h \
+ lib/Display/../rule_engine/src/ShuntingYard.h lib/sdr/sdr_semantics.h \
  src/functions/src/module_functions.h src/functions/src/unit_functions.h

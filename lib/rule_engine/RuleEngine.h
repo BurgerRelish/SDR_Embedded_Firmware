@@ -140,11 +140,12 @@ class RuleEngine : public VariableStorage {
     void reason() {
         auto rules = rule_queue;
         while (!rules.empty()) {
-            if(rules.top() -> reason()) break;
+            if(rules.top() -> reason()) {
+                last_time = VariableStorage::get_var<uint64_t>(CURRENT_TIME);
+                return;
+            }
             rules.pop();
         }
-
-        last_time = VariableStorage::get_var<uint64_t>(CURRENT_TIME);
     }
 };
 

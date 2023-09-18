@@ -126,14 +126,18 @@ void taskMain(void* pvParameters) {
 
   if (unit -> getModules().size() > 0) {
     auto modules = unit -> getModules();
-    ps::string expression_1 = "V > 220 && FR > 47.5"; // Turn on if valid voltage and frequency
-    ps::string command_1 = "setState(1);";
+    ps::string expression_0 = "(TS - LEX) >= 5 && upd == 0"; // Update the module every 5 seconds.
+    ps::string command_0 = "readModule();setVar(\"bool\", \"upd\", 1);";
 
-    ps::string expression_2 = "V < 220 || FR < 47.5 || FR > 52.5"; // Turn off if out of range.
-    ps::string command_2 = "setState(0);";
+    ps::string expression_1 = "(V > 220 && FR > 47.5) && (upd == 1)"; // Turn on if valid voltage and frequency
+    ps::string command_1 = "setState(1);setVar(\"bool\", \"upd\", 0);";
 
+    ps::string expression_2 = "(V < 220 || FR < 47.5 || FR > 52.5) && (upd == 1)"; // Turn off if out of range.
+    ps::string command_2 = "setState(0);setVar(\"bool\", \"upd\", 0);";
+
+    modules.at(0) -> add_rule(3, expression_0, command_0); // Read module first.
     modules.at(0) -> add_rule(1, expression_1, command_1);
-    modules.at(0) -> add_rule(2, expression_2, command_2); // Evaluate out of range first.
+    modules.at(0) -> add_rule(2, expression_2, command_2);
   }
 
   while(1) {
@@ -141,12 +145,16 @@ void taskMain(void* pvParameters) {
     uint64_t start_tm = millis();
 
     unit -> refresh();
-    ESP_LOGI("Unit", "Refreshed.");
+    // ESP_LOGI("Unit", "Refreshed.");
 
     //unit -> evaluateAll();
     //ESP_LOGI("Unit", "Evaluated.");
-    unit -> evaluateModules();
-
+    try {
+      unit -> evaluateModules();
+    } catch (...) {
+      ESP_LOGE("Unit", "Something went wrong whilst evaluating.");
+    }
+    
 
     if (display->pause()) {
       ESP_LOGI("Display", "Main task updating summary: %fVA, %fV %fHz %fPF %dPS.", unit -> totalApparentPower(), unit -> meanVoltage(), unit -> meanFrequency(),  unit -> meanPowerFactor(), unit -> powerStatus());
@@ -168,7 +176,7 @@ void taskMain(void* pvParameters) {
 
     xSemaphoreGive(main_task_semaphore);
 
-    vTaskDelay((5000 - (millis() - start_tm)) / portTICK_PERIOD_MS);
+    vTaskDelay((1000 - (millis() - start_tm)) / portTICK_PERIOD_MS);
   }
 
   vTaskDelete(NULL);
@@ -181,7 +189,10 @@ void taskComms(void* pvParameters) {
   WiFi.setAutoReconnect(true);
   WiFi.begin("Routy", "0609660733");
 
-  while (WiFi.status() != WL_CONNECTED) {}
+  while (WiFi.status() != WL_CONNECTED) {
+    log_memory_usage();
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+  }
 
   
   configTime(GMT_OFFSET, 0, NTP_SERVER);
@@ -198,12 +209,12 @@ void taskComms(void* pvParameters) {
     5,
     &main_task
   );
-
+  log_memory_usage();
   ESP_LOGI("RTOS", "Main Task created.");
 
   while(1) {
     xSemaphoreTake(comms_task_semaphore, portMAX_DELAY);
-
+    log_memory_usage();
     if (display->pause()) {
       ESP_LOGI("Display", "Comms task updating summary.");
       summary_data->connection_strength = WiFi.RSSI();

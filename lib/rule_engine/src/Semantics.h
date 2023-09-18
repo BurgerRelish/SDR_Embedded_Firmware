@@ -4,7 +4,7 @@
 #define SEMANTICS_H
 
 /* Rule Engine Variables */
-#define LAST_EXECUTION_TIME "LEX"
+#define LAST_EXECUTION_TIME "LEX" // Last time a rule was executed.
 #define CURRENT_TIME "TS"
 
 /* Operators */
