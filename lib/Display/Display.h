@@ -19,6 +19,21 @@ using OLED_PANEL = U8G2_SSD1306_128X64_NONAME_F_HW_I2C; // SSD1036, 128x64, Full
 
 void displayTask(void* pvParameters);
 
+/**
+ * @brief Data to display on the summary screen.
+ * 
+ *  Structure:
+    @param double total_apparent_power
+    @param double mean_power_factor
+    @param double mean_voltage
+    @param double mean_frequency
+    @param double nmd
+    @param bool power_status
+    @param int8_t connection_strength
+    @param uint16_t total_modules
+    @param uint16_t on_modules
+ *
+ */
 struct SummaryFrameData {
     double total_apparent_power;
     double mean_power_factor;

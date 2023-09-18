@@ -10,7 +10,7 @@
 
 #include <ps_stl.h>
 
-#include "src/json_allocator.h"
+#include "json_allocator.h"
 
 /**
  * @brief This class opens a file on the filesystem and creates a DynamicJsonDocument on the PSRAM during construction. The document can then be modified during the life of the

@@ -7,19 +7,17 @@
 #include <AsyncElegantOTA.h>
 #include <time.h>
 
-//#include "App.h"
 
-#include "config.h"
-#include "pin_map.h"
-#include "Unit.h"
+#include "Config.h"
+#include "PinMap.h"
 #include "Display.h"
 #include "MQTTClient.h"
-#include "../lib/Serialization/MessageSerializer.h"
-#include "../lib/Serialization/MessageDeserializer.h"
+#include "MessageSerializer.h"
+#include "MessageDeserializer.h"
 
-#include "functions/functions.h"
+#include "App/Unit.h"
+#include "App/Functions.h"
 
-//std::shared_ptr<sdr::App> app;
 void taskMain(void* pvParameters);
 void taskComms(void* pvParameters);
 
@@ -72,7 +70,10 @@ void setup() {
 
   Serial1.begin(RS485_BAUD_RATE, SERIAL_8N1, U1_RXD, U1_TXD);
   Serial2.begin(RS485_BAUD_RATE, SERIAL_8N1, U2_RXD, U2_TXD);
-
+  sizeof(Reading);
+  sizeof(Module);
+  sizeof(Unit);
+  
   ESP_LOGI("PINS", "Modes set."); 
 
   main_task_semaphore = xSemaphoreCreateBinary();
