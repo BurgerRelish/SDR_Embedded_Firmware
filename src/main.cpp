@@ -219,7 +219,7 @@ void taskComms(void* pvParameters) {
     if (display->pause()) {
       ESP_LOGI("Display", "Comms task updating summary.");
       summary_data->connection_strength = WiFi.RSSI();
-      summary_data->nmd = 13284;
+      summary_data->nmd = 50;
       display->resume();
     }
 

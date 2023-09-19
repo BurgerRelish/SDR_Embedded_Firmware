@@ -80,7 +80,7 @@ void Display::drawSummaryFrame() {
     oled.setFont(u8g2_font_haxrcorp4089_tr);
     drawStrf(8, 62, "%.2fV", summary_data -> mean_voltage);
     drawStrf(48, 62, "%.2fHz", summary_data -> mean_frequency);
-    drawStrf(90, 62, "PF%.3f", summary_data -> mean_power_factor);
+    drawStrf(90, 62, "PF%.3f", (1 + summary_data -> mean_power_factor));
     
     oled.setFont(u8g2_font_profont22_tr);
     if ((summary_data->total_apparent_power) >= 10000) {
