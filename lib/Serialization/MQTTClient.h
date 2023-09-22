@@ -6,88 +6,78 @@
 #include <PubSubClient.h>
 #include <Client.h>
 #include <WiFi.h>
-
 #include <functional>
 #include <memory>
 #include <string>
-#include "MessageDeserializer.h"
 #include <ps_stl.h>
 
+#include "ps_base64.h"
+#include "MessageSerializer.h"
+#include "MessageDeserializer.h"
 
-enum ConnectivityMode {
-    CONN_WIFI,
-    CONN_GSM
-};
+class MessageSerializer;
+class MessageDeserializer;
 
-class MQTTClient {
+class MQTTClient : public std::enable_shared_from_this<MQTTClient> {
     private:
+        friend void communicationTask(void* parent);
+        friend class MessageSerializer;
+        friend class PubSubClient;
+
+        TaskHandle_t task_handle;
+        QueueHandle_t incoming_messages_queue;
+        QueueHandle_t outgoing_messages_queue;
         
         Client& conn_client;
-        PubSubClient mqtt_client;
+        
+        ps::string client_id;
+        ps::string auth_token;
+        ps::string broker_url;
+        uint16_t broker_port;
 
-        std::function<void(std::shared_ptr<MessageDeserializer>)> rx_callback;
-
-
-        ps::string _server;
-        uint32_t _port;
-        ps::string _username;
-        ps::string _password;
-        ps::vector<ps::string> _egress;
-        ps::vector<ps::string> _ingress;
-
-        bool ready();
-
-        friend PubSubClient;
-        void mqtt_callback(char* topic, uint8_t* payload, uint32_t length);
+        void send_message(size_t topic, ps::string message);
 
     public:
-        /* Create an MQTTClient with the provided details. Will store client credentials to the NVS, and overwrite any existing values.*/
-        MQTTClient(Client& connectivity_client, 
-                    std::function<void(std::shared_ptr<MessageDeserializer>)> callback,
-                    ps::string server,
-                    uint32_t port, 
-                    ps::string username,
-                    ps::string password,
-                    ps::vector<ps::string> ingress_topics,
-                    ps::vector<ps::string> egress_topics
-                ) : conn_client(connectivity_client)
-            {
-                setServer(server, port);
-                setCredentials(username, password);
-                setTopics(ingress_topics, egress_topics);
-                if(ready()) begin();
-            }
+        MQTTClient(Client& connection);
 
-        ~MQTTClient() {
-        }
+        ~MQTTClient();
 
-        void setServer(ps::string& server, uint32_t& port) {
-            _server = server;
-            _port = port;
-        }
+        bool begin(const char* clientid, const char* token, const char* url, uint16_t port);
 
-        void setCredentials(ps::string& username, ps::string& password) {
-            _username = username;
-            _password = password;
-        }
-
-        void setTopics(ps::vector<ps::string>& ingress_topics, ps::vector<ps::string>& egress_topics) {
-            _egress = egress_topics;
-            _ingress = ingress_topics;
-        }
-
-        ps::vector<ps::string>& getIngressTopics() {return _ingress;}
-        ps::vector<ps::string>& getEgressTopics() {return _egress;}
-
-        bool begin();
-
-        PubSubClient& getClient() {
-            return mqtt_client;
-        }
-
-        bool send(ps::string& message, uint16_t egress_topic_number);
-        bool send(ps::string& message, ps::string& topic);
+        std::shared_ptr<MessageSerializer> new_outgoing_message(size_t topic_number, size_t size);
         
+        size_t incoming_message_count();
+        std::shared_ptr<MessageDeserializer> get_incoming_message();
 };
+
+/**
+ * @brief Creates a JSON document of requested size on construction. The JSON document can be modified during the lifetime of the class,
+ * finally, when the class runs out of scope, any data in the JSON document is automatically serialized and sent using the MQTT Client to
+ * the requested topic.
+ */
+class MessageSerializer {
+    private:
+        std::shared_ptr<MQTTClient> mqtt_client;
+        size_t topic;
+    public:
+        DynamicPSRAMJsonDocument document;
+        MessageSerializer(std::shared_ptr<MQTTClient> client, size_t topic_number,  size_t json_document_size);
+        ~MessageSerializer();
+};
+
+/**
+ * @brief Automatically deserializes the JSON formatted string. The JSON document can be used to get any data contained in the message. 
+ * 
+ */
+class MessageDeserializer {
+    private:
+        ps::string message; // JSON document data must remain in memory whilst the document is in use.
+    public:
+        ps::string topic;
+        DynamicPSRAMJsonDocument document;
+        MessageDeserializer(const char* topic,const char* message);
+
+};
+
 
 #endif

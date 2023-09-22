@@ -1,9 +1,6 @@
 .pio/build/esp32-s3-devkitc-1/lib416/Serialization/MessageDeserializer.cpp.o: \
  lib/Serialization/MessageDeserializer.cpp \
  lib/Serialization/MessageDeserializer.h \
- .pio/libdeps/esp32-s3-devkitc-1/ArduinoJson/src/ArduinoJson.h \
- .pio/libdeps/esp32-s3-devkitc-1/ArduinoJson/src/ArduinoJson.hpp \
- .pio/libdeps/esp32-s3-devkitc-1/ArduinoJson/src/ArduinoJson/Configuration.hpp \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/cores/esp32/Arduino.h \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/cores/esp32/esp_arduino_version.h \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/freertos/include/freertos/FreeRTOS.h \
@@ -180,6 +177,9 @@
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/spi_flash/include/esp_spi_flash.h \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/spi_flash/include/esp_spi_flash_counters.h \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_hw_support/include/soc/esp32/spiram.h \
+ .pio/libdeps/esp32-s3-devkitc-1/ArduinoJson/src/ArduinoJson.h \
+ .pio/libdeps/esp32-s3-devkitc-1/ArduinoJson/src/ArduinoJson.hpp \
+ .pio/libdeps/esp32-s3-devkitc-1/ArduinoJson/src/ArduinoJson/Configuration.hpp \
  .pio/libdeps/esp32-s3-devkitc-1/PSRAM\ Containers/include/ps_stl.h \
  .pio/libdeps/esp32-s3-devkitc-1/PSRAM\ Containers/include/ps_deque.h \
  .pio/libdeps/esp32-s3-devkitc-1/PSRAM\ Containers/include/ps_allocator.h \

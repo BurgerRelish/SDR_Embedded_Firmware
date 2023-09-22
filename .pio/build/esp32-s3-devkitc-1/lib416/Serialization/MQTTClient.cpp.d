@@ -197,10 +197,6 @@
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFiUdp.h \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/cores/esp32/Udp.h \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/cores/esp32/cbuf.h \
- lib/Serialization/MessageDeserializer.h \
- .pio/libdeps/esp32-s3-devkitc-1/ArduinoJson/src/ArduinoJson.h \
- .pio/libdeps/esp32-s3-devkitc-1/ArduinoJson/src/ArduinoJson.hpp \
- .pio/libdeps/esp32-s3-devkitc-1/ArduinoJson/src/ArduinoJson/Configuration.hpp \
  .pio/libdeps/esp32-s3-devkitc-1/PSRAM\ Containers/include/ps_stl.h \
  .pio/libdeps/esp32-s3-devkitc-1/PSRAM\ Containers/include/ps_deque.h \
  .pio/libdeps/esp32-s3-devkitc-1/PSRAM\ Containers/include/ps_allocator.h \
@@ -215,6 +211,11 @@
  .pio/libdeps/esp32-s3-devkitc-1/PSRAM\ Containers/include/ps_stack.h \
  .pio/libdeps/esp32-s3-devkitc-1/PSRAM\ Containers/include/ps_string.h \
  .pio/libdeps/esp32-s3-devkitc-1/PSRAM\ Containers/include/ps_unordered_map.h \
+ lib/Serialization/ps_base64.h lib/Serialization/MessageSerializer.h \
  .pio/libdeps/esp32-s3-devkitc-1/esp-brotli/include/esp_brotli.h \
  .pio/libdeps/esp32-s3-devkitc-1/PSRAM\ Containers/include/ps_string.h \
- lib/Serialization/json_allocator.h
+ .pio/libdeps/esp32-s3-devkitc-1/ArduinoJson/src/ArduinoJson.h \
+ .pio/libdeps/esp32-s3-devkitc-1/ArduinoJson/src/ArduinoJson.hpp \
+ .pio/libdeps/esp32-s3-devkitc-1/ArduinoJson/src/ArduinoJson/Configuration.hpp \
+ lib/Serialization/json_allocator.h \
+ lib/Serialization/MessageDeserializer.h

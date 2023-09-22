@@ -12,8 +12,6 @@
 #include "PinMap.h"
 #include "Display.h"
 #include "MQTTClient.h"
-#include "MessageSerializer.h"
-#include "MessageDeserializer.h"
 
 #include "App/Unit.h"
 #include "App/Functions.h"
@@ -21,18 +19,17 @@
 void taskMain(void* pvParameters);
 void taskComms(void* pvParameters);
 
+WiFiClient wifi_client;
+
 std::shared_ptr<re::FunctionStorage> functions;
 std::shared_ptr<Unit> unit;
 std::shared_ptr<Display> display;
+std::shared_ptr<MQTTClient> mqtt_client;
 
 TaskHandle_t main_task;
-TaskHandle_t comms_task;
 SemaphoreHandle_t main_task_semaphore;
-SemaphoreHandle_t comms_task_semaphore;
 
 SummaryFrameData* summary_data;
-
-std::shared_ptr<MQTTClient> mqtt_client;
 
 // AsyncWebServer server(80);
 
@@ -78,8 +75,6 @@ void setup() {
 
   main_task_semaphore = xSemaphoreCreateBinary();
   xSemaphoreGive(main_task_semaphore);
-  comms_task_semaphore = xSemaphoreCreateBinary();
-  xSemaphoreGive(comms_task_semaphore);
 
   ESP_LOGI("RTOS", "Semaphores created.");
 
@@ -90,19 +85,14 @@ void setup() {
   // server.begin();
 
   xTaskCreate(
-    taskComms,
-    "Communications Task",
+    taskMain,
+    "Main Task",
     32 * 1024,
     NULL,
-    4,
-    &comms_task
+    5,
+    &main_task
   );
-
-  ESP_LOGI("RTOS", "Comms Task created.");
-
-
-
-
+  log_memory_usage();
 }
 
 void loop() {
@@ -110,6 +100,19 @@ void loop() {
 
 void taskMain(void* pvParameters) {
   ESP_LOGI("RTOS", "Main Task started.");
+  WiFi.setAutoReconnect(true);
+  WiFi.begin("Routy", "0609660733");
+
+  while (WiFi.status() != WL_CONNECTED) {
+    log_memory_usage();
+    vTaskDelay(500 / portTICK_PERIOD_MS);
+  }
+
+  configTime(GMT_OFFSET, 0, NTP_SERVER);
+
+  ESP_LOGI("UNIT", "Starting MQTT Client.");
+  mqtt_client = ps::make_shared<MQTTClient>(wifi_client);
+  mqtt_client -> begin(CLIENT_ID, MQTT_ACCESS_TOKEN, BROKER_URL, BROKER_PORT);
 
   ESP_LOGI("Unit", "Functions Loaded.");
   functions = load_functions();
@@ -156,6 +159,38 @@ void taskMain(void* pvParameters) {
       ESP_LOGE("Unit", "Something went wrong whilst evaluating.");
     }
     
+    try {
+      auto new_message = mqtt_client -> new_outgoing_message(0, 8192); // Get new message to 
+      new_message -> document["type"] = "reading";
+
+      DynamicPSRAMJsonDocument doc(8192);
+
+      // Load period time data.
+      auto period = unit -> getSerializationPeriod();
+      doc["period_start"] = std::get<0>(period);
+      doc["period_end"] = std::get<1>(period);
+
+      // Serialize modules into temp doc.
+      auto data_array = doc.createNestedArray("data");
+      
+      auto modules = unit -> getModules();
+      for (auto module: modules) {
+        module -> serialize(data_array);
+      }
+
+      // Serialize module data into string
+      ps::ostringstream data_field;
+      auto result = serializeJson(doc, data_field);
+
+      if (result == 0) ESP_LOGE("Serialize", "No data serialized.");
+
+      // Set string into message format
+      new_message -> document["data"] = data_field.str();
+
+      // Message sent as new_message class goes out of scope.
+    } catch (...) {
+      ESP_LOGE("Unit", "Failed to serialize readings.");
+    }
 
     if (display->pause()) {
       ESP_LOGI("Display", "Main task updating summary: %fVA, %fV %fHz %fPF %dPS.", unit -> totalApparentPower(), unit -> meanVoltage(), unit -> meanFrequency(),  unit -> meanPowerFactor(), unit -> powerStatus());
@@ -166,6 +201,8 @@ void taskMain(void* pvParameters) {
       summary_data->total_modules = unit -> moduleCount();
       summary_data->total_apparent_power = unit -> totalApparentPower();
       summary_data->power_status = unit -> powerStatus();
+      summary_data->connection_strength = WiFi.RSSI();
+      summary_data->nmd = 50;
       display->resume();
     }
 
@@ -178,56 +215,6 @@ void taskMain(void* pvParameters) {
     xSemaphoreGive(main_task_semaphore);
 
     vTaskDelay((1000 - (millis() - start_tm)) / portTICK_PERIOD_MS);
-  }
-
-  vTaskDelete(NULL);
-}
-
-void taskComms(void* pvParameters) {
-  xSemaphoreTake(comms_task_semaphore, portMAX_DELAY);
-  xSemaphoreTake(main_task_semaphore, portMAX_DELAY);
-
-  WiFi.setAutoReconnect(true);
-  WiFi.begin("Routy", "0609660733");
-
-  while (WiFi.status() != WL_CONNECTED) {
-    log_memory_usage();
-    vTaskDelay(500 / portTICK_PERIOD_MS);
-  }
-
-  
-  configTime(GMT_OFFSET, 0, NTP_SERVER);
-
-  vTaskDelay(10 / portTICK_PERIOD_MS);
-  xSemaphoreGive(main_task_semaphore);
-  xSemaphoreGive(comms_task_semaphore);
-
-  xTaskCreate(
-    taskMain,
-    "Main Task",
-    32 * 1024,
-    NULL,
-    5,
-    &main_task
-  );
-  log_memory_usage();
-  ESP_LOGI("RTOS", "Main Task created.");
-
-  while(1) {
-    xSemaphoreTake(comms_task_semaphore, portMAX_DELAY);
-    log_memory_usage();
-    if (display->pause()) {
-      ESP_LOGI("Display", "Comms task updating summary.");
-      summary_data->connection_strength = WiFi.RSSI();
-      summary_data->nmd = 50;
-      display->resume();
-    }
-
-    //MessageDeserializer deserializer("test123");
-    //MessageSerializer serializer(mqtt_client, 1, 8192);
-
-    xSemaphoreGive(comms_task_semaphore);
-    vTaskDelay(2500 / portTICK_PERIOD_MS);
   }
 
   vTaskDelete(NULL);

@@ -196,26 +196,4 @@
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/spi_flash/include/esp_spi_flash.h \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/spi_flash/include/esp_spi_flash_counters.h \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_hw_support/include/soc/esp32/spiram.h \
- lib/Serialization/json_allocator.h lib/Serialization/MQTTClient.h \
- .pio/libdeps/esp32-s3-devkitc-1/PubSubClient/src/PubSubClient.h \
- C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/cores/esp32/Client.h \
- C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFi.h \
- C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/cores/esp32/Print.h \
- C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/cores/esp32/IPv6Address.h \
- C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFiType.h \
- C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFiSTA.h \
- C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFiGeneric.h \
- C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_wifi/include/esp_smartconfig.h \
- C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/wifi_provisioning/include/wifi_provisioning/manager.h \
- C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/protocomm/include/common/protocomm.h \
- C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/protocomm/include/security/protocomm_security.h \
- C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/wifi_provisioning/include/wifi_provisioning/wifi_config.h \
- C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFiAP.h \
- C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFiScan.h \
- C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFiClient.h \
- C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFiServer.h \
- C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/cores/esp32/Server.h \
- C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/libraries/WiFi/src/WiFiUdp.h \
- C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/cores/esp32/Udp.h \
- C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/cores/esp32/cbuf.h \
- lib/Serialization/MessageDeserializer.h
+ lib/Serialization/json_allocator.h

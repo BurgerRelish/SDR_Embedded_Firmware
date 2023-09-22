@@ -1,4 +1,5 @@
 #include "Unit.h"
+#include <time.h>
 
 void Unit::load_vars() {
     re::RuleEngineBase::set_var(re::VAR_CLASS, UNIT_CLASS, (void*)this);
@@ -148,5 +149,17 @@ uint16_t Unit::activeModules() {
     for (auto module: module_map) {
         if (module -> getRelayState()) ret++;
     }
+    return ret;
+}
+
+/**
+ * @brief Get a tuple containing the period_start and period_end data of readings. Updates period_end to period_start once called.
+ * 
+ * @return std::tuple<uint64_t, uint64_t> 
+ */
+std::tuple<uint64_t, uint64_t> Unit::getSerializationPeriod() {
+    auto now = getTime();
+    auto ret = std::make_tuple(last_serialization, now);
+    last_serialization = now;
     return ret;
 }

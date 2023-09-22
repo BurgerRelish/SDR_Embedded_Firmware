@@ -241,12 +241,13 @@
  .pio/libdeps/esp32-s3-devkitc-1/U8g2/src/clib/u8x8.h \
  lib/Serialization/MQTTClient.h \
  .pio/libdeps/esp32-s3-devkitc-1/PubSubClient/src/PubSubClient.h \
- lib/Serialization/MessageDeserializer.h \
+ lib/Serialization/ps_base64.h lib/Serialization/MessageSerializer.h \
  .pio/libdeps/esp32-s3-devkitc-1/ArduinoJson/src/ArduinoJson.h \
  .pio/libdeps/esp32-s3-devkitc-1/ArduinoJson/src/ArduinoJson.hpp \
  .pio/libdeps/esp32-s3-devkitc-1/ArduinoJson/src/ArduinoJson/Configuration.hpp \
- lib/Serialization/json_allocator.h lib/Serialization/MessageSerializer.h \
- src/App/Unit.h lib/RuleEngine/RuleEngineBase.h include/JSONFields.h \
+ lib/Serialization/json_allocator.h \
+ lib/Serialization/MessageDeserializer.h src/App/Unit.h \
+ lib/RuleEngine/RuleEngineBase.h include/JSONFields.h \
  lib/RuleEngine/RuleEngine.h lib/RuleEngine/Language.h \
  lib/RuleEngine/Semantics.h lib/RuleEngine/Rule.h \
  lib/RuleEngine/Function.h lib/RuleEngine/Lexer.h \

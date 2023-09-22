@@ -5,7 +5,7 @@
 
 #include <stdint.h>
 #include <ArduinoJson.h>
-
+#include <time.h>
 #include <ps_stl.h>
 
 #include "RuleEngineBase.h"
@@ -14,6 +14,7 @@
 #include "JSONFields.h"
 #include "Module.h"
 #include "ModuleInterface.h"
+
 
 class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit> {
     private:
@@ -37,6 +38,7 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
     uint16_t number_of_modules = 0;
 
     ps::string unit_id_;
+    uint64_t last_serialization = 0;
 
     bool update_required = false;
     bool save_required = false;
@@ -83,7 +85,17 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
     uint16_t activeModules();
     ps::vector<std::shared_ptr<Module>>& getModules() { return module_map; }
     bool refresh();
+    std::tuple<uint64_t, uint64_t> getSerializationPeriod();
 
+    uint64_t getTime() {
+        struct tm timeinfo;
+        if (!getLocalTime(&timeinfo)) {
+            //Serial.println("Failed to obtain time");
+            return 0;
+        }
+
+        return (uint64_t) mktime(&timeinfo);
+    }   
     void load_unit() {
 
     }
