@@ -11,8 +11,8 @@ void EasyTransfer::begin(uint8_t * ptr, uint8_t length, Stream *theStream, uint8
   pinMode(dir_pin, OUTPUT);
 	_pin = dir_pin;
 	//dynamic creation of rx parsing buffer in RAM
-  if (rx_buffer != nullptr) free(rx_buffer);
-	rx_buffer = (uint8_t*) malloc(size+1);
+  heap_caps_free(rx_buffer);
+	rx_buffer = (uint8_t*) heap_caps_malloc(size+1, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT);
 }
 
 //Sends out struct in binary, with header, length info and checksum

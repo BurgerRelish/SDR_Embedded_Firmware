@@ -1,26 +1,48 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
-#define VERSION "0001/0001"
+/**
+ * ==============================================
+ * |                                            |
+ * |       Control Unit Device Parameters       |
+ * |                                            |
+ * ==============================================
+ */
 
 #define UNIT_UUID "h1u212"
+#define VERSION "0001/0001"
 
-#define RS485_BAUD_RATE 115200
+/**
+ * ==============================================
+ * |                                            |
+ * |             WiFi Configuration             |
+ * |                                            |
+ * ==============================================
+ */
 
-#define deltaHue 1
-#define BRIGHTNESS 25
-
-#define WIFI_HOSTNAME "SmartDemand Unit"
+#define WIFI_SETUP_HOSTNAME "SmartDemand Unit"
 #define WIFI_SETUP_AP_PASSWORD "Password123"
-#define WIFI_TIMEOUT_MS 120000
+
+/**
+ * ==============================================
+ * |                                            |
+ * |          AsyncElegantOTA Security          |
+ * |                                            |
+ * ==============================================
+ */
+
+#define OTA_USERNAME "sdr"
+#define OTA_PASSWORD "updateMe1"
+
+/**
+ * ==============================================
+ * |                                            |
+ * |     Network Time Protocol Configuration    |
+ * |                                            |
+ * ==============================================
+ */
 
 #define NTP_SERVER "pool.ntp.org"
 #define GMT_OFFSET 7200
-
-#define CLIENT_ID "1302c1a0-8244-4b18-be52-616a50527aec"
-#define MQTT_ACCESS_TOKEN "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VybmFtZSI6IjEzMDJjMWEwLTgyNDQtNGIxOC1iZTUyLTYxNmE1MDUyN2FlYyIsImV4cCI6MjAxMDc0NTk3NSwiYWNsIjp7InB1YiI6WyIvaW5ncmVzcyJdLCJzdWIiOlsiL2VncmVzcy8ke2NsaWVudGlkfSJdLCJhbGwiOltdfX0.30M0FyX0zd5V2merEU4aIZVY7GYr81UcH5NH6BfJTsM"
-#define BROKER_URL "192.168.3.23"
-#define BROKER_PORT 1883
-
 
 #endif

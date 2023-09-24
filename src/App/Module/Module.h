@@ -38,7 +38,7 @@ class Module : public re::RuleEngineBase, public std::enable_shared_from_this<Mo
     bool save_required;
 
     ps::deque<Reading> readings;
-    uint16_t new_readings;
+    
 
     ps::deque<StatusChange> status_updates;
 
@@ -67,6 +67,8 @@ class Module : public re::RuleEngineBase, public std::enable_shared_from_this<Mo
     uint64_t getTime();
 
     public:
+    uint16_t new_readings;
+    
     Module(std::shared_ptr<re::FunctionStorage> functions, std::shared_ptr<ModuleInterface> interface, uint16_t address, ps::string id, uint16_t firmware_version, uint16_t hardware_version) : 
     RuleEngineBase(MODULE_TAG_LIST, functions),
     module_id(id),
@@ -92,11 +94,9 @@ class Module : public re::RuleEngineBase, public std::enable_shared_from_this<Mo
         load_re_vars();
     }
     
-    void load(JsonObject&);
-    void save(JsonObject&);
-    void loadFromArray(JsonArray&);
-    void saveToArray(JsonArray&);
-    bool serialize(JsonArray&);
+    void load(JsonArray);
+    void save(JsonArray);
+    bool serialize(JsonArray);
 
     bool refresh();
     bool setRelayState(bool);

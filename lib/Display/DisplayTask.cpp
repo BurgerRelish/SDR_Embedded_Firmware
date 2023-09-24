@@ -40,7 +40,7 @@ void displayTask(void* pvParameters) {
 
         }
 
-        ESP_LOGI("DISPLAY", "State: %d, Stack: %d", display -> state, uxTaskGetStackHighWaterMark(NULL));
+        //ESP_LOGI("DISPLAY", "State: %d, Stack: %d", display -> state, uxTaskGetStackHighWaterMark(NULL));
 
         if (delay_tm > 0) vTaskDelay(delay_tm / portTICK_PERIOD_MS);
         xSemaphoreTake(display -> display_semaphore, portMAX_DELAY);
@@ -197,7 +197,7 @@ void displayTask(void* pvParameters) {
                 break;
         }
         
-        ESP_LOGI("DISPLAY", "Updated display. Took: %u, Delay: %d, Check Type:%d", elapsed_tm, delay_tm, check_type);
+        //ESP_LOGI("DISPLAY", "Updated display. Took: %u, Delay: %d, Check Type:%d", elapsed_tm, delay_tm, check_type);
         xSemaphoreGive(display -> display_semaphore);
 
     }

@@ -41,16 +41,13 @@
 
 /* Module Commands */
 #define SET_MODULE_STATE "setState" // (state)
-#define READ_MODULE_DATA "readModule" // () 
 
 /* Unit Commands */
+#define READ_MODULES "readModules" // ()
 #define PUBLISH_READINGS "pubRead" // ()
-#define REQUEST_UPDATE "reqUpdate" // ()
 #define RESTART_UNIT "restart" // ()
-#define SLEEP_UNIT "sleep" // (uint64_t time_us)
-
-#define NOTIFY "NOTIFY" // ()
-
+#define SLEEP_UNIT "sleep" // (uint64_t time_ms)
+#define DELAY_UNIT "delay" // (uint64_t time_ms)
 
 
 #endif

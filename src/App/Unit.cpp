@@ -61,6 +61,8 @@ void Unit::begin(Stream* stream_1, uint8_t ctrl_1, uint8_t dir_1, Stream* stream
 bool Unit::evaluateAll() {
     try {
         RuleEngineBase::reason();
+        vTaskDelay(1 / portTICK_PERIOD_MS);
+        evaluateModules();
     } catch (...) {
         ESP_LOGE("RULE_ENGINE", "Something went wrong evaluating unit.");
         return false;
@@ -73,6 +75,7 @@ bool Unit::evaluateModules() {
     try {
         for (auto module : module_map) {
             module -> reason();
+            vTaskDelay(1 / portTICK_PERIOD_MS);
         }
     } catch (...) {
         ESP_LOGE("RULE_ENGINE", "Something went wrong evaluating modules.");
@@ -82,6 +85,13 @@ bool Unit::evaluateModules() {
     return true;
 }
 
+/**
+ * @brief Calculate the unit class variables, read power status pin, read from all modules, and reason on their data. Finally, count how many modules are on.
+ * Finally, evaluates the unit rule engine.
+ * 
+ * @return true 
+ * @return false 
+ */
 bool Unit::refresh() {
     total_apparent_power = 0;
     total_active_power = 0;
@@ -90,10 +100,8 @@ bool Unit::refresh() {
     mean_voltage = 0;
     mean_frequency = 0;
 
-    active_modules = activeModules();
-
     for (auto module : module_map) {
-        //module -> refresh();
+        module -> refresh();
         auto reading = module -> getLatestReading();
         total_apparent_power += reading.apparent_power;
         total_reactive_power += reading.reactive_power();
@@ -104,45 +112,25 @@ bool Unit::refresh() {
         mean_frequency += reading.frequency / number_of_modules;
     }
 
+    active_modules = activeModules(); // Check which modules are on after reasoning.
+
     power_status = (analogRead(power_sense_pin) > 1000);
+
     return true;
 }
 
-void Unit::saveParameters(Persistence<fs::LittleFSFS>& nvs) {
-    auto unit_obj = nvs.document.createNestedObject();
-    unit_obj[JSON_UNIT_UID] = unit_id_.c_str();
-
-    save_required = false;
-    RuleEngineBase::save_rule_engine(unit_obj);
+bool Unit::load(JsonObject& obj) {
+    auto rule_obj = obj["rule_engine"].as<JsonObject>();
+    RuleEngineBase::load_rule_engine(rule_obj);
+    return true;
 }
 
-void Unit::loadParameters(Persistence<fs::LittleFSFS>& nvs) {
-    auto array = nvs.document.as<JsonArray>();
-    for (auto item : array) {
-        if (item.containsKey(JSON_UNIT_UID)) {
-            auto val = item.as<JsonObject>();
-            RuleEngineBase::load_rule_engine(val);
-            break;
-        }
-    }
+bool Unit::save(JsonObject& obj) {
+    auto rule_obj = obj.createNestedObject("rule_engine");
+    RuleEngineBase::save_rule_engine(rule_obj);
+    return true;
 }
 
-void Unit::loadUpdate(JsonObject& update_obj) {
-    save_required = true;
-    update_required = false;
-
-    if (update_obj[JSON_RULE_ACTION].as<ps::string>() == JSON_REPLACE) {
-        RuleEngineBase::clear_rules();
-    }
-    
-    if (update_obj[JSON_TAG_ACTION].as<ps::string>() == JSON_REPLACE) {
-        RuleEngineBase::clear_tags();
-    }
-
-    RuleEngineBase::load_rule_engine(update_obj);
-
-    return;
-}
 
 uint16_t Unit::activeModules() {
     uint16_t ret = 0;
@@ -153,13 +141,15 @@ uint16_t Unit::activeModules() {
 }
 
 /**
- * @brief Get a tuple containing the period_start and period_end data of readings. Updates period_end to period_start once called.
+ * @brief Get a std::pair containing the epoch time that this method was last called and the current epoch time.
  * 
- * @return std::tuple<uint64_t, uint64_t> 
+ * @return std::pair<uint64_t, uint64_t> 
  */
-std::tuple<uint64_t, uint64_t> Unit::getSerializationPeriod() {
+std::pair<uint64_t, uint64_t> Unit::getSerializationPeriod() {
     auto now = getTime();
-    auto ret = std::make_tuple(last_serialization, now);
+    auto ret = std::make_pair(last_serialization, now);
+
     last_serialization = now;
+
     return ret;
 }

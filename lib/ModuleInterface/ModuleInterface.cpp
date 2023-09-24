@@ -43,7 +43,10 @@ ps::vector<std::pair<AnnouncePacket, uint8_t>> ModuleInterface::begin(){
     free(announce_packet);
     free(address_packet);
     digitalWrite(ctrl, HIGH); // End Addressing
+
     
+    transfer_in = EasyTransfer();
+    transfer_out = EasyTransfer();
     transfer_in.begin(details(reading_packet), stream, 0, dir); // Switch to receiving readings.
     transfer_out.begin(details(operation_packet), stream, 0, dir); // Switch to sending operations.
     

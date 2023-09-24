@@ -1,6 +1,6 @@
 {
-    "type":"wifi",
-    "enc":"WPA2",
-    "ssid":"Routy",
-    "pass":"0609660733"
+    "conn_type" : 0,
+    "ssid" : "Routy",
+    "password" : "0609660733",
+    "auth_token" : "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJhZGRyZXNzIjoiMTkyLjE2OC4zLjIzIiwicG9ydCI6MTg4MywiZXhwIjoyMDEwOTI5OTkzLCJhY2wiOnsicHViIjpbIi9pbmdyZXNzIl0sInN1YiI6WyIvZWdyZXNzLyR7Y2xpZW50aWR9Il0sImFsbCI6W119fQ.XpEdW4UUjTaD0nWB9r4lvWeggmtEcuNYtfLgx1-NpRQ"
 }

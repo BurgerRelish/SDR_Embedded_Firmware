@@ -46,7 +46,8 @@ GNU General Public License for more details.
 
 class EasyTransfer {
 public:
-EasyTransfer() : rx_buffer(nullptr) {}
+EasyTransfer() : rx_buffer(NULL) {}
+~EasyTransfer() {free(rx_buffer);}
 void begin(uint8_t * ptr, uint8_t length, Stream *theStream, uint8_t id, uint8_t dir_pin);
 //void begin(uint8_t *, uint8_t, NewSoftSerial *theSerial);
 bool sendData(uint8_t target_id);
@@ -54,14 +55,14 @@ boolean receiveData();
 private:
 Stream *_stream;
 //NewSoftSerial *_serial;
-uint8_t _pin;
-uint8_t device_id; // id of device.
+uint8_t _pin = 0;
+uint8_t device_id = 0; // id of device.
 uint8_t * address;  //address of struct
-uint8_t size;       //size of struct
-uint8_t * rx_buffer = nullptr; //address for temporary storage and parsing buffer
-uint8_t rx_array_inx;  //index for RX parsing buffer
-uint8_t rx_len;		//RX packet length according to the packet
-uint8_t calc_CS;	   //calculated Chacksum
+uint8_t size = 0;       //size of struct
+uint8_t * rx_buffer = NULL; //address for temporary storage and parsing buffer
+uint8_t rx_array_inx = 0;  //index for RX parsing buffer
+uint8_t rx_len = 0;		//RX packet length according to the packet
+uint8_t calc_CS = 0;	   //calculated Chacksum
 };
 
 

@@ -125,6 +125,9 @@ T Module::calc_iqr(T Reading::* attribute, ps::deque<Reading>& _readings) {
     size_t q1_index = n / 4;
     size_t q3_index = (3 * n) / 4;
 
+    if (q1_index < 1) q1_index = 1;
+    if (q3_index > n) q3_index = n;
+
     T q1_value = (attributeValues[q1_index - 1] + attributeValues[q1_index]) / 2.0;
     T q3_value = (attributeValues[q3_index - 1] + attributeValues[q3_index]) / 2.0;
 
@@ -147,8 +150,8 @@ T Module::calc_kurt(T mean, T Reading::* attribute, ps::deque<Reading>& _reading
 
     T C1 = ((n + 1) * n) / ((n - 1) * (n - 2) * (n - 3));
     T C2 = (-3 * pow(n - 1, 2)) / ((n - 2) * (n - 3));
-
     T C3 = 0;
+
     for (const auto& reading : _readings) {
         C3 += pow(reading.*attribute - mean, 4);
     }

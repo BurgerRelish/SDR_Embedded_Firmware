@@ -1,8 +1,0 @@
-{
-    "username" : "72a6fdf8-4b3a-49dd-bb12-ae8b93b02807",
-    "password" : "2YUYzeu.F7-X9r#$",
-    "server" : "13.245.36.134",
-    "port" : 1083,
-    "egress" : ["/ingress/stellenbosch"],
-    "ingress" : ["/egress/stellenbosch", "/egress/devices/72a6fdf8-4b3a-49dd-bb12-ae8b93b02807"]
-}

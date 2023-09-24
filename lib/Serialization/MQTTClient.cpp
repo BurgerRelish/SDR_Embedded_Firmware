@@ -2,31 +2,38 @@
 #include <strings.h>
 #include <esp_brotli.h>
 
-struct CallbackQueueItem {
+struct CallbackQueueItem { // The structure of the compressed messages from the PubSubClient callback.
     char* topic;
     char* payload;
     uint32_t length;
 };
 
-struct IncomingMessage {
+struct IncomingMessage { // Structure of messages provided by the task after decompression.
     char* topic;
     char* message;
 };
 
-struct OutgoingMessage {
+struct OutgoingMessage { // Structure of messages added to the task send queue.
     size_t topic_number;
     char* message;
 };
 
-QueueHandle_t callback_queue;
+QueueHandle_t callback_queue; // Queue for message ingestion.
 
 void communicationTask(void* parent);
+
+/**
+ * ==============================================
+ * |                                            |
+ * |                 MQTTClient                 |
+ * |                                            |
+ * ==============================================
+ */
 
 MQTTClient::MQTTClient(Client& connection) : conn_client(connection) {
     incoming_messages_queue = xQueueCreate(5, sizeof(IncomingMessage));
     outgoing_messages_queue = xQueueCreate(5, sizeof(OutgoingMessage));
 }
-
 
 MQTTClient::~MQTTClient() {
     vTaskDelete(task_handle);
@@ -41,11 +48,9 @@ MQTTClient::~MQTTClient() {
  * @return true 
  * @return false 
  */
-bool MQTTClient::begin(const char* clientid, const char* token, const char* url, uint16_t port) {
+bool MQTTClient::begin(const char* clientid, const char* token) {
     client_id = ps::string(clientid);
     auth_token = ps::string(token);
-    broker_url = ps::string(url);
-    broker_port = port;
 
     return xTaskCreate(
         communicationTask,
@@ -57,6 +62,23 @@ bool MQTTClient::begin(const char* clientid, const char* token, const char* url,
     ) == pdTRUE;
 }
 
+/**
+ * @brief Connect to the MQTT Broker. Blocks until connection is successful, checking every 5 seconds.
+ * 
+ */
+void MQTTClient::connect() {
+    while (! mqtt_client -> connected()) {
+    ESP_LOGE("MQTT", "Attempting to connect...");
+
+    // Attempt to connect
+    if (mqtt_client -> connect(client_id.c_str(), auth_token.c_str(), "0")) { // No password for JWT authentication.
+        ESP_LOGI("MQTT", "Connected.");
+    } else {
+        ESP_LOGE("MQTT", "Failed to connect to broker, state: %d.", mqtt_client -> state());
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
+    }
+}
+}
 
 /**
  * @brief Get a new serializer object to load message into.
@@ -121,106 +143,6 @@ std::shared_ptr<MessageDeserializer> MQTTClient::get_incoming_message() {
     return ret;
 }
 
-/**
- * ==============================================
- * |                                            |
- * |                 RTOS TASK                  |
- * |                                            |
- * ==============================================
- */
-
-std::tuple<ps::vector<ps::string>, ps::vector<ps::string>, ps::vector<ps::string>> get_topics(ps::string& client_id, ps::string& token);
-ps::string get_token_body(ps::string& token);
-ps::vector<ps::string> load_topics(std::shared_ptr<PubSubClient> client, ps::string client_id, ps::string auth_token);
-ps::string get_message_payload(CallbackQueueItem& message);
-ps::string compress_message(OutgoingMessage& message);
-
-void mqtt_callback(char* topic, uint8_t* payload, uint32_t length) {
-    size_t len_topic = strlen(topic);
-    CallbackQueueItem new_message = {
-        // Allocate memory on PSRAM for strings.
-        (char*) heap_caps_calloc(len_topic + 1, sizeof(char), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM),
-        (char*) heap_caps_calloc(length + 1, sizeof(char), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM),
-        length
-    };
-
-    // Copy data to allocated memory
-    memccpy(new_message.topic, topic, 0, len_topic);
-    memccpy(new_message.payload, payload, 0, length);
-    
-    // Put new message on queue
-    xQueueSendToBack(callback_queue, &new_message, portMAX_DELAY);
-    return;
-}
-
-void communicationTask(void* parent) {
-    ESP_LOGI("RTOS", "Communications task started.");
-    MQTTClient* client = (MQTTClient*) parent;
-    callback_queue = xQueueCreate(5, sizeof(CallbackQueueItem));
-    auto mqtt_client = ps::make_shared<PubSubClient>();
-    mqtt_client -> setClient(client -> conn_client);
-    mqtt_client -> setCallback(mqtt_callback);
-    mqtt_client -> setBufferSize(16384);
-    mqtt_client -> setServer(client -> broker_url.c_str(), client -> broker_port);
-
-    while (!mqtt_client -> connected()) {
-        ESP_LOGE("MQTT", "Attempting to connect...");
-
-        // Attempt to connect
-        if (mqtt_client -> connect(client -> client_id.c_str(), client -> auth_token.c_str(), "0")) { // No password for JWT authentication.
-            ESP_LOGI("MQTT", "Connected.");
-        } else {
-            ESP_LOGE("MQTT", "Failed to connect to broker, state: %d.", mqtt_client -> state());
-            vTaskDelay(5000 / portTICK_PERIOD_MS);
-        }
-    }
-    ESP_LOGI("MQTT", "Decoding JWT for ACL...");
-
-    /* Fetch and connect to topics as per ACL in auth token. */
-    ps::vector<ps::string> publish_topics = load_topics(mqtt_client, client -> client_id, client -> auth_token);
-
-    IncomingMessage incoming_message;
-    OutgoingMessage outgoing_message;
-    CallbackQueueItem compressed_message;
-
-    uint64_t elapsed_tm = 0;
-
-    while(1) {
-        elapsed_tm = millis();
-        // Check for messages to send.
-        if (xQueueReceive(client -> outgoing_messages_queue, &outgoing_message, 50 / portTICK_PERIOD_MS) == pdTRUE ) {
-            /* Compress the message, then publish it to the topic. */
-            uint64_t start_tm = millis();
-            auto message = compress_message(outgoing_message);
-            ESP_LOGV("MQTT", "Sending Message: %s", message.c_str());
-            if (!mqtt_client -> publish(publish_topics.at(outgoing_message.topic_number).c_str(), message.c_str())) ESP_LOGE("MQTT", "Failed to publish message.");
-            ESP_LOGV("MQTT", "Compression took %ums.", millis() - start_tm);
-        }
-
-        // Service MQTT client.
-        mqtt_client -> loop();
-
-        // Check for received messages.
-        if (xQueueReceive(callback_queue, &compressed_message, 50 / portTICK_PERIOD_MS) == pdTRUE ) {
-            /* Decompress the message, and then copy it to a new buffer, then send to the incoming message queue.*/
-            uint64_t start_tm = millis();
-            ps::string payload = get_message_payload(compressed_message);
-
-            incoming_message.message = (char*) heap_caps_calloc(payload.size() + 1, sizeof(char), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-            incoming_message.topic = compressed_message.topic;
-            memccpy(incoming_message.message, payload.c_str(), 0, payload.size());
-            ESP_LOGV("MQTT", "Decompression took %ums.", millis() - start_tm);
-            xQueueSendToBack(client -> incoming_messages_queue, &incoming_message, portMAX_DELAY);
-        }
-
-        elapsed_tm = millis() - elapsed_tm;
-        ESP_LOGV("RTOS", "Comms task looped, took %ums", elapsed_tm);
-        vTaskDelay((1000 - elapsed_tm) / portTICK_PERIOD_MS );
-    }
-
-    ESP_LOGE("RTOS", "Communication task escaped loop.");
-    vTaskDelete(NULL);
-}
 
 /**
  * @brief Get the body of the auth token. 
@@ -228,7 +150,7 @@ void communicationTask(void* parent) {
  * @param token 
  * @return ps::string The JSON formatted, base64 decoded string of the body contents.
  */
-ps::string get_token_body(ps::string& token) {
+ps::string MQTTClient::get_token_body(ps::string& token) {
     size_t body_start = token.find_first_of('.') + 1; // Skip the found character.
     size_t body_end = token.find_last_of('.');
     ps::string body = token.substr(body_start, body_end - body_start);
@@ -242,7 +164,7 @@ ps::string get_token_body(ps::string& token) {
  * @param topic 
  * @return std::string 
  */
-ps::string replace_placeholder(const ps::string& client_id, const ps::string& topic) {
+ps::string MQTTClient::replace_placeholder(const ps::string& client_id, const ps::string& topic) {
     // Find the position of '${clientid}' in the topic string
     size_t pos = topic.find("${clientid}");
 
@@ -255,24 +177,27 @@ ps::string replace_placeholder(const ps::string& client_id, const ps::string& to
     return topic;
 }
 
+
 /**
- * @brief Get the topics from the auth token ACL.
+ * @brief Loads the topics in the ACL from the auth token. Subscribes to required topics.
  * 
- * @param token - Auth token to get ACL from.
- * @return std::tuple<ps::vector<ps::string>, ps::vector<ps::string>, ps::vector<ps::string>> Publish, Subscribe and All topics.
+ * @param client_id 
+ * @param auth_token 
  */
-std::tuple<ps::vector<ps::string>, ps::vector<ps::string>, ps::vector<ps::string>> get_topics(ps::string& client_id, ps::string& token) {
+void MQTTClient::decode_token() {
     auto document = DynamicPSRAMJsonDocument(1024);
-    ps::string token_body = get_token_body(token);
+    ps::string token_body = get_token_body(auth_token);
     ESP_LOGV("MQTT", "Got token body: %s", token_body.c_str());
     auto result = deserializeJson(document, &token_body[0]);
     if (result != DeserializationError::Ok) ESP_LOGE("MQTT", "Failed to deserialize topics: %d.", result);
+
+    broker_url = document["address"].as<ps::string>();
+    broker_port = document["port"].as<uint16_t>();
 
     auto pub = document["acl"]["pub"].as<JsonArray>();
     auto sub = document["acl"]["sub"].as<JsonArray>();
     auto all = document["acl"]["all"].as<JsonArray>();
 
-    ps::vector<ps::string> publish_topics;
     for (auto topic : pub) {
         ps::string topic_str = topic.as<ps::string>();
         topic_str = replace_placeholder(client_id, topic_str);
@@ -280,7 +205,6 @@ std::tuple<ps::vector<ps::string>, ps::vector<ps::string>, ps::vector<ps::string
         ESP_LOGI("MQTT", "Publish topic: %s", topic_str.c_str());
     }
 
-    ps::vector<ps::string> subscribe_topics;
     for (auto topic : sub) {
         ps::string topic_str = topic.as<ps::string>();
         topic_str = replace_placeholder(client_id, topic_str);
@@ -288,101 +212,51 @@ std::tuple<ps::vector<ps::string>, ps::vector<ps::string>, ps::vector<ps::string
         ESP_LOGI("MQTT", "Subscribe topic: %s", topic_str.c_str());
     }
 
-    ps::vector<ps::string> all_topics;
     for (auto topic : all) {
         ps::string topic_str = topic.as<ps::string>();
         topic_str = replace_placeholder(client_id, topic_str);
-        all_topics.push_back(topic_str);
+        publish_topics.push_back(topic);
+        subscribe_topics.push_back(topic);  
         ESP_LOGI("MQTT", "All topic: %s", topic_str.c_str());
     }
 
-    return std::make_tuple(publish_topics, subscribe_topics, all_topics);
 }
 
 /**
- * @brief Loads the topics in the ACL from the auth token. Subscribes to required topics.
+ * ==============================================
+ * |                                            |
+ * |             MessageSerializer              |
+ * |                                            |
+ * ==============================================
+ */
+
+/**
+ * @brief Construct a new Message Serializer:: Message Serializer object. The JSON Document is automatically serialized, compressed, and sent using the provided MQTT Client to the
+ * server on the provided topic number when this class is destructed/runs out of scope.
  * 
- * @param client_id 
- * @param auth_token 
- * @return ps::string Publish topic list.
+ * @param client 
+ * @param json_document_size 
  */
-ps::vector<ps::string> load_topics(std::shared_ptr<PubSubClient> client, ps::string client_id, ps::string auth_token) {
-    
-    auto topics = get_topics(client_id, auth_token);
-    ps::vector<ps::string> publish_topics = std::get<0>(topics);
+MessageSerializer::MessageSerializer(std::shared_ptr<MQTTClient> client, size_t topic_number, size_t json_document_size) :
+    mqtt_client(client),
+    document(DynamicPSRAMJsonDocument(json_document_size)),
+    topic(topic_number)
+{
+}
 
-    for (auto topic : std::get<1>(topics)) { // Subscribe topics
-        client -> subscribe(topic.c_str());
-    }
-
-    for (auto topic : std::get<2>(topics)) { // All topics
-        client -> subscribe(topic.c_str());
-        publish_topics.push_back(topic);  
-    }
-    
-    return publish_topics;
+MessageSerializer::~MessageSerializer() {
+    ps::ostringstream message;
+    serializeJson(document, message);
+    mqtt_client->send_message(topic, message.str());
 }
 
 /**
- * @brief Get the message payload from the callback queue item. Attempts to deserialize it with JSON, then deocmpresses it. Returns the string directly if no encoding specified, else an empty string.
- *  Frees the memory after conversion to ps::string.
- * @param message 
- * @return ps::string - Decompressed message payload.
+ * ==============================================
+ * |                                            |
+ * |            MessageDeserializer             |
+ * |                                            |
+ * ==============================================
  */
-ps::string get_message_payload(CallbackQueueItem& message) {
-    ps::string str = message.payload;
-    free(message.payload);
-    ESP_LOGI("MQTT", "Got message: %s", str.c_str());
-    DynamicPSRAMJsonDocument temp_doc(JSON_DOCUMENT_SIZE);
-
-    auto result = deserializeJson(temp_doc, &str[0]);
-    if (result != DeserializationError::Ok) {
-        ESP_LOGE("MQTT", "Deserialization Error: %d", result);
-        return ps::string();
-    }
-
-    ps::string decompress_str;
-    if (temp_doc.containsKey("enc")) {
-        if (temp_doc["enc"] == "br") {
-            decompress_str = temp_doc["msg"].as<ps::string>();
-            return brotli::decompress(decompress_str);
-        } else {
-            ESP_LOGE("MQTT", "Unknown message encoding. Ignoring...");
-            return ps::string();
-        }
-    }
-
-    ESP_LOGI("MQTT", "Direct message.");
-    return str;
-
-}
-
-/**
- * @brief Compresses a message, places it in the correct transmission format, then returns the string ready to be published.
- * Frees the memory after conversion to ps::string.
- * @param message 
- * @return ps::string 
- */
-ps::string compress_message(OutgoingMessage& message) {
-    ps::string buffer = message.message;
-    free(message.message);
-
-    ps::string compressed_message = brotli::compress(buffer);
-
-    if (compressed_message.empty()) return ps::string();
-
-    DynamicPSRAMJsonDocument document(JSON_DOCUMENT_SIZE);
-
-    document["enc"] = "br";
-    document["msg"] = compressed_message.c_str();
-
-    ps::ostringstream serialized_message;
-    if (serializeJson(document, serialized_message) == 0) ESP_LOGE("MQTT", "JSON Serialization failed.");
-
-    return serialized_message.str();
-}
-
-
 
 MessageDeserializer::MessageDeserializer(const char* topic,const char* message) : document(DynamicPSRAMJsonDocument(JSON_DOCUMENT_SIZE)) {
     uint64_t start_time = millis();
@@ -403,21 +277,146 @@ MessageDeserializer::MessageDeserializer(const char* topic,const char* message) 
 
 
 /**
- * @brief Construct a new Message Serializer:: Message Serializer object. The JSON Document is automatically serialized, compressed, and sent using the provided MQTT Client to the
- * server on the provided topic number when this class is destructed/runs out of scope.
- * 
- * @param client 
- * @param json_document_size 
+ * ==============================================
+ * |                                            |
+ * |                 RTOS TASK                  |
+ * |                                            |
+ * ==============================================
  */
-MessageSerializer::MessageSerializer(std::shared_ptr<MQTTClient> client, size_t topic_number, size_t json_document_size) :
-    mqtt_client(client),
-    document(DynamicPSRAMJsonDocument(json_document_size)),
-    topic(topic_number)
-{
+
+ps::string get_message_payload(CallbackQueueItem& message);
+ps::string compress_message(OutgoingMessage& message);
+void mqtt_callback(char* topic, uint8_t* payload, uint32_t length);
+
+/**
+ * @brief RTOS task for the MQTTClient class which handles the MQTT publish & subscribe, as well as compresssion & decompression.
+ * 
+ * @param parent 
+ */
+void communicationTask(void* parent) {
+    ESP_LOGI("RTOS", "Communications task started.");
+
+    MQTTClient* client = (MQTTClient*) parent;
+
+    callback_queue = xQueueCreate(5, sizeof(CallbackQueueItem));
+
+    // Fetch broker and topic details from token.
+    client -> decode_token();
+
+    // Initialize the MQTT Client
+    client -> mqtt_client = ps::make_shared<PubSubClient>();
+    client -> mqtt_client -> setClient(client -> conn_client);
+    client -> mqtt_client -> setCallback(mqtt_callback);
+    client -> mqtt_client -> setBufferSize(16384);
+    client -> mqtt_client -> setServer(client -> broker_url.c_str(), client -> broker_port);
+
+    // Connect to the Broker.
+    client -> connect();
+
+    ESP_LOGI("MQTT", "Decoding JWT for ACL...");
+
+    // Subscribe to topics as per ACL.
+    for (auto topic : client -> subscribe_topics) {
+        client -> mqtt_client -> subscribe(topic.c_str());
+    }
+
+    // Buffers to store messages from queues.
+
+    IncomingMessage incoming_message;
+    OutgoingMessage outgoing_message;
+    CallbackQueueItem compressed_message;
+
+    uint64_t elapsed_tm = 0;
+
+    while(1) {
+        elapsed_tm = millis();
+
+        // Check that we are still connected to the broker, else block until we are.
+        if (!client -> mqtt_client -> connected()) client -> connect();
+
+        // Check for messages to send.
+        if (xQueueReceive(client -> outgoing_messages_queue, &outgoing_message, 50 / portTICK_PERIOD_MS) == pdTRUE ) {
+            // Compress the message, then publish it to the topic.
+            uint64_t start_tm = millis();
+            auto message = compress_message(outgoing_message);
+            ESP_LOGV("MQTT", "Sending Message: %s", message.c_str());
+            if (!client -> mqtt_client -> publish(client -> publish_topics.at(outgoing_message.topic_number).c_str(), message.c_str())) ESP_LOGE("MQTT", "Failed to publish message.");
+            ESP_LOGV("MQTT", "Compression took %ums.", millis() - start_tm);
+        }
+
+        // Service MQTT client.
+        client -> mqtt_client -> loop();
+
+        // Check for received messages.
+        if (xQueueReceive(callback_queue, &compressed_message, 50 / portTICK_PERIOD_MS) == pdTRUE ) {
+            // Decompress the message, and then copy it to a new buffer, then send to the incoming message queue.
+            uint64_t start_tm = millis();
+            ps::string payload = get_message_payload(compressed_message);
+
+            // Copy string to RAM and put pointer on queue.
+            incoming_message.message = (char*) heap_caps_calloc(payload.size() + 1, sizeof(char), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+            incoming_message.topic = compressed_message.topic;
+            memccpy(incoming_message.message, payload.c_str(), 0, payload.size());
+            ESP_LOGV("MQTT", "Decompression took %ums.", millis() - start_tm);
+            xQueueSendToBack(client -> incoming_messages_queue, &incoming_message, portMAX_DELAY);
+        }
+
+        elapsed_tm = millis() - elapsed_tm;
+        ESP_LOGV("RTOS", "Comms task looped, took %ums", elapsed_tm);
+        vTaskDelay((1000 - elapsed_tm) / portTICK_PERIOD_MS );
+    }
+
+    ESP_LOGE("RTOS", "Communication task escaped loop.");
+    vTaskDelete(NULL);
 }
 
-MessageSerializer::~MessageSerializer() {
-    ps::ostringstream message;
-    serializeJson(document, message);
-    mqtt_client->send_message(topic, message.str());
+/**
+ * @brief Get the message payload from the callback queue item. Decompresses it. Returns the data if successful, else an empty string if failed.
+ *  Frees the memory after conversion to ps::string.
+ * @param message 
+ * @return ps::string - Decompressed message payload.
+ */
+ps::string get_message_payload(CallbackQueueItem& message) {
+    ps::string str = message.payload;
+    free(message.payload);
+    ESP_LOGI("MQTT", "Decompress message: %s", str.c_str());
+    return brotli::decompress(str);
+}
+
+/**
+ * @brief Compresses a message with brotli, then returns the string ready to be published.
+ * Frees the memory after conversion to ps::string.
+ * @param message 
+ * @return ps::string - Empty if failed.
+ */
+ps::string compress_message(OutgoingMessage& message) {
+    ps::string buffer = message.message;
+    free(message.message);
+
+    return brotli::compress(buffer);
+}
+
+/**
+ * @brief Callback from PubSubClient on message received. Copys the message to PSRAM and puts it on the task callback_queue.
+ * 
+ * @param topic Topic message was received on.
+ * @param payload Message Contents.
+ * @param length The length of the payload.
+ */
+void mqtt_callback(char* topic, uint8_t* payload, uint32_t length) {
+    size_t len_topic = strlen(topic);
+    CallbackQueueItem new_message = {
+        // Allocate memory on PSRAM for strings.
+        (char*) heap_caps_calloc(len_topic + 1, sizeof(char), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM),
+        (char*) heap_caps_calloc(length + 1, sizeof(char), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM),
+        length
+    };
+
+    // Copy data to allocated memory
+    memccpy(new_message.topic, topic, 0, len_topic);
+    memccpy(new_message.payload, payload, 0, length);
+    
+    // Put new message on queue
+    xQueueSendToBack(callback_queue, &new_message, portMAX_DELAY);
+    return;
 }

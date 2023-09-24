@@ -3,21 +3,21 @@
 #ifndef MQTT_CLIENT_H
 #define MQTT_CLIENT_H
 
+#include <Arduino.h>
 #include <PubSubClient.h>
-#include <Client.h>
 #include <WiFi.h>
-#include <functional>
-#include <memory>
-#include <string>
 #include <ps_stl.h>
 
+#include "json_allocator.h"
 #include "ps_base64.h"
-#include "MessageSerializer.h"
-#include "MessageDeserializer.h"
 
 class MessageSerializer;
 class MessageDeserializer;
 
+/**
+ * @brief Asynchronous MQTT client wrapper for the PubSubClient Class. Messages are compressed & decompressed with brotli.
+ * 
+ */
 class MQTTClient : public std::enable_shared_from_this<MQTTClient> {
     private:
         friend void communicationTask(void* parent);
@@ -35,14 +35,29 @@ class MQTTClient : public std::enable_shared_from_this<MQTTClient> {
         ps::string broker_url;
         uint16_t broker_port;
 
+        ps::vector<ps::string> subscribe_topics;
+
+        ps::string get_token_body(ps::string& token);
+        ps::string replace_placeholder(const ps::string& client_id, const ps::string& topic);
+        ps::vector<ps::string> publish_topics;
+
         void send_message(size_t topic, ps::string message);
+        void decode_token();
+        void connect();
 
     public:
+        std::shared_ptr<PubSubClient> mqtt_client; // Underlying MQTT Client.
+
         MQTTClient(Client& connection);
-
         ~MQTTClient();
+        bool begin(const char* clientid, const char* token);
 
-        bool begin(const char* clientid, const char* token, const char* url, uint16_t port);
+        /**
+         * @brief Get a read reference to the possible publish topics. Use to get topic_number for `new_outgoing_message()`.
+         * 
+         * @return const ps::vector<ps::string>& 
+         */
+        const ps::vector<ps::string>& topics() {return publish_topics;}
 
         std::shared_ptr<MessageSerializer> new_outgoing_message(size_t topic_number, size_t size);
         

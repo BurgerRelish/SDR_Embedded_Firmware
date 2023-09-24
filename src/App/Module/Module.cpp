@@ -27,6 +27,8 @@ bool Module::refresh() {
     readings.push_front(new_reading);
     new_readings++;
 
+    if (readings.size() > 300) readings.pop_back();
+
     return true;
 }
 
@@ -35,180 +37,109 @@ bool Module::refresh() {
  * 
  * @return bool true - If serialization was successful, or the class is empty, else false.
  */
-bool Module::serialize(JsonArray& reading_array) {
+bool Module::serialize(JsonArray reading_array) {
     if (new_readings == 0) return true;
     
     auto obj = reading_array.createNestedObject();
 
-    obj[JSON_MODULE_ID] = module_id.c_str();
+    obj[JSON_MODULE_UID] = module_id.c_str();
     obj[JSON_READING_COUNT] = readings.size();
 
-    double kwh_usage = 0;
-    auto it = readings.cbegin();
-    for (uint16_t i = 0; i < new_readings && it != readings.cend(); i++, it++) {
-        kwh_usage += (*it).kwh_usage;
+    { // Sum the kWh Usage readings.
+        double kwh_usage = 0;
+        auto it = readings.cbegin();
+        for (uint16_t i = 0; i < new_readings && it != readings.cend(); i++, it++) {
+            kwh_usage += (*it).kwh_usage;
+        }
+        obj[JSON_KWH_USAGE] = kwh_usage;
     }
 
-    obj[JSON_KWH_USAGE] = kwh_usage;
 
-    {
-        auto voltage = get_summary(&Reading::voltage);
-        auto volt_arr = obj.createNestedArray(JSON_VOLTAGE);
-        volt_arr.add(std::get<0>(voltage)); // Mean
-        volt_arr.add(std::get<1>(voltage)); // Maximum
-        volt_arr.add(std::get<2>(voltage)); // IQR
-        volt_arr.add(std::get<3>(voltage)); // Kurtosis
-    }
-
-    {
-        auto frequency = get_summary(&Reading::frequency);
-        auto freq_arr = obj.createNestedArray(JSON_VOLTAGE);
-        freq_arr.add(std::get<0>(frequency)); // Mean
-        freq_arr.add(std::get<1>(frequency)); // Maximum
-        freq_arr.add(std::get<2>(frequency)); // IQR
-        freq_arr.add(std::get<3>(frequency)); // Kurtosis
-    }
+    // Load the mean voltage
+    obj[JSON_VOLTAGE] = calc_mean<double>(&Reading::voltage, readings);
     
-    {
+    // Load the mean frequency
+    obj[JSON_FREQUENCY] = calc_mean<double>(&Reading::frequency, readings);
+    
+    { // Load the apparent power features
         auto apparent_power = get_summary(&Reading::apparent_power);
-        auto apparent_arr = obj.createNestedArray(JSON_VOLTAGE);
+        auto apparent_arr = obj.createNestedArray(JSON_APPARENT_POWER);
         apparent_arr.add(std::get<0>(apparent_power)); // Mean
         apparent_arr.add(std::get<1>(apparent_power)); // Maximum
         apparent_arr.add(std::get<2>(apparent_power)); // IQR
-        apparent_arr.add(std::get<3>(apparent_power)); // Kurtosis
+        apparent_arr.add(0); // Kurtosis std::get<3>(apparent_power)
     }
 
-    {
+    { // Load the power factor features
         auto power_factor = get_summary(&Reading::power_factor);
-        auto pf_arr = obj.createNestedArray(JSON_VOLTAGE);
+        auto pf_arr = obj.createNestedArray(JSON_POWER_FACTOR);
         pf_arr.add(std::get<0>(power_factor)); // Mean
         pf_arr.add(std::get<1>(power_factor)); // Maximum
         pf_arr.add(std::get<2>(power_factor)); // IQR
-        pf_arr.add(std::get<3>(power_factor)); // Kurtosis
+        pf_arr.add(0); // Kurtosis std::get<3>(power_factor)
     }
    
-    {
-        auto tm_arr = obj.createNestedArray(JSON_TIMESTAMP);
-        tm_arr.add(readings.begin()->timestamp);
-        tm_arr.add(readings.at(new_readings - 1).timestamp);
+    { // Serialize state changes.
+        JsonArray state_changes_array = obj.createNestedArray("state_changes");
+
+        for (auto change : status_updates) {
+            JsonObject change_obj = state_changes_array.add();
+            change_obj["state"] = change.status;
+            change_obj["timestamp"] = change.timestamp;
+        }
+
     }
 
-    {    
-        auto status_obj = obj.createNestedObject(JSON_STATUS_OBJ);
-        auto status_arr = status_obj.createNestedArray(JSON_STATUS);
-        auto status_ts = status_obj.createNestedArray(JSON_TIMESTAMP);
-        for (auto status : status_updates) {
-            status_arr.add(status.status);
-            status_ts.add(status.timestamp);
-        }
-    }
-    
+    new_readings = 0;
     return true;
 }
 
 /**
- * @brief Saves the class into the provided object.
+ * @brief Saves the class into the provided array. Searches for an existing matching object, creates a new object if not found.
  * 
  * @param update_obj 
  */
-void Module::save(JsonObject& update_obj) {
-    update_obj[JSON_MODULE_ID] = module_id;
-    update_obj[JSON_PRIORITY] = circuit_priority;
-
-    auto reading_obj = update_obj[JSON_READING_OBJECT].as<JsonObject>();
-    reading_obj[JSON_NEW_READINGS] = new_readings;
-
-    auto voltage_arr = reading_obj[JSON_VOLTAGE].as<JsonArray>();
-    auto frequency_arr = reading_obj[JSON_FREQUENCY].as<JsonArray>();
-    auto apparent_power_arr = reading_obj[JSON_APPARENT_POWER].as<JsonArray>();
-    auto power_factor_arr = reading_obj[JSON_POWER_FACTOR].as<JsonArray>();
-    auto kwh_usage_arr = reading_obj[JSON_KWH_USAGE].as<JsonArray>();
-    auto timestamp_arr = reading_obj[JSON_TIMESTAMP].as<JsonArray>();
-
-    for (auto reading : readings) {
-        voltage_arr.add(reading.voltage);
-        frequency_arr.add(reading.frequency);
-        apparent_power_arr.add(reading.apparent_power);
-        kwh_usage_arr.add(reading.kwh_usage);
-        timestamp_arr.add(reading.timestamp);
+void Module::save(JsonArray update_arr) {
+    JsonObject obj;
+    bool found = false;
+    for (auto object : update_arr) {
+        if (object[JSON_MODULE_UID] == module_id.c_str()) {
+            obj = object;
+            found = true;
+            break;
+        }
     }
 
-    save_rule_engine(update_obj);
+    if (!found) obj = update_arr.add();
+
+
+
+    auto rule_obj = obj["rule_engine"].as<JsonObject>();
+    save_rule_engine(rule_obj);
 }
 
 /**
- * @brief Loads the provided update object into the class.
+ * @brief Loads the provided update array into the class. Searches for a matching module ID in the array, then loads that object. Returns if none are found.
  * 
  * @param update_obj 
  */
-void Module::load(JsonObject& update_obj) {
-    module_id = update_obj[JSON_MODULE_ID].as<ps::string>();
-    circuit_priority = update_obj[JSON_PRIORITY];
-
-    auto reading_obj = update_obj[JSON_READING_OBJECT].as<JsonObject>();
-    new_readings = reading_obj[JSON_NEW_READINGS].as<uint16_t>();
-
-    auto voltage_arr = reading_obj[JSON_VOLTAGE].as<JsonArray>();
-    auto frequency_arr = reading_obj[JSON_FREQUENCY].as<JsonArray>();
-    auto apparent_power_arr = reading_obj[JSON_APPARENT_POWER].as<JsonArray>();
-    auto power_factor_arr = reading_obj[JSON_POWER_FACTOR].as<JsonArray>();
-    auto kwh_usage_arr = reading_obj[JSON_KWH_USAGE].as<JsonArray>();
-    auto timestamp_arr = reading_obj[JSON_TIMESTAMP].as<JsonArray>();
-
-    auto voltage_it = voltage_arr.begin();
-    auto freq_it = frequency_arr.begin();
-    auto sp_it = apparent_power_arr.begin();
-    auto pf_it = power_factor_arr.begin();
-    auto kwh_it = kwh_usage_arr.begin();
-    auto ts_it = timestamp_arr.begin();
-
-    while(voltage_it != voltage_arr.end()) {
-        readings.push_back(
-            Reading (
-                voltage_it -> as<double>(),
-                freq_it -> as<double>(),
-                sp_it -> as<double>(),
-                pf_it -> as<double>(),
-                kwh_it -> as<double>(),
-                ts_it -> as<uint64_t>()
-            )
-        );
-
-        voltage_it += 1;
-        freq_it += 1;
-        sp_it += 1;
-        pf_it += 1;
-        kwh_it += 1;
-        ts_it += 1;
-    }
-    
-    voltage_arr.clear();
-    frequency_arr.clear();
-    apparent_power_arr.clear();
-    power_factor_arr.clear();
-    kwh_usage_arr.clear();
-    timestamp_arr.clear();
-
-    load_rule_engine(update_obj);
-}
-
-void Module::loadFromArray(JsonArray& array) {
-    for (auto item : array) {
-        if (item.containsKey(JSON_MODULE_ID)) {
-            if (item[JSON_MODULE_ID].as<ps::string>() == module_id) {
-                auto item_obj = item.as<JsonObject>();
-                load(item_obj);
-                break;
-            }
+void Module::load(JsonArray update_arr) {
+    JsonObject obj;
+    bool found = false;
+    for (auto object : update_arr) {
+        if (object[JSON_MODULE_UID] == module_id.c_str()) {
+            obj = object;
+            found = true;
+            break;
         }
     }
-}
 
-void Module::saveToArray(JsonArray& array) {
-    auto save_obj = array.createNestedObject();
-    save(save_obj);
-}
+    if (!found) return;
 
+
+    auto rule_obj = obj["rule_engine"].as<JsonObject>();
+    load_rule_engine(rule_obj);
+}
 
 /**
  * @brief Get the Statistical Summarization of the requested attribute from the new readings.

@@ -19,27 +19,26 @@
  * @note Expects the provided file system to be mounted before class construction.
  * 
  */
-template <class FileSystem>
+
 class Persistence {
     private:
         ps::string path;
-        FileSystem& _file_system;
         bool write;
+
     public:
         DynamicPSRAMJsonDocument document;
         
-        Persistence(FileSystem& file_system, const char* path_to_file, const size_t json_size, bool write_on_destruction = false) : _file_system(file_system), path(path_to_file), document(json_size), write(write_on_destruction) {
-            if (!file_system.exists(path.c_str())) {
-                auto file_ = file_system.open(path.c_str(), FILE_WRITE, true);
-                file_.close();
+        Persistence(const char* path_to_file, const size_t json_size, bool write_on_destruction = false) : path(path_to_file), document(json_size), write(write_on_destruction) {
+            auto file = LittleFS.open(path.c_str(), FILE_READ, true);
+            
+            ESP_LOGI("Persistence" , "File: %s", file.readString().c_str());
+
+            if(!file || file.isDirectory()){
+                ESP_LOGE("Persistence","Failed to open file.");
+                return;
             }
 
-            auto file = file_system.open(path.c_str(), FILE_READ, true);
-            ps::string data = file.readString().c_str();
-
-            ESP_LOGI("Persistence" , "File: %s", data.c_str());
-
-            auto result = deserializeJson(document, data.c_str());
+            auto result = deserializeJson(document, file.readString());
             if (result.code() != 0) ESP_LOGE("Persistence", "Json Deserialization Failed: %s", result.c_str());
 
             file.close();
@@ -51,13 +50,29 @@ class Persistence {
          */
         void clear() {
             document.clear();
-            _file_system.remove(path.c_str());
+            LittleFS.remove(path.c_str());
+        }
+        
+        /**
+         * @brief Set the class to write to the filesystem on destruction.
+         * 
+         */
+        void enable_write() {
+            write = true;
+        }
+        
+        /**
+         * @brief Set the class to do nothing on destruction.
+         * 
+         */
+        void disable_write() {
+            write = false;
         }
 
         ~Persistence() {
             if (write) {
-                auto file = _file_system.open(path.c_str(), FILE_WRITE, true);
-
+                auto file = LittleFS.open(path.c_str(), FILE_WRITE, true);
+                
                 if(serializeJson(document, file) == 0) ESP_LOGE("Persistence", "Serialization Failed.");
                 file.close();
             }

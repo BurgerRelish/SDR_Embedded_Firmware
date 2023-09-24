@@ -3,6 +3,8 @@
 #ifndef PIN_MAP_H
 #define PIN_MAP_H
 
+#define RS485_BAUD_RATE 115200
+
 #define DISPLAY_SCL 1
 #define DISPLAY_SDA 2
 

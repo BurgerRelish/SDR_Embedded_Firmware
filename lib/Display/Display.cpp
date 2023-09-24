@@ -25,7 +25,7 @@ void Display::begin(SummaryFrameData* summary) {
         "Display",
         5 * 1024,
         this,
-        5,
+        1,
         &display_task
     ) != pdTRUE) {
         ESP_LOGE("RTOS", "Failed to start display task.");

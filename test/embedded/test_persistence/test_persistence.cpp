@@ -2,10 +2,10 @@
 #include <LittleFS.h>
 #include <unity.h>
 
-#include "../SDR/Persistence.h"
+#include "Persistence.h"
 
 void test_write() {
-    Persistence<fs::LittleFSFS> nvs(LittleFS, "/test.txt", 1024, true);
+    Persistence nvs("/test.txt", 1024, true);
     nvs.document["test"].set("Hello World!!!");
     if (nvs.document["test"].as<std::string>() == "Hello World!!!") {
     TEST_ASSERT_TRUE(true);
@@ -15,7 +15,7 @@ void test_write() {
 }
 
 void test_read() {
-    Persistence<fs::LittleFSFS> nvs(LittleFS, "/test.txt", 1024);
+    Persistence nvs("/test.txt", 1024);
     std::string result = nvs.document["test"].as<std::string>();
     
     TEST_ASSERT_EQUAL_STRING("Hello World!!!", result.c_str());
@@ -23,6 +23,7 @@ void test_read() {
 
 void setup() {
     LittleFS.begin(true);
+    LittleFS.format();
     delay(2000);
     UNITY_BEGIN();
     RUN_TEST(test_write);

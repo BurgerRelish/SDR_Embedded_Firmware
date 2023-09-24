@@ -47,6 +47,8 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
     void loadUnitVarsInModule(std::shared_ptr<Module>& module);
 
     public:
+    bool publish_readings = false;
+
     Unit(std::shared_ptr<re::FunctionStorage> functions, const std::string unit_id, uint8_t power_sense) : 
     total_active_power(0),
     total_reactive_power(0),
@@ -62,12 +64,6 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
     }
 
     void begin(Stream* stream_1, uint8_t ctrl_1, uint8_t dir_1, Stream* stream_2, uint8_t ctrl_2, uint8_t dir_2);
-
-    bool& updateRequired() {return update_required; }
-    bool& saveRequired() { return save_required; }
-    void saveParameters(Persistence<fs::LittleFSFS>& nvs);
-    void loadParameters(Persistence<fs::LittleFSFS>& nvs);
-    void loadUpdate(JsonObject& update_obj);
 
     bool evaluateAll();
     bool evaluateModules();
@@ -85,7 +81,7 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
     uint16_t activeModules();
     ps::vector<std::shared_ptr<Module>>& getModules() { return module_map; }
     bool refresh();
-    std::tuple<uint64_t, uint64_t> getSerializationPeriod();
+    std::pair<uint64_t, uint64_t> getSerializationPeriod();
 
     uint64_t getTime() {
         struct tm timeinfo;
@@ -96,10 +92,10 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
 
         return (uint64_t) mktime(&timeinfo);
     }   
-    void load_unit() {
 
-    }
-
+    void publishReadings() {publish_readings = true;}
+    bool load(JsonObject& obj);
+    bool save(JsonObject& obj);
 };
 
 
