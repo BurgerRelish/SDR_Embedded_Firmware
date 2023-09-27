@@ -45,7 +45,7 @@
 #ifndef ARDUINOJSON_ENABLE_STRING_VIEW
 #  ifdef __has_include
 #    if __has_include(<string_view>) && __cplusplus >= 201703L
-#      define ARDUINOJSON_ENABLE_STRING_VIEW 0 // DISABLE STRING VIEW
+#      define ARDUINOJSON_ENABLE_STRING_VIEW 1
 #    else
 #      define ARDUINOJSON_ENABLE_STRING_VIEW 0
 #    endif

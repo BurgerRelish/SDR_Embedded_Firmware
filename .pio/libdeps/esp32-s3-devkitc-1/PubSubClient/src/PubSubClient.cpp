@@ -743,9 +743,9 @@ boolean PubSubClient::setBufferSize(uint16_t size) {
         return false;
     }
     if (this->bufferSize == 0) {
-        this->buffer = (uint8_t*)heap_caps_malloc(size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+        this->buffer = (uint8_t*)malloc(size);
     } else {
-        uint8_t* newBuffer = (uint8_t*)heap_caps_realloc(this->buffer, size, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+        uint8_t* newBuffer = (uint8_t*)realloc(this->buffer, size);
         if (newBuffer != NULL) {
             this->buffer = newBuffer;
         } else {

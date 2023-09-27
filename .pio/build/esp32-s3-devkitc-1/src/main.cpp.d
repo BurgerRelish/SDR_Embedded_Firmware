@@ -229,7 +229,7 @@
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/cores/esp32/MD5Builder.h \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/tools/sdk/esp32s3/include/esp_rom/include/esp_rom_md5.h \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/cores/esp32/StreamString.h \
- .pio/libdeps/esp32-s3-devkitc-1/LittleFS_esp32/src/LittleFS.h \
+ C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/libraries/LittleFS/src/LittleFS.h \
  include/Config.h include/PinMap.h lib/Display/Display.h \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/libraries/Wire/src/Wire.h \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/cores/esp32/esp32-hal.h \

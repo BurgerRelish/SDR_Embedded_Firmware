@@ -1,9 +1,9 @@
-fastled/FastLED@^3.6.0
-burgerrelish/esp-brotli@^1.0.1
-burgerrelish/PSRAM Containers@^1.0.0
-bblanchon/ArduinoJson@^6.21.2
-ayushsharma82/ElegantOTA@^3.0.0
-me-no-dev/ESP Async WebServer@^1.2.3
 knolleary/PubSubClient@^2.8
-me-no-dev/AsyncTCP@^1.1.1
 olikraus/U8g2@^2.35.6
+burgerrelish/esp-brotli@^1.0.1
+fastled/FastLED@^3.6.0
+ayushsharma82/ElegantOTA@^3.0.0
+burgerrelish/PSRAM Containers@^1.0.0
+me-no-dev/ESP Async WebServer@^1.2.3
+bblanchon/ArduinoJson@^6.21.2
+me-no-dev/AsyncTCP@^1.1.1

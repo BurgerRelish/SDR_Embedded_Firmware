@@ -203,7 +203,7 @@
  lib/RuleEngine/RuleEngineBase.h include/JSONFields.h \
  lib/Serialization/Persistence.h \
  C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/libraries/FS/src/FS.h \
- .pio/libdeps/esp32-s3-devkitc-1/LittleFS_esp32/src/LittleFS.h \
+ C:/Users/wattn/.platformio/packages/framework-arduinoespressif32/libraries/LittleFS/src/LittleFS.h \
  lib/Serialization/json_allocator.h src/App/Module.h \
  src/App/Module/Module.h lib/ModuleInterface/ModuleInterface.h \
  lib/ModuleInterface/EasyTransfer.h include/Reading.h \
