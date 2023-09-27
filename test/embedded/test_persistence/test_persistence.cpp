@@ -1,7 +1,10 @@
 #include <Arduino.h>
-#include <LittleFS.h>
 #include <unity.h>
-
+#include <WiFi.h>
+#include <FS.h>
+#include <SPI.h>
+#include <Wire.h>
+#include <LittleFS.h>
 #include "Persistence.h"
 
 void test_write() {
@@ -22,8 +25,11 @@ void test_read() {
 }
 
 void setup() {
-    LittleFS.begin(true);
-    LittleFS.format();
+    if (!LittleFS.begin(true)) ESP_LOGE("FS", "Failed to start.");
+    auto file = LittleFS.open("/test1.txt", FILE_READ, true);
+    ESP_LOGI("FS", "Got: %s", file.readString().c_str());
+    file.close();
+
     delay(2000);
     UNITY_BEGIN();
     RUN_TEST(test_write);

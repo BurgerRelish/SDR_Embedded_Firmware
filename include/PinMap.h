@@ -8,6 +8,9 @@
 #define DISPLAY_SCL 1
 #define DISPLAY_SDA 2
 
+#define RESET_PIN 38
+#define RESET_HOLD_LOW_TIME 5 // seconds
+
 #define U1_RXD 18
 #define U1_TXD 17
 #define U1_DIR 11

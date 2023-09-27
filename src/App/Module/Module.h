@@ -47,27 +47,28 @@ class Module : public re::RuleEngineBase, public std::enable_shared_from_this<Mo
 
 
     template <typename T>
-    T calc_max(T Reading::*, ps::deque<Reading>&);
+    const T calc_max(const T Reading::*, const ps::deque<Reading>&) const;
     template <typename T>
-    T calc_min(T Reading::*, ps::deque<Reading>&);
+    const T calc_min(const T Reading::*, const ps::deque<Reading>&) const;
     template <typename T>
-    T calc_mode(T Reading::*, ps::deque<Reading>&);
+    const T calc_mode(const T Reading::*, const ps::deque<Reading>&) const;
     template <typename T>
-    T calc_mean(T Reading::*, ps::deque<Reading>&);
+    const T calc_mean(const T Reading::*, const ps::deque<Reading>&) const;
     template <typename T>
-    T calc_stddev(T Reading::*, ps::deque<Reading>&);
+    const T calc_stddev(const T Reading::*, const ps::deque<Reading>&) const;
     template <typename T>
-    T calc_iqr(T Reading::*, ps::deque<Reading>&);
+    const T calc_iqr(const T Reading::*, const ps::deque<Reading>&) const;
     template <typename T>
-    T calc_kurt(T, T Reading::*, ps::deque<Reading>&);
+    const T calc_kurt(const T, const T Reading::*, const ps::deque<Reading>&)  const;
 
-    std::tuple<double, double, double, double> get_summary(double Reading::*);
+    std::tuple<double, double, double, double> get_summary(double Reading::*, ps::deque<Reading>&);
 
     void load_re_vars();
     uint64_t getTime();
 
     public:
-    uint16_t new_readings;
+    uint16_t new_readings = 0;
+    uint16_t new_status_changes = 0;
     
     Module(std::shared_ptr<re::FunctionStorage> functions, std::shared_ptr<ModuleInterface> interface, uint16_t address, ps::string id, uint16_t firmware_version, uint16_t hardware_version) : 
     RuleEngineBase(MODULE_TAG_LIST, functions),
@@ -94,9 +95,9 @@ class Module : public re::RuleEngineBase, public std::enable_shared_from_this<Mo
         load_re_vars();
     }
     
-    void load(JsonArray);
-    void save(JsonArray);
-    bool serialize(JsonArray);
+    bool load(JsonObject&);
+    bool save(JsonObject&);
+    bool serialize(JsonObject&);
 
     bool refresh();
     bool setRelayState(bool);
@@ -113,19 +114,19 @@ class Module : public re::RuleEngineBase, public std::enable_shared_from_this<Mo
     bool& saveRequired();
 
     template <typename T>
-    T max(T Reading::* attribute);
+    const T max(const T Reading::* attribute);
     template <typename T>
-    T min(T Reading::* attribute);
+    const T min(const T Reading::* attribute);
     template <typename T>
-    T mode(T Reading::* attribute);
+    const T mode(const T Reading::* attribute);
     template <typename T>
-    T mean(T Reading::* attribute);
+    const T mean(const T Reading::* attribute);
     template <typename T>
-    T stddev(T Reading::* attribute);
+    const T stddev(const T Reading::* attribute);
     template <typename T>
-    T iqr(T Reading::* attribute);
+    const T iqr(const T Reading::* attribute);
     template <typename T>
-    T kurt(T Reading::* attribute);
+    const T kurt(const T Reading::* attribute);
 
 };
 

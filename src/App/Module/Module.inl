@@ -12,7 +12,7 @@
  * @return double 
  */
 template <typename T>
-T Module::calc_max(T Reading::* attribute, ps::deque<Reading>& _readings) {
+const T Module::calc_max(const T Reading::* attribute, const ps::deque<Reading>& _readings) const {
     T max = 0;
     for (auto& reading : _readings) {
         if(reading.*attribute > max) max = reading.*attribute;
@@ -27,7 +27,7 @@ T Module::calc_max(T Reading::* attribute, ps::deque<Reading>& _readings) {
  * @return double 
  */
 template <typename T>
-T Module::calc_min(T Reading::* attribute, ps::deque<Reading>& _readings) {
+const T Module::calc_min(const T Reading::* attribute, const ps::deque<Reading>& _readings) const {
     T min = _readings.front().*attribute;
     for (auto& reading : _readings) {
         if(reading.*attribute < min) min = reading.*attribute;
@@ -44,7 +44,7 @@ T Module::calc_min(T Reading::* attribute, ps::deque<Reading>& _readings) {
  * @return T 
  */
 template <typename T>
-T Module::calc_mode(T Reading::* attribute, ps::deque<Reading>& _readings) {
+const T Module::calc_mode(const T Reading::* attribute, const ps::deque<Reading>& _readings) const {
     std::unordered_map<T, int> frequencyMap;
 
     for (const auto& reading : _readings) {
@@ -72,7 +72,7 @@ T Module::calc_mode(T Reading::* attribute, ps::deque<Reading>& _readings) {
  */
 
 template <typename T>
-T Module::calc_mean(T Reading::* attribute, ps::deque<Reading>& _readings) {
+const T Module::calc_mean(const T Reading::* attribute, const ps::deque<Reading>& _readings) const {
     T ret = 0;
 
     for (const auto& reading : _readings) {
@@ -91,7 +91,7 @@ T Module::calc_mean(T Reading::* attribute, ps::deque<Reading>& _readings) {
  * @return double 
  */
 template <typename T>
-T Module::calc_stddev(T Reading::* attribute, ps::deque<Reading>& _readings) {
+const T Module::calc_stddev(const T Reading::* attribute, const ps::deque<Reading>& _readings) const {
     T mean = calc_mean(attribute, _readings);
     T variance = 0;
 
@@ -113,7 +113,7 @@ T Module::calc_stddev(T Reading::* attribute, ps::deque<Reading>& _readings) {
  * @return double 
  */
 template <typename T>
-T Module::calc_iqr(T Reading::* attribute, ps::deque<Reading>& _readings) {
+const T Module::calc_iqr(const T Reading::* attribute, const ps::deque<Reading>& _readings) const {
     ps::deque<T> attributeValues;
     for (const auto& reading : _readings) {
         attributeValues.push_back(reading.*attribute);
@@ -143,7 +143,7 @@ T Module::calc_iqr(T Reading::* attribute, ps::deque<Reading>& _readings) {
  * @return double 
  */
 template <typename T>
-T Module::calc_kurt(T mean, T Reading::* attribute, ps::deque<Reading>& _readings) {
+const T Module::calc_kurt(const T mean, const T Reading::* attribute, const ps::deque<Reading>& _readings) const {
     T variance = calc_stddev<T>(attribute, _readings);
 
     auto n = _readings.size();
@@ -161,37 +161,37 @@ T Module::calc_kurt(T mean, T Reading::* attribute, ps::deque<Reading>& _reading
 
 
 template <typename T>
-T Module::max(T Reading::* attribute) {
+const T Module::max(const T Reading::* attribute) {
     return calc_max(attribute, readings);
 }
 
 template <typename T>
-T Module::min(T Reading::* attribute) {
+const T Module::min(const T Reading::* attribute) {
     return calc_min(attribute, readings); 
 }
 
 template <typename T>
-T Module::mode(T Reading::* attribute) {
+const T Module::mode(const T Reading::* attribute) {
     return calc_mode(attribute, readings);
 }
 
 template <typename T>
-T Module::mean(T Reading::* attribute) {
+const T Module::mean(const T Reading::* attribute) {
     return calc_mean(attribute, readings);
 }
 
 template <typename T>
-T Module::stddev(T Reading::* attribute) {
+const T Module::stddev(const T Reading::* attribute) {
     return calc_stddev(attribute, readings);
 }
 
 template <typename T>
-T Module::iqr(T Reading::* attribute) {
+const T Module::iqr(const T Reading::* attribute) {
     return calc_iqr(attribute, readings);
 }
 
 template <typename T>
-T Module::kurt(T Reading::* attribute) {
+const T Module::kurt(const T Reading::* attribute) {
     T mn = mean(attribute);
     return calc_kurt(mn, attribute, readings);
 }

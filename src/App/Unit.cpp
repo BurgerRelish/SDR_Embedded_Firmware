@@ -41,7 +41,7 @@ void Unit::begin(Stream* stream_1, uint8_t ctrl_1, uint8_t dir_1, Stream* stream
 
     for (auto found_module : found_modules_1) {
         ESP_LOGI("Dynamic Address", "Found on Port 1: %s", &found_module.first.id[0]);
-        module_map.push_back(
+        module_list.push_back(
             ps::make_shared<Module>(functions, interface_1, found_module.second, ps::string(found_module.first.id), found_module.first.firmware_version, found_module.first.hardware_version)
         );
         number_of_modules++;
@@ -49,13 +49,13 @@ void Unit::begin(Stream* stream_1, uint8_t ctrl_1, uint8_t dir_1, Stream* stream
 
     for (auto found_module : found_modules_2) {
         ESP_LOGI("Dynamic Address", "Found on Port 2: %s", &found_module.first.id[0]);
-        module_map.push_back(
+        module_list.push_back(
             ps::make_shared<Module>(functions, interface_2, found_module.second, ps::string(found_module.first.id), found_module.first.firmware_version, found_module.first.hardware_version)
         );
         number_of_modules++;
     }
 
-    
+    create_module_map(); 
 }
 
 bool Unit::evaluateAll() {
@@ -73,7 +73,7 @@ bool Unit::evaluateAll() {
 
 bool Unit::evaluateModules() {
     try {
-        for (auto module : module_map) {
+        for (auto module : module_list) {
             module -> reason();
             vTaskDelay(1 / portTICK_PERIOD_MS);
         }
@@ -83,6 +83,19 @@ bool Unit::evaluateModules() {
     }
 
     return true;
+}
+
+/**
+ * @brief Create a ps::unordered_map with the discovered modules to allow for quick ID lookup.
+ * 
+ */
+void Unit::create_module_map() {
+    module_map = ps::unordered_map<ps::string, std::shared_ptr<Module>>();
+    auto modules = getModules();
+
+    for (auto module : modules) {
+      module_map.insert( std::make_pair( module -> getModuleID(), module ));
+    }
 }
 
 /**
@@ -100,8 +113,7 @@ bool Unit::refresh() {
     mean_voltage = 0;
     mean_frequency = 0;
 
-    for (auto module : module_map) {
-        module -> refresh();
+    for (auto module : module_list) {
         auto reading = module -> getLatestReading();
         total_apparent_power += reading.apparent_power;
         total_reactive_power += reading.reactive_power();
@@ -134,7 +146,7 @@ bool Unit::save(JsonObject& obj) {
 
 uint16_t Unit::activeModules() {
     uint16_t ret = 0;
-    for (auto module: module_map) {
+    for (auto module: module_list) {
         if (module -> getRelayState()) ret++;
     }
     return ret;

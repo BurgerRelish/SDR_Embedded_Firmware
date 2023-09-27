@@ -20,7 +20,7 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
     private:
     std::shared_ptr<ModuleInterface> interface_1;
     std::shared_ptr<ModuleInterface> interface_2;
-    ps::vector<std::shared_ptr<Module>> module_map;
+    ps::vector<std::shared_ptr<Module>> module_list;
     std::shared_ptr<re::FunctionStorage> functions;
 
     uint8_t power_sense_pin;
@@ -48,6 +48,7 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
 
     public:
     bool publish_readings = false;
+    ps::unordered_map<ps::string, std::shared_ptr<Module>> module_map;
 
     Unit(std::shared_ptr<re::FunctionStorage> functions, const std::string unit_id, uint8_t power_sense) : 
     total_active_power(0),
@@ -68,6 +69,8 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
     bool evaluateAll();
     bool evaluateModules();
 
+    void create_module_map();
+
     const ps::string& id() { return unit_id_; }
     uint16_t& moduleCount() { return number_of_modules; }
 
@@ -79,7 +82,7 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
     double& meanPowerFactor() { return mean_pf; }
     bool powerStatus() { return (analogRead(power_sense_pin) > 150); }    
     uint16_t activeModules();
-    ps::vector<std::shared_ptr<Module>>& getModules() { return module_map; }
+    ps::vector<std::shared_ptr<Module>>& getModules() { return module_list; }
     bool refresh();
     std::pair<uint64_t, uint64_t> getSerializationPeriod();
 

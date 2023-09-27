@@ -36,6 +36,9 @@
 #define MODULE_TAG_LIST "MTL"
 #define SWITCH_STATUS "MS"
 
+#define READING_COUNT "RC"
+#define NEW_READING_COUNT "NRC"
+
 /* Common Commands */
 #define SET_VARIABLE "setVar" // (str type, str name, value) , value can be "dbl", "int" or "str" as specified by type
 

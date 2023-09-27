@@ -67,7 +67,7 @@
  */
 #define JSON_PERIOD_END "period_end"
 
-#define JSON_READING_OBJECT "read"
+#define JSON_READING_OBJECT "readings"
 #define JSON_NEW_READINGS "nr"
 
 #endif
