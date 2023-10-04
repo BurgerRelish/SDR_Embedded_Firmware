@@ -1,0 +1,7 @@
+{
+    "uid": "72a6fdf8-4b3a-49dd-bb12-ae8b93b02807",
+    "tags": [],
+    "SETUP_KEY" : "EGg90Vf8XSwh1!YMS#45X7lXG*^4bZF5",
+    "SETUP_API_URL" : "13.245.36.134",
+    "SETUP_API_PORT" : 8081: 
+}

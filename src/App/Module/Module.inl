@@ -21,7 +21,7 @@ const T Module::calc_max(const T Reading::* attribute, const ps::deque<Reading>&
 }
 
 /**
- * @brief Gets the maximum value of the attribute
+ * @brief Gets the minimum value of the attribute
  * 
  * @param attribute 
  * @return double 
@@ -84,7 +84,7 @@ const T Module::calc_mean(const T Reading::* attribute, const ps::deque<Reading>
 
 
 /**
- * @brief Calculates the standard deviation of the provided attribute.
+ * @brief Calculates the unbiased estimator standard deviation of the provided attribute.
  * 
  * @param mean 
  * @param attribute 
@@ -144,7 +144,7 @@ const T Module::calc_iqr(const T Reading::* attribute, const ps::deque<Reading>&
  */
 template <typename T>
 const T Module::calc_kurt(const T mean, const T Reading::* attribute, const ps::deque<Reading>& _readings) const {
-    T variance = calc_stddev<T>(attribute, _readings);
+    T variance = pow(calc_stddev<T>(attribute, _readings), 2);
 
     auto n = _readings.size();
 
@@ -156,7 +156,7 @@ const T Module::calc_kurt(const T mean, const T Reading::* attribute, const ps::
         C3 += pow(reading.*attribute - mean, 4);
     }
 
-    return static_cast<T>(C1 * (C3 / variance) - C2);
+    return static_cast<T>(C1 * (C3 / pow(variance, 2)) - C2);
 }
 
 

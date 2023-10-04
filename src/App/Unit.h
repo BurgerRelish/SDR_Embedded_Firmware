@@ -48,6 +48,9 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
 
     public:
     bool publish_readings = false;
+    uint32_t sample_period = 1;
+    uint32_t serialization_period = 300;
+
     ps::unordered_map<ps::string, std::shared_ptr<Module>> module_map;
 
     Unit(std::shared_ptr<re::FunctionStorage> functions, const std::string unit_id, uint8_t power_sense) : 
@@ -64,7 +67,7 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
         unit_id_ <<= unit_id;
     }
 
-    void begin(Stream* stream_1, uint8_t ctrl_1, uint8_t dir_1, Stream* stream_2, uint8_t ctrl_2, uint8_t dir_2);
+    void begin(Stream* stream_1, uint8_t ctrl_1, uint8_t ctrl_2, uint8_t dir_1);
 
     bool evaluateAll();
     bool evaluateModules();
@@ -84,6 +87,7 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
     uint16_t activeModules();
     ps::vector<std::shared_ptr<Module>>& getModules() { return module_list; }
     bool refresh();
+    uint64_t getTimeSinceLastSerialization() { return getTime() - last_serialization; }
     std::pair<uint64_t, uint64_t> getSerializationPeriod();
 
     uint64_t getTime() {

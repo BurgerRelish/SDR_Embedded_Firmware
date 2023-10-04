@@ -1,17 +1,19 @@
 #include "ModuleInterface.h"
 
-ModuleInterface::ModuleInterface(Stream* serial, uint8_t control_line, uint8_t dir_pin){
-    current_address = 1; // Start addresses at 1.
+ModuleInterface::ModuleInterface(Stream* serial, uint8_t control_line_1, uint8_t control_line_2, uint8_t dir_pin){
     stream = serial;
-    ctrl = control_line;
+    ctrl_1 = control_line_1;
+    ctrl_2 = control_line_2;
     dir = dir_pin;
 }
 
 ps::vector<std::pair<AnnouncePacket, uint8_t>> ModuleInterface::begin(){
     pinMode(dir, OUTPUT);
-    pinMode(ctrl, OUTPUT);
+    pinMode(ctrl_1, OUTPUT);
+    pinMode(ctrl_2, OUTPUT);
     digitalWrite(dir, LOW); // RX dir
-    digitalWrite(ctrl, HIGH); // Not addressing yet.
+    digitalWrite(ctrl_1, HIGH); // Not addressing yet.
+    digitalWrite(ctrl_2, HIGH); // Not addressing yet.
 
     ESP_LOGI("Addressing", "Creating Packets.");
     AddressPacket* address_packet = (AddressPacket*) calloc(1, sizeof(AddressPacket));
@@ -24,9 +26,27 @@ ps::vector<std::pair<AnnouncePacket, uint8_t>> ModuleInterface::begin(){
 
     ESP_LOGI("Addressing", "Starting.");
     ps::vector<std::pair<AnnouncePacket, uint8_t>> ret;
-    address_packet -> address = current_address;
-    digitalWrite(ctrl, LOW); // Start Addressing.
+    address_packet -> address = 1; // Start addresses at 1.
+    digitalWrite(ctrl_1, LOW); // Start Addressing.
     vTaskDelay(10 / portTICK_PERIOD_MS);
+    while(receive()) {
+        if (transmit(0)) { // Send address to module.
+            ESP_LOGI("Addressing", "Found Module: %s", &(announce_packet -> id[0]));
+            ret.push_back( 
+                std::make_pair(
+                    *announce_packet, address_packet->address
+                )
+            );
+            address_packet->address ++;
+        } else ESP_LOGE("TX", "Failed to send address.");
+    }
+
+    clearStreamBuffer();
+
+    digitalWrite(ctrl_1, HIGH); // End Addressing on Line 1.
+    digitalWrite(ctrl_2, LOW); // Start Addressing on Line 2.
+    vTaskDelay(10 / portTICK_PERIOD_MS);
+
     while(receive()) {
         if (transmit(0)) { // Send address to module.
             ESP_LOGI("Addressing", "Found Module: %s", &(announce_packet -> id[0]));
@@ -42,9 +62,8 @@ ps::vector<std::pair<AnnouncePacket, uint8_t>> ModuleInterface::begin(){
     ESP_LOGI("Addressing", "Finished.");
     free(announce_packet);
     free(address_packet);
-    digitalWrite(ctrl, HIGH); // End Addressing
+    digitalWrite(ctrl_2, HIGH); // End Addressing on line 2.
 
-    
     transfer_in = EasyTransfer();
     transfer_out = EasyTransfer();
     transfer_in.begin(details(reading_packet), stream, 0, dir); // Switch to receiving readings.

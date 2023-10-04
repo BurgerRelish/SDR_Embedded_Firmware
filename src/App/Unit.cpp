@@ -31,26 +31,15 @@ void Unit::loadUnitVarsInModule(std::shared_ptr<Module>& module) {
     module -> set_var(re::VAR_INT, MODULE_COUNT, std::function<int()>([this]() { return this->moduleCount(); }));  
 }
 
-void Unit::begin(Stream* stream_1, uint8_t ctrl_1, uint8_t dir_1, Stream* stream_2, uint8_t ctrl_2, uint8_t dir_2) {
+void Unit::begin(Stream* stream_1, uint8_t ctrl_1, uint8_t ctrl_2, uint8_t dir_1) {
     number_of_modules = 0;
-    interface_1 = ps::make_shared<ModuleInterface>(stream_1, ctrl_1, dir_1);
-    auto found_modules_1 = interface_1 -> begin();
+    interface_1 = ps::make_shared<ModuleInterface>(stream_1, ctrl_1, ctrl_2, dir_1);
+    auto found_modules = interface_1 -> begin();
 
-    interface_2 = ps::make_shared<ModuleInterface>(stream_2, ctrl_2, dir_2);
-    auto found_modules_2 = interface_2 -> begin();
-
-    for (auto found_module : found_modules_1) {
-        ESP_LOGI("Dynamic Address", "Found on Port 1: %s", &found_module.first.id[0]);
+    for (auto found_module : found_modules) {
+        ESP_LOGI("Unit", "Found: %s", &found_module.first.id[0]);
         module_list.push_back(
             ps::make_shared<Module>(functions, interface_1, found_module.second, ps::string(found_module.first.id), found_module.first.firmware_version, found_module.first.hardware_version)
-        );
-        number_of_modules++;
-    }
-
-    for (auto found_module : found_modules_2) {
-        ESP_LOGI("Dynamic Address", "Found on Port 2: %s", &found_module.first.id[0]);
-        module_list.push_back(
-            ps::make_shared<Module>(functions, interface_2, found_module.second, ps::string(found_module.first.id), found_module.first.firmware_version, found_module.first.hardware_version)
         );
         number_of_modules++;
     }

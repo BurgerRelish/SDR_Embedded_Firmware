@@ -59,10 +59,10 @@ class MQTTClient : public std::enable_shared_from_this<MQTTClient> {
          */
         const ps::vector<ps::string>& topics() {return publish_topics;}
 
-        std::shared_ptr<MessageSerializer> new_outgoing_message(size_t topic_number, size_t size);
+        std::shared_ptr<MessageSerializer> createMessage(size_t topic_number, size_t size);
         
         size_t incoming_message_count();
-        std::shared_ptr<MessageDeserializer> get_incoming_message();
+        std::shared_ptr<MessageDeserializer> getMessage();
 };
 
 /**

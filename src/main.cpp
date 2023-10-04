@@ -13,24 +13,28 @@
 #include "Display.h"
 #include "MQTTClient.h"
 #include "Persistence.h"
+#include "Scheduler.h"
+
 
 #include "webpage_setup.h"
 
 #include "App/Unit.h"
 #include "App/Functions.h"
+#include "SerializationHander.h"
+#include "CommandHandler.h"
 
 void taskApp(void* pvParameters);
-void taskComms(void* pvParameters);
 void taskSentry(void* parameters);
 
 WiFiClient wifi_client;
 
-std::shared_ptr<re::FunctionStorage> functions;
-std::shared_ptr<Unit> unit;
-std::shared_ptr<Display> display;
-std::shared_ptr<MQTTClient> mqtt_client;
-
-ps::unordered_map<ps::string, std::shared_ptr<Module>> module_map;
+std::shared_ptr<re::FunctionStorage> functions; // Global rule engine function storage.
+std::shared_ptr<Unit> unit; // The control unit class.
+std::shared_ptr<Display> display; // The display control class.
+std::shared_ptr<MQTTClient> mqtt_client; // The MQTT and (De)Compression handler class.
+std::shared_ptr<Scheduler> scheduler; // The scheduler class.
+std::shared_ptr<CommandHandler> command_handler; // The command handler class.
+std::shared_ptr<SerializationHandler> serialization_handler; // The serialization handler class.
 
 TaskHandle_t sentry_task;
 TaskHandle_t app_task;
@@ -53,10 +57,8 @@ void log_memory_usage() {
   log_printf("- SRAM Usage: %.4f/%u KB (%f%%)\n", ((float)(tot_sram - free_sram)) / 1024, tot_sram / 1024, 100 *( 1 - ((float) free_sram) / ((float) tot_sram)));
 }
 
-void serialize_readings();
 void first_time_setup(Persistence& persistence);
-void handle_incoming_message();
-void load_from_nvs();
+void save_runtime_variables();
 void check_reset_condition();
 
 void onOTAStart();
@@ -190,26 +192,47 @@ void taskApp(void* pvParameters) {
   unit = ps::make_shared<Unit>(functions, UNIT_UUID, POWER_SENSE);
   ESP_LOGD("App", "Unit Created.");
 
-  unit -> begin(&Serial1, U1_CTRL, U1_DIR, &Serial2, U2_CTRL, U2_DIR);
+  unit -> begin(&Serial1, U1_CTRL, U2_CTRL, U1_DIR);
   ESP_LOGD("App", "Unit Started.");
 
+  scheduler = ps::make_shared<Scheduler>();
+  ESP_LOGD("App", "Scheduler Created.");
 
-  /*============================================= TEMPORARY =================================================*/
+  command_handler = ps::make_shared<CommandHandler>();
+  command_handler -> begin(unit, scheduler);
+  ESP_LOGD("App", "Command Handler Created.");
 
-  ps::string expression_0 = "V > 200";
-  ps::string command_0 = "setState(1);";
-  ps::string expression_1 = "V < 200";
-  ps::string command_1 = "setState(0);";
+  serialization_handler = ps::make_shared<SerializationHandler>();
+  serialization_handler -> begin(unit, mqtt_client);
+  ESP_LOGD("App", "Serialization Handler Created.");
 
-  for (auto module : unit -> getModules()) {
-    module -> add_rule(0, expression_0, command_0);
-    module -> add_rule(1, expression_1, command_1);
+  { // Load the Scheduler variables from flash.
+    Persistence persistence("/schedule.txt", 8192, false); // Dont write anything to flash.
+    auto scheduler_data = persistence.document.as<JsonArray>();
+    scheduler -> load(scheduler_data);
   }
 
-  /*========================================================================================================*/
+  { // Load the Unit variables from flash.
+    Persistence persistence("/unit.txt", 8192, false); // Dont write anything to flash.
+    auto unit_data = persistence.document.as<JsonObject>();
+    unit -> load(unit_data);
+  }
 
-  load_from_nvs();
-  ESP_LOGD("App", "Unit Started.");
+  { // Load the Module variables from flash.
+    Persistence persistence("/modules.txt", 16384, false); // Dont write anything to flash.
+    auto module_data = persistence.document.as<JsonArray>();
+    auto modules = unit -> getModules();
+
+    for (JsonObject module : module_data) {
+      ps::string target_id = module[JSON_MODULE_UID].as<ps::string>();
+      auto& map = unit -> module_map;
+
+      auto target = map.find(target_id);
+      if (target == map.end()) continue; // Skip unknown.
+
+      target -> second -> load(module); // Load into known module.
+    }
+  }
 
   display -> finishLoading();
   vTaskDelay(500 / portTICK_PERIOD_MS);
@@ -233,18 +256,19 @@ void taskApp(void* pvParameters) {
       ESP_LOGE("Unit", "Something went wrong whilst evaluating.");
     }
 
-    
-    //if (unit -> publish_readings) { // Serialize new reading when rule engine requires it.
-    if (modules.at(0) -> new_readings > 10) {
-      serialize_readings();
+    auto scheduled_changes = scheduler -> check(); // Check if any scheduled events need to be run.
+    for (auto item : scheduled_changes) {
+      auto module = unit -> module_map.find(item.module_id);
+      if (module == unit -> module_map.end()) continue; // Skip unknown.
+      module -> second -> setRelayState(item.state);
     }
 
+    serialization_handler -> serializeReadings(); // Serialize readings if it is time to do so.
 
-    if (mqtt_client -> incoming_message_count() > 0) {
-      handle_incoming_message();
+    while (mqtt_client -> incoming_message_count() > 0) {
+      command_handler -> handle(mqtt_client -> getMessage()); // Handle incoming messages.
     }
 
-    
     // Load data for the summary screen.
     if (display->pause()) {
       ESP_LOGI("Display", "Main task updating summary: %fVA, %fV %fHz %fPF %dPS.", unit -> totalApparentPower(), unit -> meanVoltage(), unit -> meanFrequency(),  unit -> meanPowerFactor(), unit -> powerStatus());
@@ -260,45 +284,17 @@ void taskApp(void* pvParameters) {
       display->resume();
     }
 
+    save_runtime_variables(); // Save the runtime variables to flash if it is time to do so.
 
     xSemaphoreGive(main_task_semaphore);
 
-    if (millis() - start_tm > 0 && millis() - start_tm < 1000) { // Run every 1 second.
-      vTaskDelay((1000 - (millis() - start_tm)) / portTICK_PERIOD_MS);
+    if (millis() - start_tm > 0 && millis() - start_tm < (1000 * unit -> sample_period)) { // Run every sample_period seconds.
+      vTaskDelay(((1000 * unit -> sample_period) - (millis() - start_tm)) / portTICK_PERIOD_MS);
     }
     
   }
   ESP_LOGE("RTOS", "Main Task Escaped Loop.");
   vTaskDelete(NULL);
-}
-
-
-void serialize_readings() {
-  try {
-    auto new_message = mqtt_client -> new_outgoing_message(0, 16384); // Get object to load new message.
-
-    new_message -> document[JSON_TYPE].set(0); // Set message type to reading.
-    JsonObject data_obj = new_message -> document.createNestedObject(JSON_DATA);
-
-    // Save period time data.
-    std::pair<uint64_t, uint64_t> period = unit -> getSerializationPeriod();
-    data_obj["period_start"].set(period.first);
-    data_obj["period_end"].set(period.second);
-
-    // Serialize modules into array.
-    JsonArray data_array = data_obj.createNestedArray(JSON_READING_OBJECT);
-
-    auto& modules = unit -> getModules();
-    for (auto module : modules) {
-      ESP_LOGD("Serialize", "Module: %s", module -> getModuleID().c_str());
-      JsonObject obj = data_array.createNestedObject();
-      module -> serialize(obj); // Get each module to add its reading data.
-    };
-
-    // Message will be sent as new_message class goes out of scope now. Note: Queue insertion with portMAX_DELAY.
-  } catch (...) {
-    ESP_LOGE("Unit", "Failed to serialize readings.");
-  }
 }
 
 void first_time_setup(Persistence& persistence) {
@@ -347,6 +343,7 @@ void first_time_setup(Persistence& persistence) {
 
     vTaskDelay(250 / portTICK_PERIOD_MS);
   }
+  
   vTaskDelay(250 / portTICK_PERIOD_MS);
   ESP_LOGI("WiFi", "Web Setup Complete");
 
@@ -360,69 +357,62 @@ void first_time_setup(Persistence& persistence) {
 }
 
 /**
- * @brief Loads a command message into the unit.
- * 
- * @param message 
- */
-void load_command_message(std::shared_ptr<MessageDeserializer>& message) {
-  auto& map = unit -> module_map;
-  auto unit_data = message -> document["unit"].as<JsonObject>();
-
-  unit -> load(unit_data);
-  
-  auto module_data = message -> document["modules"].as<JsonArray>();
-
-  for (JsonObject data : module_data) {
-    auto mid = data["module_id"].as<ps::string>();
-    auto module = map.find(mid);
-    if (module == map.end()) continue; // Skip unknown modules.
-
-    module -> second -> load(data);
-  }
-}
-
-void handle_incoming_message() {
-  auto message = mqtt_client -> get_incoming_message();
-  if (message.get() == nullptr) return;
-
-  int type = message -> document["type"];
-
-  switch (type) {
-    case 0: // Command Message.
-      load_command_message(message);
-      return;
-    default:
-      return;
-  }
-}
-
-
-/**
- * @brief Load Unit & Module stored data from SPIFFS with the Persistence class.
+ * @brief Save all variables to flash which need to be, every 5 minutes. Saves the unit & module rule engines, as well as the scheduler.
  * 
  */
-void load_from_nvs() {
-  { // Load unit data & rules from flash.
-    Persistence persistence("/unit.txt", 8192, false); // Dont write anything to flash.
+void save_runtime_variables() {
+  static uint64_t last_save = 0;
+
+  if (millis() - last_save < 5 * 60 * 1000) return; // Save every 5 minutes.
+  ESP_LOGI("Unit", "Saving Runtime Variables.");
+  last_save = millis();
+
+  { // Save the Scheduler variables to flash.
+    Persistence persistence("/schedule.txt", 8192, true);
+    auto scheduler_data = persistence.document.as<JsonArray>();
+    scheduler -> save(scheduler_data);
+  }
+
+  { // Save the Unit variables to flash.
+    Persistence persistence("/unit.txt", 8192, true);
     auto unit_data = persistence.document.as<JsonObject>();
-    unit -> load(unit_data);
+    unit -> save(unit_data);
   }
 
-  { // Load module data & rules from flash
-    Persistence persistence("/modules.txt", 16384, false); // Dont write anything to flash.
+  { // Save the Module variables to flash.
+    Persistence persistence("/modules.txt", 16384, true);
     auto module_data = persistence.document.as<JsonArray>();
     auto modules = unit -> getModules();
+    auto& module_map = unit -> module_map;
 
-    for (JsonObject module : module_data) {
-      ps::string target_id = module[JSON_MODULE_UID].as<ps::string>();
-      auto& map = unit -> module_map;
+    ps::unordered_map<ps::string, std::shared_ptr<Module>> saved_modules;
 
-      auto target = map.find(target_id);
-      if (target == map.end()) continue; // Skip unknown.
+    for (JsonObject module : module_data) { // Update existing saves.
+      if (module.containsKey(JSON_MODULE_UID)) {
+        auto module_id = module[JSON_MODULE_UID].as<ps::string>();
+        auto found_module = module_map.find(module_id);
 
-      target -> second -> load(module); // Load into known module.
+        if (found_module != module_map.end()) {
+          found_module -> second -> save(module); // Load into known module.
+          saved_modules.insert( std::make_pair( module_id, found_module -> second ));
+          continue;
+        } else {
+          module_data.remove(module); // Remove unknown module.
+        }
+      }
     }
+
+    for (auto module : modules) { // Save all modules that have not been saved.
+      if (saved_modules.find(module -> getModuleID()) == saved_modules.end()) {
+        JsonObject obj = module_data.createNestedObject();
+        module -> save(obj);
+      }
+    }
+
   }
+
+  ESP_LOGI("Unit", "Runtime Variables Saved.");
+
 }
 
 /**
@@ -448,24 +438,22 @@ void check_reset_condition() {
 
 void onOTAStart() {
   // Log when OTA has started
-  Serial.println("OTA update started!");
-  // <Add your own code here>
+  ESP_LOGI("OTA", "Update started!");
 }
 
 void onOTAProgress(size_t current, size_t final) {
   // Log every 1 second
   if (millis() - ota_progress_millis > 1000) {
     ota_progress_millis = millis();
-    Serial.printf("OTA Progress Current: %u bytes, Final: %u bytes\n", current, final);
+    ESP_LOGI("OTA", "Progress: %u%%", (current / (final / 100)));
   }
 }
 
 void onOTAEnd(bool success) {
   // Log when OTA has finished
   if (success) {
-    Serial.println("OTA update finished successfully!");
+    ESP_LOGI("OTA", "Update finished successfully!");
   } else {
-    Serial.println("There was an error during OTA update!");
+    ESP_LOGE("OTA", "Update failed!");
   }
-  // <Add your own code here>
 }

@@ -87,7 +87,7 @@ void MQTTClient::connect() {
  * @param size - The size of the underlying JSON document.
  * @return std::shared_ptr<MessageSerializer> 
  */
-std::shared_ptr<MessageSerializer> MQTTClient::new_outgoing_message(size_t topic_number,size_t size) {
+std::shared_ptr<MessageSerializer> MQTTClient::createMessage(size_t topic_number,size_t size) {
     return ps::make_shared<MessageSerializer>(MQTTClient::shared_from_this(), topic_number, size);
 }
 
@@ -126,7 +126,7 @@ size_t MQTTClient::incoming_message_count() {
  * 
  * @return std::shared_ptr<MessageDeserializer> The message.
  */
-std::shared_ptr<MessageDeserializer> MQTTClient::get_incoming_message() {
+std::shared_ptr<MessageDeserializer> MQTTClient::getMessage() {
     IncomingMessage new_message;
 
     if (xQueueReceive(incoming_messages_queue, &new_message, 50 / portTICK_PERIOD_MS) != pdTRUE) {

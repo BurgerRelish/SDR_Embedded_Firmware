@@ -37,7 +37,7 @@ struct ReadingDataPacket {
 
 class ModuleInterface {
     public:
-    ModuleInterface(Stream* serial, uint8_t control_line, uint8_t dir_pin);
+    ModuleInterface(Stream* serial, uint8_t control_line_1, uint8_t control_line_2, uint8_t dir_pin);
     
     ps::vector<std::pair<AnnouncePacket, uint8_t>> begin();
 
@@ -46,10 +46,9 @@ class ModuleInterface {
 
     private:
     Stream* stream;
-    uint8_t ctrl;
+    uint8_t ctrl_1;
+    uint8_t ctrl_2;
     uint8_t dir;
-
-    uint8_t current_address;
 
     friend class EasyTransfer;
     EasyTransfer transfer_in;

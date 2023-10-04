@@ -72,12 +72,32 @@ class Persistence {
 
         ~Persistence() {
             if (write) {
-                auto file = LittleFS.open(path.c_str(), FILE_WRITE, true);
-
                 ps::ostringstream output;
-                if(serializeJson(document, output) == 0) ESP_LOGE("Persistence", "Serialization Failed.");
-                
-                file.write((const uint8_t*) output.str().c_str(), output.str().size() + 1);
+                if (serializeJson(document, output) == 0) {
+                    ESP_LOGE("Persistence", "Serialization Failed.");
+                }
+
+                auto file = LittleFS.open(path.c_str(), FILE_READ, true);
+
+                char buf;
+                bool write_required = false;
+                size_t filePos = 0; // Initialize file position
+
+                while (filePos < output.str().size() && file.readBytes(&buf, 1) > 0) {
+                    if (buf != output.str().c_str()[filePos]) {
+                        ESP_LOGI("Persistence", "File and output are different.");
+                        write_required = true; // Data needs to be written
+                        break;
+                    }
+                    filePos++; // Increment the file position
+                }
+
+                file.close();
+
+                if (!write_required) return; // If the file and output are the same, do not write to the file.
+            
+                file = LittleFS.open(path.c_str(), FILE_WRITE, true);
+                file.write((const uint8_t*)output.str().c_str(), output.str().size());
                 file.flush();
                 file.close();
             }
