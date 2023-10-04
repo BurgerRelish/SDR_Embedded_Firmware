@@ -12,6 +12,9 @@
 #define UNIT_UUID "h1u212"
 #define VERSION "0001/0001"
 
+#define DEFAULT_SAMPLE_PERIOD 1
+#define DEFAULT_SERIALIZATION_PERIOD 60
+
 /**
  * ==============================================
  * |                                            |

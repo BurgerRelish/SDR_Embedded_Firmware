@@ -39,6 +39,7 @@ struct SummaryFrameData {
     double mean_power_factor;
     double mean_voltage;
     double mean_frequency;
+    double current;
     double nmd;
     bool power_status;
     int8_t connection_strength;

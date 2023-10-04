@@ -45,6 +45,7 @@ void Unit::begin(Stream* stream_1, uint8_t ctrl_1, uint8_t ctrl_2, uint8_t dir_1
     }
 
     create_module_map(); 
+    last_serialization = getTime();
 }
 
 bool Unit::evaluateAll() {
@@ -101,6 +102,9 @@ bool Unit::refresh() {
     mean_pf = 0;
     mean_voltage = 0;
     mean_frequency = 0;
+    mean_current = 0;
+
+    if (module_list.size() == 0) return false;
 
     for (auto module : module_list) {
         auto reading = module -> getLatestReading();
@@ -111,6 +115,7 @@ bool Unit::refresh() {
         if (module -> getRelayState()) mean_pf += reading.power_factor / active_modules;
         mean_voltage += reading.voltage / number_of_modules;
         mean_frequency += reading.frequency / number_of_modules;
+        mean_current += reading.current / number_of_modules;
     }
 
     active_modules = activeModules(); // Check which modules are on after reasoning.

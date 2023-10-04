@@ -107,7 +107,7 @@ void MQTTClient::send_message(size_t topic, ps::string message) {
         str
     };
 
-    if (xQueueSendToBack(outgoing_messages_queue, &new_message, portMAX_DELAY) != pdTRUE) ESP_LOGE("MQTT", "Failed to place message on send queue.");
+    if (xQueueSendToBack(outgoing_messages_queue, &new_message, 250 / portTICK_PERIOD_MS) != pdTRUE) ESP_LOGE("MQTT", "Failed to place message on send queue.");
 
     return;
 }

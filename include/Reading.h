@@ -14,6 +14,7 @@ class Reading {
         double apparent_power = 0;
         double power_factor = 0;
         double kwh_usage = 0;
+        double current = 0;
         uint64_t timestamp = 0;
 
         const double active_power() const {
@@ -34,6 +35,7 @@ class Reading {
             apparent_power = data.apparent_power;
             power_factor = data.power_factor;
             kwh_usage = data.energy_usage;
+            current = data.current;
             Reading::timestamp = timestamp;
             ESP_LOGI("Reading", "New Reading: %fV %fHz %fVA PF:%f TS:%d", voltage, frequency, apparent_power, power_factor, kwh_usage, timestamp);
         }
@@ -53,13 +55,14 @@ class Reading {
             timestamp = ts;
         }
 
-        Reading(double v, double fr, double sp, double pf, double kwh, uint64_t ts) :
+        Reading(double v, double fr, double cur, double sp, double pf, double kwh, uint64_t ts) :
         voltage(v),
         frequency(fr),
         apparent_power(sp),
         power_factor(pf),
         kwh_usage(kwh),
-        timestamp(ts)
+        timestamp(ts),
+        current(cur)
         {}
 
 };

@@ -35,9 +35,9 @@ void SerializationHandler::serializeReadings() {
 
         auto& modules = unit -> getModules();
         for (auto module : modules) {
-        ESP_LOGD("Serialize", "Module: %s", module -> getModuleID().c_str());
-        JsonObject obj = data_array.createNestedObject();
-        module -> serialize(obj); // Get each module to add its reading data.
+            ESP_LOGD("Serialize", "Module: %s", module -> getModuleID().c_str());
+            JsonObject obj = data_array.createNestedObject();
+            module -> serialize(obj); // Get each module to add its reading data.
         };
 
         // Message will be sent as new_message class goes out of scope now. Note: Queue insertion with portMAX_DELAY.

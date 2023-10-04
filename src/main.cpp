@@ -5,9 +5,9 @@
 #include <AsyncTCP.h>
 #include <ESPAsyncWebServer.h>
 #include <ElegantOTA.h>
-
 #include <time.h>
 #include <LittleFS.h>
+
 #include "Config.h"
 #include "PinMap.h"
 #include "Display.h"
@@ -206,15 +206,28 @@ void taskApp(void* pvParameters) {
   serialization_handler -> begin(unit, mqtt_client);
   ESP_LOGD("App", "Serialization Handler Created.");
 
+
+  ps::string expression_0 = "V > 200";
+  ps::string command_0 = "setState(1);";
+  ps::string expression_1 = "V < 200";
+  ps::string command_1 = "setState(0);";
+
+  for (auto module : unit -> getModules()) {
+    module -> add_rule(0, expression_0, command_0);
+    module -> add_rule(1, expression_1, command_1);
+  }
+
   { // Load the Scheduler variables from flash.
     Persistence persistence("/schedule.txt", 8192, false); // Dont write anything to flash.
     auto scheduler_data = persistence.document.as<JsonArray>();
+    if (scheduler_data.size() > 0)
     scheduler -> load(scheduler_data);
   }
 
   { // Load the Unit variables from flash.
     Persistence persistence("/unit.txt", 8192, false); // Dont write anything to flash.
     auto unit_data = persistence.document.as<JsonObject>();
+    if (unit_data.size() > 0)
     unit -> load(unit_data);
   }
 
@@ -223,6 +236,7 @@ void taskApp(void* pvParameters) {
     auto module_data = persistence.document.as<JsonArray>();
     auto modules = unit -> getModules();
 
+    if (module_data.size() > 0 && modules.size() > 0)
     for (JsonObject module : module_data) {
       ps::string target_id = module[JSON_MODULE_UID].as<ps::string>();
       auto& map = unit -> module_map;
@@ -280,7 +294,7 @@ void taskApp(void* pvParameters) {
       summary_data -> total_apparent_power = unit -> totalApparentPower();
       summary_data -> power_status = unit -> powerStatus();
       summary_data -> connection_strength = WiFi.RSSI();
-
+      summary_data -> current = unit -> meanCurrent();
       display->resume();
     }
 

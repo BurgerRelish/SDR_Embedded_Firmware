@@ -10,6 +10,7 @@
 
 #include "RuleEngineBase.h"
 #include "Persistence.h"
+#include "Config.h"
 #include "SDRSemantics.h"
 #include "JSONFields.h"
 #include "Module.h"
@@ -28,6 +29,7 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
     double total_active_power = 0;
     double total_reactive_power = 0;
     double total_apparent_power = 0;
+    double mean_current = 0;
     double mean_pf = 0;
     double mean_voltage = 0;
     double mean_frequency = 0;
@@ -48,8 +50,8 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
 
     public:
     bool publish_readings = false;
-    uint32_t sample_period = 1;
-    uint32_t serialization_period = 300;
+    uint32_t sample_period = DEFAULT_SAMPLE_PERIOD;
+    uint32_t serialization_period = DEFAULT_SERIALIZATION_PERIOD;
 
     ps::unordered_map<ps::string, std::shared_ptr<Module>> module_map;
 
@@ -83,6 +85,7 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
     double& meanVoltage() { return mean_voltage; }
     double& meanFrequency() { return mean_frequency; }
     double& meanPowerFactor() { return mean_pf; }
+    double& meanCurrent() { return mean_current; }
     bool powerStatus() { return (analogRead(power_sense_pin) > 150); }    
     uint16_t activeModules();
     ps::vector<std::shared_ptr<Module>>& getModules() { return module_list; }
