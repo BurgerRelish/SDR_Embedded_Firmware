@@ -74,7 +74,7 @@ void setup() {
     "Sentry Task",
     3 * 1024,
     NULL,
-    1,
+    4,
     &sentry_task
   );
 }
@@ -87,7 +87,7 @@ void taskSentry(void* parameters) {
   // Init the filesystem.
   if(!LittleFS.begin(true)) ESP_LOGE("LittleFS", "Failed to mount.");
   else ESP_LOGD("Sentry", "LittleFS begun.");
-
+  
   // Allocate display data and start the display.
   summary_data = (SummaryFrameData*) calloc(1, sizeof(SummaryFrameData));
   summary_data -> nmd = 200;
@@ -170,7 +170,7 @@ void taskSentry(void* parameters) {
     "App Task",
     48 * 1024,
     NULL,
-    5,
+    3,
     &app_task
   );
 
@@ -206,17 +206,6 @@ void taskApp(void* pvParameters) {
   serialization_handler -> begin(unit, mqtt_client);
   ESP_LOGD("App", "Serialization Handler Created.");
 
-
-  ps::string expression_0 = "V > 200";
-  ps::string command_0 = "setState(1);";
-  ps::string expression_1 = "V < 200";
-  ps::string command_1 = "setState(0);";
-
-  for (auto module : unit -> getModules()) {
-    module -> add_rule(0, expression_0, command_0);
-    module -> add_rule(1, expression_1, command_1);
-  }
-
   { // Load the Scheduler variables from flash.
     Persistence persistence("/schedule.txt", 8192, false); // Dont write anything to flash.
     auto scheduler_data = persistence.document.as<JsonArray>();
@@ -251,30 +240,43 @@ void taskApp(void* pvParameters) {
   display -> finishLoading();
   vTaskDelay(500 / portTICK_PERIOD_MS);
   display -> showSummary();
-
+  uint64_t last_sample = 0;
+  bool evaluate = false;
   while(1) {
     xSemaphoreTake(main_task_semaphore, portMAX_DELAY);
     int64_t start_tm = millis();
 
-    auto modules = unit -> getModules();
-    for (auto module : modules) {
-      module -> refresh();
-    }
-    unit -> refresh();
+    if (millis() - last_sample > (1000 * unit -> sample_period)) { // Sample every second.
+      auto modules = unit -> getModules();
+      for (auto module : modules) module -> refresh();
+      unit -> refresh();
     
-    try {
-      unit -> evaluateAll(); // Evaluate the unit rule engine, then evaluate the modules.
-    } catch (std::exception& e) {
-      ESP_LOGE("Unit", "Exception Thrown Whilst Evaluating: %s", e.what());
-    } catch (...) {
-      ESP_LOGE("Unit", "Something went wrong whilst evaluating.");
+      last_sample = millis();
+      evaluate = true;
     }
 
-    auto scheduled_changes = scheduler -> check(); // Check if any scheduled events need to be run.
-    for (auto item : scheduled_changes) {
-      auto module = unit -> module_map.find(item.module_id);
-      if (module == unit -> module_map.end()) continue; // Skip unknown.
-      module -> second -> setRelayState(item.state);
+    switch (unit -> mode) {
+      case 0: // Rule Engine Mode
+        if (evaluate) {
+          try {
+            unit -> evaluateAll(); // Evaluate the unit rule engine, then evaluate the modules.
+          } catch (std::exception& e) {
+            ESP_LOGE("Unit", "Exception Thrown Whilst Evaluating: %s", e.what());
+          } catch (...) {
+            ESP_LOGE("Unit", "Something went wrong whilst evaluating.");
+          }
+          evaluate = false;
+        }
+        break;
+      case 1: // Scheduler Mode
+        auto scheduled_changes = scheduler -> check(); // Check if any scheduled events need to be run.
+
+        for (auto item : scheduled_changes) {
+          auto module = unit -> module_map.find(item.module_id);
+          if (module == unit -> module_map.end()) continue; // Skip unknown.
+          module -> second -> setRelayState(item.state);
+        }
+        break;
     }
 
     serialization_handler -> serializeReadings(); // Serialize readings if it is time to do so.
@@ -282,7 +284,7 @@ void taskApp(void* pvParameters) {
     while (mqtt_client -> incoming_message_count() > 0) {
       command_handler -> handle(mqtt_client -> getMessage()); // Handle incoming messages.
     }
-
+    
     // Load data for the summary screen.
     if (display->pause()) {
       ESP_LOGI("Display", "Main task updating summary: %fVA, %fV %fHz %fPF %dPS.", unit -> totalApparentPower(), unit -> meanVoltage(), unit -> meanFrequency(),  unit -> meanPowerFactor(), unit -> powerStatus());
@@ -302,11 +304,12 @@ void taskApp(void* pvParameters) {
 
     xSemaphoreGive(main_task_semaphore);
 
-    if (millis() - start_tm > 0 && millis() - start_tm < (1000 * unit -> sample_period)) { // Run every sample_period seconds.
-      vTaskDelay(((1000 * unit -> sample_period) - (millis() - start_tm)) / portTICK_PERIOD_MS);
+    if (millis() - start_tm > 0 && millis() - start_tm < 1000) {
+      vTaskDelay((1000 - (millis() - start_tm)) / portTICK_PERIOD_MS);
     }
     
   }
+  
   ESP_LOGE("RTOS", "Main Task Escaped Loop.");
   vTaskDelete(NULL);
 }

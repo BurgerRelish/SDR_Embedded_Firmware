@@ -9,11 +9,12 @@
  * ==============================================
  */
 
-#define UNIT_UUID "h1u212"
+#define UNIT_UUID "1302c1a0-8244-4b18-be52-616a50527aec"
 #define VERSION "0001/0001"
 
 #define DEFAULT_SAMPLE_PERIOD 1
 #define DEFAULT_SERIALIZATION_PERIOD 60
+#define DEFAULT_MODE 0 // Default mode rule engine
 
 /**
  * ==============================================

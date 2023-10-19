@@ -25,6 +25,7 @@ std::function<bool(ps::vector<ps::string>&, re::VariableStorage*)> set_variable 
     return false;
 };
 
+
 std::shared_ptr<re::FunctionStorage> load_functions() {
     auto fn = ps::make_shared<re::FunctionStorage>();
     load_unit_functions(fn);

@@ -57,7 +57,7 @@ bool MQTTClient::begin(const char* clientid, const char* token) {
         "Communication Task",
         64 * 1024,
         this,
-        1,
+        2,
         &task_handle
     ) == pdTRUE;
 }

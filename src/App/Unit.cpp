@@ -126,12 +126,20 @@ bool Unit::refresh() {
 }
 
 bool Unit::load(JsonObject& obj) {
+    sample_period = obj["sample_period"].as<uint32_t>();
+    serialization_period = obj["serialization_period"].as<uint32_t>();
+    mode = obj["mode"].as<uint32_t>();
+
     auto rule_obj = obj["rule_engine"].as<JsonObject>();
     RuleEngineBase::load_rule_engine(rule_obj);
     return true;
 }
 
 bool Unit::save(JsonObject& obj) {
+    obj["sample_period"] = sample_period;
+    obj["serialization_period"] = serialization_period;
+    obj["mode"] = mode;
+
     auto rule_obj = obj.createNestedObject("rule_engine");
     RuleEngineBase::save_rule_engine(rule_obj);
     return true;

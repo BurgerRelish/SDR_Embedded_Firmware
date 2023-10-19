@@ -83,15 +83,15 @@ void Display::drawSummaryFrame() {
     drawStrf(90, 62, "PF%.3f", (summary_data -> mean_power_factor));
     
     oled.setFont(u8g2_font_profont22_tr);
-    // if ((summary_data->total_apparent_power) >= 10000) {
-    //     drawStrf(0, 51, "%.0fVA", (summary_data->total_apparent_power));
-    // } else if ((summary_data->total_apparent_power) >= 1000) {
-    //     drawStrf(0, 51, "%.1fVA", (summary_data->total_apparent_power));
-    // } else {
-    //     drawStrf(0, 51, "%.2fVA", (summary_data->total_apparent_power));
-    // }
+    if ((summary_data->total_apparent_power) >= 10000) {
+        drawStrf(0, 51, "%.0fVA", (summary_data->total_apparent_power));
+    } else if ((summary_data->total_apparent_power) >= 1000) {
+        drawStrf(0, 51, "%.1fVA", (summary_data->total_apparent_power));
+    } else {
+        drawStrf(0, 51, "%.2fVA", (summary_data->total_apparent_power));
+    }
 
-    drawStrf(0, 51, "%.2fA", (summary_data->current));
+    // drawStrf(0, 51, "%.2fA", (summary_data->current));
 
     oled.setFont(u8g2_font_4x6_tr);
     oled.drawStr(95, 42, "MODULES");

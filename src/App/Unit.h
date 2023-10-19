@@ -52,6 +52,7 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
     bool publish_readings = false;
     uint32_t sample_period = DEFAULT_SAMPLE_PERIOD;
     uint32_t serialization_period = DEFAULT_SERIALIZATION_PERIOD;
+    uint32_t mode = DEFAULT_MODE;
 
     ps::unordered_map<ps::string, std::shared_ptr<Module>> module_map;
 

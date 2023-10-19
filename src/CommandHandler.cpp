@@ -23,14 +23,17 @@ void CommandHandler::handle(std::shared_ptr<MessageDeserializer> deserializer) {
 
     switch (command_type) {
         case 0: // RuleEngine Command
+            ESP_LOGI("CommandHandler", "Handling rule engine command.");
             handleRuleEngineCommand(command);
         break;
 
         case 1: // Scheduler Command
+            ESP_LOGI("CommandHandler", "Handling scheduler command.");
             handleSchedulerCommand(command);
         break;
 
         case 2: // Control Unit Parameters
+            ESP_LOGI("CommandHandler", "Handling control unit parameters command.");
             handleControlUnitParameters(command);
             break;
     }
@@ -179,9 +182,11 @@ void CommandHandler::handleSchedulerCommand(JsonObject& object) {
 
     switch (action) {
         case 0: // Append
+            ESP_LOGI("CommandHandler", "Appending items to scheduler.");
             break;
 
         case 1: // Replace
+            ESP_LOGI("CommandHandler", "Replacing items in scheduler.");
             scheduler -> clear();
             break;
 
@@ -192,7 +197,7 @@ void CommandHandler::handleSchedulerCommand(JsonObject& object) {
     for (JsonObject item : shedule_items) {
         ps::string module_id = item["module_id"].as<ps::string>();
         if (module_map.find(module_id) == module_map.end()) continue; // Skip unknown modules.
-
+        ESP_LOGI("CommandHandler", "Adding item to scheduler. Module ID: %s", module_id.c_str());
         scheduler -> add(SchedulerItem(item));
     }
 
@@ -206,4 +211,22 @@ void CommandHandler::handleSchedulerCommand(JsonObject& object) {
 void CommandHandler::handleControlUnitParameters(JsonObject& object) {
     unit -> sample_period = object["sample_period"].as<int32_t>();
     unit -> serialization_period = object["serialization_period"].as<int32_t>();
+    unit -> mode = object["mode"].as<int32_t>();
+
+    if (object["format_device"].as<bool>()) {
+        scheduler -> clear();
+        for (auto& module : unit -> module_map) {
+            module.second -> clear_rules();
+        }
+        unit -> clear_rules();
+        
+        unit -> sample_period = DEFAULT_SAMPLE_PERIOD;
+        unit -> serialization_period = DEFAULT_SERIALIZATION_PERIOD;
+        unit -> mode = DEFAULT_MODE;
+    }
+
+    if (object["reset_device"].as<bool>()) {
+        LittleFS.format();
+        ESP.restart();
+    }
 }

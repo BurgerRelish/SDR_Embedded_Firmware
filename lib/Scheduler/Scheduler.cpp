@@ -89,7 +89,7 @@ ps::vector<SchedulerItem> Scheduler::check() {
                 continue;
             }
 
-            items[i].timestamp += items[i].period; // Increment the timestamp by the period.
+            items[i].timestamp = now + items[i].period; // Increment the timestamp by the period.
         }
     }
 
@@ -123,5 +123,26 @@ void Scheduler::clearModule(ps::string module_id) {
             items.erase(items.begin() + i);
             i--;
         }
+    }
+}
+
+QueueHandle_t queue;
+SemaphoreHandle_t scheduler_semaphore;
+
+void schedulerTask(void* parent) {
+    queue = xQueueCreate(10, sizeof(ps::vector<SchedulerItem>));
+    Scheduler* scheduler = (Scheduler*) parent;
+    ps::vector<SchedulerItem> items;
+
+    while (true) {
+        
+        items = scheduler -> check();
+        
+        if (items.size() > 0) {
+            auto outgoing = new ps::vector<SchedulerItem>(items);
+            xQueueSend(queue, outgoing, portMAX_DELAY);
+        }
+
+        vTaskDelay(500 / portTICK_PERIOD_MS);
     }
 }
