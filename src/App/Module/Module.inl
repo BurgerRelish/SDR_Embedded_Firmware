@@ -148,6 +148,8 @@ const T Module::calc_kurt(const T mean, const T Reading::* attribute, const ps::
 
     auto n = _readings.size();
 
+    if (n < 10) return T(0);
+
     T C1 = ((n + 1) * n) / ((n - 1) * (n - 2) * (n - 3));
     T C2 = (-3 * pow(n - 1, 2)) / ((n - 2) * (n - 3));
     T C3 = 0;

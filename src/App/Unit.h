@@ -48,6 +48,12 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
     void load_vars();
     void loadUnitVarsInModule(std::shared_ptr<Module>& module);
 
+
+    /* Time of Use */
+    double kwh_price = -1;
+    double tou_calc_hr = 0;
+    bool loadTOUSchedule(DynamicPSRAMJsonDocument& doc, struct tm& timeinfo);
+
     public:
     bool publish_readings = false;
     uint32_t sample_period = DEFAULT_SAMPLE_PERIOD;
@@ -77,9 +83,10 @@ class Unit: public re::RuleEngineBase, private std::enable_shared_from_this<Unit
 
     void create_module_map();
 
+    double getkWhPrice();
+
     const ps::string& id() { return unit_id_; }
     uint16_t& moduleCount() { return number_of_modules; }
-
     double& totalActivePower() { return total_active_power; }
     double& totalReactivePower() { return total_reactive_power; }
     double& totalApparentPower() { return total_apparent_power; }

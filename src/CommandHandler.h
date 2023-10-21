@@ -19,8 +19,10 @@ class CommandHandler{
     void handleRuleEngineCommand(JsonObject& object);
     void handleSchedulerCommand(JsonObject& object);
     void handleControlUnitParameters(JsonObject& object);
+    void handleTOUPricing(JsonObject& object);
 
     public:
+    bool save_required = false;
     CommandHandler();
 
     void begin(std::shared_ptr<Unit> unit, std::shared_ptr<Scheduler> scheduler);

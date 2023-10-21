@@ -378,14 +378,12 @@ void first_time_setup(Persistence& persistence) {
  * 
  */
 void save_runtime_variables() {
-  static uint64_t last_save = 0;
+  if (!command_handler -> save_required) return;
 
-  if (millis() - last_save < 5 * 60 * 1000) return; // Save every 5 minutes.
   ESP_LOGI("Unit", "Saving Runtime Variables.");
-  last_save = millis();
 
   { // Save the Scheduler variables to flash.
-    Persistence persistence("/schedule.txt", 8192, true);
+    Persistence persistence("/sched.txt", 8192, true);
     auto scheduler_data = persistence.document.as<JsonArray>();
     scheduler -> save(scheduler_data);
   }
@@ -397,7 +395,7 @@ void save_runtime_variables() {
   }
 
   { // Save the Module variables to flash.
-    Persistence persistence("/modules.txt", 16384, true);
+    Persistence persistence("/mod.txt", 16384, true);
     auto module_data = persistence.document.as<JsonArray>();
     auto modules = unit -> getModules();
     auto& module_map = unit -> module_map;

@@ -15,7 +15,7 @@
 #define DEFAULT_SAMPLE_PERIOD 1
 #define DEFAULT_SERIALIZATION_PERIOD 60
 #define DEFAULT_MODE 0 // Default mode rule engine
-
+#define DEFAULT_KWH_PRICE 0.6746
 /**
  * ==============================================
  * |                                            |

@@ -1,5 +1,6 @@
 #include "Unit.h"
 #include <time.h>
+#include "MQTTClient.h"
 
 void Unit::load_vars() {
     re::RuleEngineBase::set_var(re::VAR_CLASS, UNIT_CLASS, (void*)this);
@@ -15,6 +16,8 @@ void Unit::load_vars() {
     re::RuleEngineBase::set_var(re::VAR_STRING, UNIT_ID, std::function<ps::string()>([this]() { return this->id(); }));
     re::RuleEngineBase::set_var(re::VAR_ARRAY, UNIT_TAG_LIST, std::function<ps::vector<ps::string>()>([this]() { return this->get_tags(); }));
     re::RuleEngineBase::set_var(re::VAR_INT, MODULE_COUNT, std::function<int()>([this]() { return this->moduleCount(); }));
+
+    re::RuleEngineBase::set_var(re::VAR_DOUBLE, KWH_PRICE, std::function<double()>([this]() { return this->getkWhPrice(); }));
 }
 
 void Unit::loadUnitVarsInModule(std::shared_ptr<Module>& module) {
@@ -29,10 +32,13 @@ void Unit::loadUnitVarsInModule(std::shared_ptr<Module>& module) {
     module -> set_var(re::VAR_STRING, UNIT_ID, std::function<ps::string()>([this]() { return this->id(); }));
     module -> set_var(re::VAR_ARRAY, UNIT_TAG_LIST, std::function<ps::vector<ps::string>()>([this]() { return this->get_tags(); }));
     module -> set_var(re::VAR_INT, MODULE_COUNT, std::function<int()>([this]() { return this->moduleCount(); }));  
+
+    module -> set_var(re::VAR_DOUBLE, KWH_PRICE, std::function<double()>([this]() { return this->getkWhPrice(); }));
 }
 
 void Unit::begin(Stream* stream_1, uint8_t ctrl_1, uint8_t ctrl_2, uint8_t dir_1) {
     number_of_modules = 0;
+    load_vars();
     interface_1 = ps::make_shared<ModuleInterface>(stream_1, ctrl_1, ctrl_2, dir_1);
     auto found_modules = interface_1 -> begin();
 
@@ -41,6 +47,7 @@ void Unit::begin(Stream* stream_1, uint8_t ctrl_1, uint8_t ctrl_2, uint8_t dir_1
         module_list.push_back(
             ps::make_shared<Module>(functions, interface_1, found_module.second, ps::string(found_module.first.id), found_module.first.firmware_version, found_module.first.hardware_version)
         );
+        loadUnitVarsInModule(module_list.back());
         number_of_modules++;
     }
 
@@ -145,6 +152,98 @@ bool Unit::save(JsonObject& obj) {
     return true;
 }
 
+double Unit::getkWhPrice() {
+    struct tm timeinfo;
+    if (!getLocalTime(&timeinfo)) {
+        ESP_LOGE("Unit", "Failed to obtain time");
+        return DEFAULT_KWH_PRICE;
+    }
+
+    if (kwh_price == -1 || timeinfo.tm_hour != tou_calc_hr) {
+        Persistence persistence("/tou.txt", 16384, false);
+        if (!loadTOUSchedule(persistence.document, timeinfo)) return DEFAULT_KWH_PRICE;
+        tou_calc_hr = timeinfo.tm_hour;
+    }
+
+    return kwh_price;
+}
+
+/**
+ * @brief Find the current kWh price based on the TOU period data. Takes into account high and low seasons, as well as public holidays.
+ * 
+ * @param obj 
+ * @return bool - true if successfully found tou price, false otherwise.
+ */
+bool Unit::loadTOUSchedule(DynamicPSRAMJsonDocument& obj, struct tm& timeinfo) {
+    /* Get current day, week & month. */
+    int current_wday = timeinfo.tm_wday;
+    int current_mday = timeinfo.tm_mday;
+    int current_mo = timeinfo.tm_mon;
+
+    /* Find current season */
+    auto seasons = obj["seasons"].as<JsonArray>();
+    ps::string current_season = "";
+    for (JsonObject season : seasons) {
+        auto start_date = season["start_date"].as<JsonObject>();
+        auto end_date = season["end_date"].as<JsonObject>();
+        
+        int start_mo = start_date["month"].as<int>();
+        int end_mo = end_date["month"].as<int>();
+        int start_day = start_date["day"].as<int>();
+        int end_day = end_date["day"].as<int>();
+
+        if ((current_mo > start_mo || (current_mo == start_mo && current_mday >= start_day)) &&
+            (current_mo < end_mo || (current_mo == end_mo && current_mday <= end_day))) {
+                current_season = season["name"].as<ps::string>();
+                break;
+        }
+    }
+
+    /* Check if any public holidays are now. */
+    auto holidays = obj["public_holidays"].as<JsonArray>();
+    for (JsonObject holiday : holidays) {
+        int day = holiday["day"].as<int>();
+        int month = holiday["month"].as<int>();
+        int year = holiday["year"].as<int>();
+
+        if (current_mday == day && current_mo == month && (timeinfo.tm_year + 1900) == year) {
+            current_wday = holiday["treat_as"].as<int>();
+            break;
+        }
+    }
+
+    /* Check if we are in a TOU period. */
+    auto tou_prices = obj["tou_prices"].as<JsonArray>();
+    for (JsonObject tou_price : tou_prices) {
+        if (tou_price["season"].as<ps::string>() != current_season) {
+            continue;
+        }
+
+        auto days = tou_price["days"].as<JsonArray>();
+        for (int day : days) {
+            if (day == current_wday) {
+                auto times = tou_price["times"].as<JsonArray>();
+                for (JsonObject time : times) {
+                    if (time["start"].as<int>() <= timeinfo.tm_hour && time["end"].as<int>() > timeinfo.tm_hour) {
+                        kwh_price = tou_price["price"].as<double>();
+                        return true;
+                    }
+                }
+            }
+        }
+    }
+
+    /* Otherwise just load the base price for now. */
+    auto base_prices = obj["base_prices"].as<JsonArray>();
+    for (JsonObject base_price : base_prices) {
+        if (base_price["season"].as<ps::string>() == current_season) {
+            kwh_price = base_price["price"].as<double>();
+            return true;
+        }
+    }
+
+    return false;
+}
 
 uint16_t Unit::activeModules() {
     uint16_t ret = 0;

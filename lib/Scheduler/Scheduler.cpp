@@ -7,6 +7,7 @@ SchedulerItem::SchedulerItem(JsonObject& object){
     timestamp = object["timestamp"].as<uint64_t>();
     period = object["period"].as<uint64_t>();
     count = object["count"].as<int32_t>();
+    ESP_LOGI("SchedulerItem", "Loaded item. Module ID: %s, State: %d, Timestamp: %llu, Period: %llu, Count: %d", module_id.c_str(), state, timestamp, period, count);
 }
 
 SchedulerItem::SchedulerItem(ps::string module_id, bool state, uint64_t timestamp, uint64_t period, int32_t count) {
@@ -80,10 +81,11 @@ ps::vector<SchedulerItem> Scheduler::check() {
 
     for (size_t i = 0; i < items.size(); i++) { // Iterate over the items.
         if (items[i].timestamp <= now) { // If the item is due to be executed.
+            ESP_LOGI("Scheduler", "Item with module ID %s is due to be executed.", items[i].module_id.c_str());
             ret.push_back(items[i]); // Add the item to the return array.
-            if (items[i].count > 0) items[i].count --; // Decrement the count if it is not infinite.
-
-            if (items[i].count == 0) {
+            if (items[i].count > 1) items[i].count --; // Decrement the count if it is not infinite.
+            else if (items[i].count == 1) {
+                ESP_LOGI("Scheduler", "Removing item with module ID %s from scheduler.", items[i].module_id.c_str());
                 items.erase(items.begin() + i); // Remove the item if it has been executed the required number of times.
                 i--;
                 continue;

@@ -36,6 +36,11 @@ void CommandHandler::handle(std::shared_ptr<MessageDeserializer> deserializer) {
             ESP_LOGI("CommandHandler", "Handling control unit parameters command.");
             handleControlUnitParameters(command);
             break;
+
+        case 3: // TOU Pricing Schedule
+            ESP_LOGI("CommandHandler", "Handling TOU pricing schedule command.");
+            handleTOUPricing(command);
+            break;
     }
 }
 
@@ -105,6 +110,7 @@ void CommandHandler::loadUnitRules(JsonObject& unit_rules) {
     default:
         break;
     }
+    save_required = true;
 }
 
 /**
@@ -167,6 +173,7 @@ void CommandHandler::loadModuleRules(JsonArray& module_rules) {
             break;
         }
     }
+    save_required = true;
 }
 
 
@@ -201,6 +208,8 @@ void CommandHandler::handleSchedulerCommand(JsonObject& object) {
         scheduler -> add(SchedulerItem(item));
     }
 
+    save_required = true;
+
 }
 
 /**
@@ -219,7 +228,7 @@ void CommandHandler::handleControlUnitParameters(JsonObject& object) {
             module.second -> clear_rules();
         }
         unit -> clear_rules();
-        
+
         unit -> sample_period = DEFAULT_SAMPLE_PERIOD;
         unit -> serialization_period = DEFAULT_SERIALIZATION_PERIOD;
         unit -> mode = DEFAULT_MODE;
@@ -229,4 +238,16 @@ void CommandHandler::handleControlUnitParameters(JsonObject& object) {
         LittleFS.format();
         ESP.restart();
     }
+
+    save_required = true;
+}
+
+/**
+ * @brief Handles the incoming TOU pricing schedule command.
+ * 
+ * @param object 
+ */
+void CommandHandler::handleTOUPricing(JsonObject& object) {
+    Persistence persistence("/tou.txt", 16384, true);
+    persistence.document = object;
 }
