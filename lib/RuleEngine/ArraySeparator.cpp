@@ -40,3 +40,16 @@ ps::queue<Token> ArraySeparator::tokenize_array(const ps::string& string) {
     Lexer lexer(string);
     return lexer.tokenize();
 }
+
+Token ArraySeparator::combine(ps::vector<ps::string>& array) {
+    Token ret;
+    ret.type = ARRAY;
+    ps::ostringstream output;
+    for (size_t i = 0; i < array.size(); i++) {
+        output << "\"" << array.at(i) << "\"";
+        if (i != array.size() - 1) output << ",";
+    }
+
+    ret.lexeme = output.str();
+    return ret;
+}

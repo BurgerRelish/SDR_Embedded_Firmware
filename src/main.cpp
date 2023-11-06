@@ -379,7 +379,7 @@ void first_time_setup(Persistence& persistence) {
  */
 void save_runtime_variables() {
   if (!command_handler -> save_required) return;
-
+  command_handler -> save_required = true;
   ESP_LOGI("Unit", "Saving Runtime Variables.");
 
   { // Save the Scheduler variables to flash.

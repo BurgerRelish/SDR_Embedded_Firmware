@@ -148,21 +148,21 @@ std::tuple<double, double, double, double> Module::get_summary(double Reading::*
 }
 
 void Module::load_re_vars() {
-    re::RuleEngineBase::set_var(re::VAR_CLASS, MODULE_CLASS, (void*) this);
+    re::RuleEngineBase::mk_var(re::VAR_CLASS, MODULE_CLASS, (void*) this);
 
-    re::RuleEngineBase::set_var(re::VAR_DOUBLE, ACTIVE_POWER, std::function<double()>([this]() { return this->getLatestReading().active_power(); }));
-    re::RuleEngineBase::set_var(re::VAR_DOUBLE, REACTIVE_POWER, std::function<double()>([this]() { return this->getLatestReading().reactive_power(); }));
-    re::RuleEngineBase::set_var(re::VAR_DOUBLE, APPARENT_POWER, std::function<double()>([this]() { return this->getLatestReading().apparent_power; }));
-    re::RuleEngineBase::set_var(re::VAR_DOUBLE, VOLTAGE, std::function<double()>([this]() { return this->getLatestReading().voltage; }));
-    re::RuleEngineBase::set_var(re::VAR_DOUBLE, FREQUENCY, std::function<double()>([this]() { return this->getLatestReading().frequency; }));
-    re::RuleEngineBase::set_var(re::VAR_DOUBLE, POWER_FACTOR, std::function<double()>([this]() { return this->getLatestReading().power_factor; }));
-    re::RuleEngineBase::set_var(re::VAR_UINT64_T, SWITCH_TIME, std::function<uint64_t()>([this]() { return this->getRelayStateChangeTime(); }));
-    re::RuleEngineBase::set_var(re::VAR_INT, CIRCUIT_PRIORITY, std::function<int()>([this]() { return this->getModulePriority(); }));
-    re::RuleEngineBase::set_var(re::VAR_STRING, MODULE_ID, std::function<ps::string()>([this]() { return this->getModuleID(); }));
-    re::RuleEngineBase::set_var(re::VAR_ARRAY, MODULE_TAG_LIST, std::function<ps::vector<ps::string>()>([this]() { return this->get_tags(); }));
-    re::RuleEngineBase::set_var(re::VAR_BOOL, SWITCH_STATUS, std::function<bool()>([this]() { return this->getRelayState(); }));
-    re::RuleEngineBase::set_var(re::VAR_INT, READING_COUNT, std::function<int()>([this](){ return this -> getReadings().size(); }));
-    re::RuleEngineBase::set_var(re::VAR_INT, NEW_READING_COUNT, std::function<int()>([this](){ return this -> new_readings; }));
+    re::RuleEngineBase::mk_var(re::VAR_DOUBLE, ACTIVE_POWER, std::function<double()>([this]() { return this->getLatestReading().active_power(); }));
+    re::RuleEngineBase::mk_var(re::VAR_DOUBLE, REACTIVE_POWER, std::function<double()>([this]() { return this->getLatestReading().reactive_power(); }));
+    re::RuleEngineBase::mk_var(re::VAR_DOUBLE, APPARENT_POWER, std::function<double()>([this]() { return this->getLatestReading().apparent_power; }));
+    re::RuleEngineBase::mk_var(re::VAR_DOUBLE, VOLTAGE, std::function<double()>([this]() { return this->getLatestReading().voltage; }));
+    re::RuleEngineBase::mk_var(re::VAR_DOUBLE, FREQUENCY, std::function<double()>([this]() { return this->getLatestReading().frequency; }));
+    re::RuleEngineBase::mk_var(re::VAR_DOUBLE, POWER_FACTOR, std::function<double()>([this]() { return this->getLatestReading().power_factor; }));
+    re::RuleEngineBase::mk_var(re::VAR_UINT64_T, SWITCH_TIME, std::function<uint64_t()>([this]() { return this->getRelayStateChangeTime(); }));
+    re::RuleEngineBase::mk_var(re::VAR_INT, CIRCUIT_PRIORITY, std::function<int()>([this]() { return this->getModulePriority(); }));
+    re::RuleEngineBase::mk_var(re::VAR_STRING, MODULE_ID, std::function<ps::string()>([this]() { return this->getModuleID(); }));
+    re::RuleEngineBase::mk_var(re::VAR_ARRAY, MODULE_TAG_LIST, std::function<ps::vector<ps::string>()>([this]() { return this->get_tags(); }));
+    re::RuleEngineBase::mk_var(re::VAR_BOOL, SWITCH_STATUS, std::function<bool()>([this]() { return this->getRelayState(); }));
+    re::RuleEngineBase::mk_var(re::VAR_INT, READING_COUNT, std::function<int()>([this](){ return this -> getReadings().size(); }));
+    re::RuleEngineBase::mk_var(re::VAR_INT, NEW_READING_COUNT, std::function<int()>([this](){ return this -> new_readings; }));
 }
 
 const ps::string& Module::getModuleID() {
@@ -205,7 +205,6 @@ bool Module::setRelayState(bool state) {
     StatusChange new_change;
     new_change.status = state;
     
-
     if (!interface -> sendOperation(slave_address, (state) ? OPERATION_RELAY_SET : OPERATION_RELAY_RESET)) return false;
     new_status_changes++;
     new_change.timestamp = getTime();

@@ -3,37 +3,37 @@
 #include "MQTTClient.h"
 
 void Unit::load_vars() {
-    re::RuleEngineBase::set_var(re::VAR_CLASS, UNIT_CLASS, (void*)this);
+    re::RuleEngineBase::mk_var(re::VAR_CLASS, UNIT_CLASS, (void*)this);
 
-    re::RuleEngineBase::set_var(re::VAR_DOUBLE, TOTAL_ACTIVE_POWER, std::function<double()>([this]() { return this->totalActivePower(); }));
-    re::RuleEngineBase::set_var(re::VAR_DOUBLE, TOTAL_REACTIVE_POWER, std::function<double()>([this]() { return this->totalReactivePower(); }));
-    re::RuleEngineBase::set_var(re::VAR_DOUBLE, TOTAL_APPARENT_POWER, std::function<double()>([this]() { return this->totalApparentPower(); }));
-    re::RuleEngineBase::set_var(re::VAR_DOUBLE, MEAN_VOLTAGE, std::function<double()>([this]() { return this->meanVoltage(); }));
-    re::RuleEngineBase::set_var(re::VAR_DOUBLE, MEAN_POWER_FACTOR, std::function<double()>([this]() { return this->meanPowerFactor(); }));
-    re::RuleEngineBase::set_var(re::VAR_DOUBLE, MEAN_FREQUENCY, std::function<double()>([this]() { return this->meanFrequency(); }));
+    re::RuleEngineBase::mk_var(re::VAR_DOUBLE, TOTAL_ACTIVE_POWER, std::function<double()>([this]() { return this->totalActivePower(); }));
+    re::RuleEngineBase::mk_var(re::VAR_DOUBLE, TOTAL_REACTIVE_POWER, std::function<double()>([this]() { return this->totalReactivePower(); }));
+    re::RuleEngineBase::mk_var(re::VAR_DOUBLE, TOTAL_APPARENT_POWER, std::function<double()>([this]() { return this->totalApparentPower(); }));
+    re::RuleEngineBase::mk_var(re::VAR_DOUBLE, MEAN_VOLTAGE, std::function<double()>([this]() { return this->meanVoltage(); }));
+    re::RuleEngineBase::mk_var(re::VAR_DOUBLE, MEAN_POWER_FACTOR, std::function<double()>([this]() { return this->meanPowerFactor(); }));
+    re::RuleEngineBase::mk_var(re::VAR_DOUBLE, MEAN_FREQUENCY, std::function<double()>([this]() { return this->meanFrequency(); }));
 
-    re::RuleEngineBase::set_var(re::VAR_BOOL, POWER_STATUS, std::function<bool()>([this]() { return this->powerStatus(); }));
-    re::RuleEngineBase::set_var(re::VAR_STRING, UNIT_ID, std::function<ps::string()>([this]() { return this->id(); }));
-    re::RuleEngineBase::set_var(re::VAR_ARRAY, UNIT_TAG_LIST, std::function<ps::vector<ps::string>()>([this]() { return this->get_tags(); }));
-    re::RuleEngineBase::set_var(re::VAR_INT, MODULE_COUNT, std::function<int()>([this]() { return this->moduleCount(); }));
+    re::RuleEngineBase::mk_var(re::VAR_BOOL, POWER_STATUS, std::function<bool()>([this]() { return this->powerStatus(); }));
+    re::RuleEngineBase::mk_var(re::VAR_STRING, UNIT_ID, std::function<ps::string()>([this]() { return this->id(); }));
+    re::RuleEngineBase::mk_var(re::VAR_ARRAY, UNIT_TAG_LIST, std::function<ps::vector<ps::string>()>([this]() { return this->get_tags(); }));
+    re::RuleEngineBase::mk_var(re::VAR_INT, MODULE_COUNT, std::function<int()>([this]() { return this->moduleCount(); }));
 
-    re::RuleEngineBase::set_var(re::VAR_DOUBLE, KWH_PRICE, std::function<double()>([this]() { return this->getkWhPrice(); }));
+    re::RuleEngineBase::mk_var(re::VAR_DOUBLE, KWH_PRICE, std::function<double()>([this]() { return this->getkWhPrice(); }));
 }
 
 void Unit::loadUnitVarsInModule(std::shared_ptr<Module>& module) {
-    module -> set_var(re::VAR_DOUBLE, TOTAL_ACTIVE_POWER, std::function<double()>([this]() { return this->totalActivePower(); }));
-    module -> set_var(re::VAR_DOUBLE, TOTAL_REACTIVE_POWER, std::function<double()>([this]() { return this->totalReactivePower(); }));
-    module -> set_var(re::VAR_DOUBLE, TOTAL_APPARENT_POWER, std::function<double()>([this]() { return this->totalApparentPower(); }));
-    module -> set_var(re::VAR_DOUBLE, MEAN_VOLTAGE, std::function<double()>([this]() { return this->meanVoltage(); }));
-    module -> set_var(re::VAR_DOUBLE, MEAN_POWER_FACTOR, std::function<double()>([this]() { return this->meanPowerFactor(); }));
-    module -> set_var(re::VAR_DOUBLE, MEAN_FREQUENCY, std::function<double()>([this]() { return this->meanFrequency(); }));
+    module -> mk_var(re::VAR_DOUBLE, TOTAL_ACTIVE_POWER, std::function<double()>([this]() { return this->totalActivePower(); }));
+    module -> mk_var(re::VAR_DOUBLE, TOTAL_REACTIVE_POWER, std::function<double()>([this]() { return this->totalReactivePower(); }));
+    module -> mk_var(re::VAR_DOUBLE, TOTAL_APPARENT_POWER, std::function<double()>([this]() { return this->totalApparentPower(); }));
+    module -> mk_var(re::VAR_DOUBLE, MEAN_VOLTAGE, std::function<double()>([this]() { return this->meanVoltage(); }));
+    module -> mk_var(re::VAR_DOUBLE, MEAN_POWER_FACTOR, std::function<double()>([this]() { return this->meanPowerFactor(); }));
+    module -> mk_var(re::VAR_DOUBLE, MEAN_FREQUENCY, std::function<double()>([this]() { return this->meanFrequency(); }));
 
-    module -> set_var(re::VAR_BOOL, POWER_STATUS, std::function<bool()>([this]() { return this->powerStatus(); }));
-    module -> set_var(re::VAR_STRING, UNIT_ID, std::function<ps::string()>([this]() { return this->id(); }));
-    module -> set_var(re::VAR_ARRAY, UNIT_TAG_LIST, std::function<ps::vector<ps::string>()>([this]() { return this->get_tags(); }));
-    module -> set_var(re::VAR_INT, MODULE_COUNT, std::function<int()>([this]() { return this->moduleCount(); }));  
+    module -> mk_var(re::VAR_BOOL, POWER_STATUS, std::function<bool()>([this]() { return this->powerStatus(); }));
+    module -> mk_var(re::VAR_STRING, UNIT_ID, std::function<ps::string()>([this]() { return this->id(); }));
+    module -> mk_var(re::VAR_ARRAY, UNIT_TAG_LIST, std::function<ps::vector<ps::string>()>([this]() { return this->get_tags(); }));
+    module -> mk_var(re::VAR_INT, MODULE_COUNT, std::function<int()>([this]() { return this->moduleCount(); }));  
 
-    module -> set_var(re::VAR_DOUBLE, KWH_PRICE, std::function<double()>([this]() { return this->getkWhPrice(); }));
+    module -> mk_var(re::VAR_DOUBLE, KWH_PRICE, std::function<double()>([this]() { return this->getkWhPrice(); }));
 }
 
 void Unit::begin(Stream* stream_1, uint8_t ctrl_1, uint8_t ctrl_2, uint8_t dir_1) {

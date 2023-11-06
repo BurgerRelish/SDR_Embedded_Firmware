@@ -4,8 +4,13 @@
 #define SEMANTICS_H
 
 /* Rule Engine Variables */
-#define LAST_EXECUTION_TIME "last_time"
-#define CURRENT_TIME "time"
+#define LAST_EXECUTION_TIME "last_tm"
+#define CURRENT_TIME "tm"
+#define INITIALIZED "setup" 
+
+/* Rule Engine Functions */
+#define SET_VAR "set"
+#define MAKE_VAR "let"
 
 /* Operators */
 #define BOOLEAN_AND "&&"
@@ -27,6 +32,7 @@
 #define COMPARISON_LESSER_THAN_OR_EQUAL "<="
 
 #define ARRAY_TAG_EQUALITY_COMPARISON COMPARISON_EQUAL
+#define ARRAY_TAG_INEQUALITY_COMPARISON COMPARISON_NOT_EQUAL
 #define ARRAY_TAG_SUBSET_COMPARISON BOOLEAN_OR
 
 #define ARRAY_SEPARATOR ","

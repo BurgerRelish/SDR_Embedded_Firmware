@@ -128,23 +128,23 @@ void Scheduler::clearModule(ps::string module_id) {
     }
 }
 
-QueueHandle_t queue;
-SemaphoreHandle_t scheduler_semaphore;
+// QueueHandle_t queue;
+// SemaphoreHandle_t scheduler_semaphore;
 
-void schedulerTask(void* parent) {
-    queue = xQueueCreate(10, sizeof(ps::vector<SchedulerItem>));
-    Scheduler* scheduler = (Scheduler*) parent;
-    ps::vector<SchedulerItem> items;
+// void schedulerTask(void* parent) {
+//     queue = xQueueCreate(10, sizeof(ps::vector<SchedulerItem>));
+//     Scheduler* scheduler = (Scheduler*) parent;
+//     ps::vector<SchedulerItem> items;
 
-    while (true) {
+//     while (true) {
         
-        items = scheduler -> check();
+//         items = scheduler -> check();
         
-        if (items.size() > 0) {
-            auto outgoing = new ps::vector<SchedulerItem>(items);
-            xQueueSend(queue, outgoing, portMAX_DELAY);
-        }
+//         if (items.size() > 0) {
+//             auto outgoing = new ps::vector<SchedulerItem>(items);
+//             xQueueSend(queue, outgoing, portMAX_DELAY);
+//         }
 
-        vTaskDelay(500 / portTICK_PERIOD_MS);
-    }
-}
+//         vTaskDelay(500 / portTICK_PERIOD_MS);
+//     }
+// }

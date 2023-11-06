@@ -9,6 +9,7 @@
 #include "JSONFields.h"
 
 #include "RuleEngine.h"
+#include "Expression.h"
 
 namespace re {
 
@@ -19,15 +20,15 @@ class RuleEngineBase : public RuleEngine {
 
     public:
     RuleEngineBase(const ps::string& tag_array_name, std::shared_ptr<FunctionStorage>& function_store) : RuleEngine(function_store) {
-        RuleEngine::set_var(VAR_ARRAY, tag_array_name, [this](){return this -> class_tags;});
+        RuleEngine::mk_var(VAR_ARRAY, tag_array_name, [this](){return this -> class_tags;});
     }  
 
     RuleEngineBase(const ps::string& tag_array_name, std::shared_ptr<FunctionStorage>& function_store, ps::vector<ps::string>& tag_list) : RuleEngine(function_store), class_tags(tag_list) {
-        RuleEngine::set_var(VAR_ARRAY, tag_array_name, [this](){return this -> class_tags;});
+        RuleEngine::mk_var(VAR_ARRAY, tag_array_name, [this](){return this -> class_tags;});
     }
 
     RuleEngineBase(const ps::string& tag_array_name, std::shared_ptr<FunctionStorage>& function_store, ps::vector<ps::string>& tag_list, ps::vector<std::tuple<int, ps::string, ps::string>> rule_list) : RuleEngine(function_store), class_tags(tag_list), rules(rule_list) {
-        RuleEngine::set_var(VAR_ARRAY, tag_array_name, [this](){return this -> class_tags;});
+        RuleEngine::mk_var(VAR_ARRAY, tag_array_name, [this](){return this -> class_tags;});
     }
 
     ps::vector<std::tuple<int, ps::string, ps::string>>& get_rules() {

@@ -17,9 +17,9 @@ class Expression {
     VariableStorage* variables;
     ps::unordered_map<ps::string, ps::vector<ps::string>> array_lookup;
 
-    bool evaluateRPN();
+    double evaluateRPN();
+    
     /* Operations */
-
     void evaluateOperator(ps::stack<Token>& tokens, Token& operator_token);
     bool applyBooleanOperator(Token& lhs, Token& rhs, Token& operator_token);
     double applyArithmeticOperator(Token& lhs, Token& rhs, Token& operator_token);
@@ -27,10 +27,15 @@ class Expression {
     bool applyComparisonOperatorUint64(Token& lhs, Token& rhs, Token& operator_token);
     bool applyArrayComparison(Token& lhs, Token& rhs, Token& operator_token);
     bool applyStringComparison(Token& lhs, Token& rhs, Token& operator_token);
+    Token applyArrayOperator(Token& lhs, Token& rhs, Token& operator_token);
 
+
+    ps::vector<ps::string> separateArray(const Token& token);
+    Token combineArray(ps::vector<ps::string>& array);
     const bool arrayMinQuantifierSearch(const ps::vector<ps::string>& lhs_array, const ps::vector<ps::string>& rhs_array, const size_t n) const;
     const bool arrayEqualityComparison(const ps::vector<ps::string>& lhs_array, const ps::vector<ps::string>& rhs_array) const;
     const bool arraySubsetComparison(const ps::vector<ps::string>& lhs_array, const ps::vector<ps::string>& rhs_array) const;
+
     public:
     Expression(const ps::string& expression, VariableStorage* vars) : variables(vars)
     {
@@ -46,7 +51,25 @@ class Expression {
         }
     }
 
+    Expression(ps::vector<Token>& expression, VariableStorage* vars) : variables(vars) {
+        ps::queue<Token> to_eval;
+        for (auto tok : expression) {
+            to_eval.push(tok);
+        }
+
+        auto expr = ShuntingYard::apply(to_eval);
+
+        /* Load the expression back into a vector. */
+        while(!expr.empty()) {
+            auto token = expr.front();
+            _expression.push_back(token);
+            expr.pop();
+        }
+    
+    }
+
     bool evaluate();
+    double result();
 
 };
 

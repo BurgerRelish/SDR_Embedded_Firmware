@@ -3,10 +3,6 @@
 #ifndef SDR_SEMANTICS_H
 #define SDR_SEMANTICS_H
 
-/* Rule Engine Variables - See rule_engine/src/Semantics.h*/
-#define LAST_EXECUTION_TIME "last_time"
-#define CURRENT_TIME "time"
-
 /* Unit Variables */
 #define UNIT_CLASS "unit"
 #define TOTAL_ACTIVE_POWER "tot_act_pwr"
@@ -39,9 +35,6 @@
 
 #define READING_COUNT "num_readings"
 #define NEW_READING_COUNT "num_new_readings"
-
-/* Common Commands */
-#define SET_VARIABLE "setVar" // (str type, str name, value) , value can be "dbl", "int" or "str" as specified by type
 
 /* Module Commands */
 #define SET_MODULE_STATE "setState" // (state)

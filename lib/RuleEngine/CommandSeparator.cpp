@@ -4,11 +4,11 @@
 
 namespace re {
 
-ps::vector<std::tuple<ps::string, ps::vector<ps::string>>> CommandSeparator::separate(ps::string command) {
+ps::vector<CommandData> CommandSeparator::separate(ps::string command) {
     ESP_LOGV("Separator", "started.");
     Lexer lexer;
     ps::queue<Token> tokens = lexer.tokenize(command);
-    ps::vector<std::tuple<ps::string, ps::vector<ps::string>>> ret;
+    ps::vector<CommandData> ret;
     ps::queue<Token> current_command;
 
     while (!tokens.empty()) {
@@ -23,7 +23,8 @@ ps::vector<std::tuple<ps::string, ps::vector<ps::string>>> CommandSeparator::sep
 
         uint8_t state = 0;
         ps::string name;
-        ps::vector<ps::string> args;
+        ps::vector<ps::vector<ps::string>> args;
+        ps::vector<ps::string> expr;
         ESP_LOGV("Parse", "Parsing command");
         while (!current_command.empty()) {
             auto& token = current_command.front();
@@ -43,12 +44,18 @@ ps::vector<std::tuple<ps::string, ps::vector<ps::string>>> CommandSeparator::sep
                     }
                     break;
 
-                case 2:
+                case 2: // Get the token arguments
                     if (token.lexeme == ")") {
+                        args.push_back(expr);
+                        expr.clear();
                         state = 3;
-                    } else if (token.lexeme != ARGUMENT_SEPARATOR) { // ,
-                        args.push_back(token.lexeme);
+                    } else if (token.lexeme == ARGUMENT_SEPARATOR) { // ,
+                        args.push_back(expr);
+                        expr.clear();
+                    } else {
+                        expr.push_back(token.lexeme);
                     }
+
                     break;
                 case 3:
                     if (token.lexeme != COMMAND_SEPARATOR) ESP_LOGE("Syntax", "Invalid command syntax");

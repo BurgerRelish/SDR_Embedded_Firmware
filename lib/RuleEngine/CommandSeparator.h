@@ -10,13 +10,14 @@
 
 namespace re {
     
+using CommandData = std::tuple<ps::string, ps::vector<ps::vector<ps::string>>>; // <command name, <arguments>>
 class CommandSeparator {
     private:
     
     public:
     CommandSeparator() {}
 
-    ps::vector<std::tuple<ps::string, ps::vector<ps::string>>> separate(ps::string command);
+    ps::vector<CommandData> separate(ps::string command);
 };
 
 }

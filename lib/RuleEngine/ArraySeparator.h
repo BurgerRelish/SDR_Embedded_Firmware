@@ -18,6 +18,7 @@ class ArraySeparator {
      * @returns A queue of strings representing the array elements.
     */
     ps::vector<ps::string> separate(const Token& token);
+    Token combine(ps::vector<ps::string>&);
 };
 
 #endif // ARRAY_SEPARATOR_H

@@ -5,20 +5,20 @@
 
 #include "Lexer.h"
 #include "VariableStorage.h"
-#include "CommandSeparator.h"
+#include <ps_stl.h>
+#include <any>
 
 namespace re {
-
 class FunctionStorage {
     private:        
-        ps::unordered_map<ps::string, std::function<bool(ps::vector<ps::string>&, VariableStorage*)>> function_map;
+        ps::unordered_map<ps::string, std::function<bool(ps::vector<ps::vector<Token>>&, VariableStorage*)>> function_map;
 
     public:
-        void add(const ps::string& identifier, std::function<bool(ps::vector<ps::string>&, VariableStorage*)> function) {
+        void add(const ps::string& identifier, std::function<bool(ps::vector<ps::vector<Token>>&, VariableStorage*)> function) {
             function_map[identifier] = function;
         }
 
-        bool execute(const ps::string& identifier, ps::vector<ps::string>& args, VariableStorage* vars) {
+        bool execute(const ps::string& identifier, ps::vector<ps::vector<Token>>& args, VariableStorage* vars) {
             auto lambda = function_map.find(identifier);
 
             if (lambda == function_map.end()) {
@@ -41,12 +41,12 @@ class Executor {
     private:
     std::shared_ptr<FunctionStorage> fn_store;
     VariableStorage* var_store;
-    ps::vector<std::tuple<ps::string, ps::vector<ps::string>>> commands;
+    ps::vector<std::tuple<ps::string, ps::vector<ps::vector<Token>>>> commands;
+    ps::vector<std::tuple<ps::string, ps::vector<ps::vector<Token>>>> separate(const ps::string& command);
 
     public:
     Executor(ps::string command, std::shared_ptr<FunctionStorage>& functions, VariableStorage* variables) : fn_store(functions), var_store(variables) {
-        CommandSeparator separator;
-        commands = separator.separate(command);
+        commands = separate(command);
     }
 
     bool execute() {

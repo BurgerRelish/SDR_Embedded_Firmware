@@ -5,6 +5,8 @@
 #define TAG_RULE_ENGINE "RULE_ENGINE"
 #endif
 
+#include "Semantics.h"
+
 ps::queue<Token> Lexer::tokenize() {
     #ifdef DEBUG_RULE_ENGINE
     ESP_LOGD(TAG_RULE_ENGINE, "Lexer started.");

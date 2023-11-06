@@ -20,7 +20,11 @@ bool Expression::evaluate() {
     return ret;
 }
 
-bool Expression::evaluateRPN() {
+double Expression::result() {
+    return evaluateRPN();
+}
+
+double Expression::evaluateRPN() {
     ps::queue<Token> token_list;
     for (auto token : _expression) {
         token_list.push(token);
@@ -53,16 +57,16 @@ bool Expression::evaluateRPN() {
     if(token_stack.size() != 1) throw std::invalid_argument("Unbalanced expression.");
     if(token_stack.top().type != NUMERIC_LITERAL) throw std::invalid_argument("Failed to evaluate expression.");
 
-    return (bool) std::atof(token_stack.top().lexeme.c_str());
+    return std::atof(token_stack.top().lexeme.c_str());
 }
 
 void Expression::evaluateOperator(ps::stack<Token>& tokens, Token& operator_token) {
     Token rhs = tokens.top();
-    VariableType rhs_type = variables->type(rhs.lexeme);
+    VariableType rhs_type = variables->get_type(rhs.lexeme);
     tokens.pop();
 
     Token lhs = tokens.top();
-    VariableType lhs_type = variables->type(lhs.lexeme);
+    VariableType lhs_type = variables->get_type(lhs.lexeme);
     tokens.pop();
 
     Token result;
@@ -76,8 +80,13 @@ void Expression::evaluateOperator(ps::stack<Token>& tokens, Token& operator_toke
         tokens.push(result);
         return;
     } else if (lhs_type == VAR_ARRAY || rhs_type == VAR_ARRAY) {
-        val_str = std::to_string((double) applyArrayComparison(lhs, rhs, operator_token));
-        result.lexeme <<= val_str;
+        if (operator_token.lexeme == "&&" || operator_token.lexeme == "||") {
+            result = applyArrayOperator(lhs, rhs, operator_token);
+        } else {
+            val_str = std::to_string((double) applyArrayComparison(lhs, rhs, operator_token));
+            result.lexeme <<= val_str; 
+        }
+
         tokens.push(result);
         return;
     }
@@ -169,7 +178,7 @@ double Expression::applyArithmeticOperator(Token& lhs, Token& rhs, Token& operat
 }
 
 bool Expression::applyComparisonOperator(Token& lhs, Token& rhs, Token& operator_token) {
-    if (variables->type(lhs.lexeme) == VAR_UINT64_T || variables->type(rhs.lexeme) == VAR_UINT64_T) return applyComparisonOperatorUint64(lhs, rhs, operator_token);
+    if (variables->get_type(lhs.lexeme) == VAR_UINT64_T || variables->get_type(rhs.lexeme) == VAR_UINT64_T) return applyComparisonOperatorUint64(lhs, rhs, operator_token);
     
     double lhs_val = variables->get_var<double>(lhs.lexeme);
     double rhs_val = variables->get_var<double>(rhs.lexeme);
@@ -247,8 +256,8 @@ bool Expression::applyArrayComparison(Token& lhs, Token& rhs, Token& operator_to
 
     Token arr_name;
 
-    VariableType lhs_type = variables->type(lhs.lexeme);
-    VariableType rhs_type = variables->type(rhs.lexeme);
+    VariableType lhs_type = variables->get_type(lhs.lexeme);
+    VariableType rhs_type = variables->get_type(rhs.lexeme);
     /* If the array is of a string type, */
     if (lhs_type == VAR_STRING || lhs.type == STRING_LITERAL) {
         lhs_array.push_back(variables->get_var<ps::string>(lhs.lexeme));
@@ -257,8 +266,7 @@ bool Expression::applyArrayComparison(Token& lhs, Token& rhs, Token& operator_to
         if (it != array_lookup.end()) { // Array already exists.
             lhs_array = it -> second;
         } else { // Else parse the array and store it for later.
-            ArraySeparator separator;
-            lhs_array = separator.separate(lhs);
+            lhs_array = separateArray(lhs);
             array_lookup.insert(std::make_pair(rhs.lexeme, lhs_array));
         }
     } else if (lhs_type == VAR_ARRAY) {
@@ -272,8 +280,7 @@ bool Expression::applyArrayComparison(Token& lhs, Token& rhs, Token& operator_to
         if (it != array_lookup.end()) { // Array already exists.
             rhs_array = it -> second;
         } else { // Else parse the array and store it for later.
-            ArraySeparator separator;
-            rhs_array = separator.separate(rhs);
+            rhs_array = separateArray(rhs);
             array_lookup.insert(std::make_pair(lhs.lexeme, rhs_array));
         }
     } else if (rhs_type == VAR_ARRAY) {
@@ -308,6 +315,8 @@ bool Expression::applyArrayComparison(Token& lhs, Token& rhs, Token& operator_to
 
     if (operator_token.lexeme == ARRAY_TAG_EQUALITY_COMPARISON) {
         retval = arrayEqualityComparison(lhs_array, rhs_array);
+    } else if (operator_token.lexeme == ARRAY_TAG_INEQUALITY_COMPARISON) {
+        retval = !arrayEqualityComparison(lhs_array, rhs_array);
     } else if (operator_token.lexeme == ARRAY_TAG_SUBSET_COMPARISON) {
         retval = arraySubsetComparison(lhs_array, rhs_array);
     } else throw std::invalid_argument("Unknown array comparison.");
@@ -317,6 +326,64 @@ bool Expression::applyArrayComparison(Token& lhs, Token& rhs, Token& operator_to
     log_printf("\n======================================\r\n\n");
     #endif
     return retval;
+}
+
+Token Expression::applyArrayOperator(Token& lhs, Token& rhs, Token& operator_token) {
+    ps::vector<ps::string> lhs_array;
+    ps::vector<ps::string> rhs_array; 
+
+    Token arr_name;
+
+    VariableType lhs_type = variables->get_type(lhs.lexeme);
+    VariableType rhs_type = variables->get_type(rhs.lexeme);
+    /* If the array is of a string type, */
+    if (lhs_type == VAR_STRING || lhs.type == STRING_LITERAL) {
+        lhs_array.push_back(variables->get_var<ps::string>(lhs.lexeme));
+    } else if (lhs.type == ARRAY) {
+        auto it = array_lookup.find(rhs.lexeme);
+        if (it != array_lookup.end()) { // Array already exists.
+            lhs_array = it -> second;
+        } else { // Else parse the array and store it for later.
+            lhs_array = separateArray(lhs);
+            array_lookup.insert(std::make_pair(rhs.lexeme, lhs_array));
+        }
+    } else if (lhs_type == VAR_ARRAY) {
+        lhs_array = variables->get_var<ps::vector<ps::string>>(lhs.lexeme);
+    }
+
+    if (rhs_type == VAR_STRING || rhs.type == STRING_LITERAL) {
+        rhs_array.push_back(variables->get_var<ps::string>(rhs.lexeme));
+    } else if (rhs.type == ARRAY) {
+        auto it = array_lookup.find(lhs.lexeme);
+        if (it != array_lookup.end()) { // Array already exists.
+            rhs_array = it -> second;
+        } else { // Else parse the array and store it for later.
+            rhs_array = separateArray(rhs);
+            array_lookup.insert(std::make_pair(lhs.lexeme, rhs_array));
+        }
+    } else if (rhs_type == VAR_ARRAY) {
+        rhs_array = variables->get_var<ps::vector<ps::string>>(rhs.lexeme);
+    }
+
+    ps::vector<ps::string> retval;
+    if (operator_token.lexeme == "||") { // Get unique elements
+        // Combine the two arrays, adding the elements if they are not already in the array.
+        for (auto& item : lhs_array) {
+            if (std::find(retval.begin(), retval.end(), item) == retval.end()) retval.push_back(item);
+        }
+
+        for (auto& item : rhs_array) {
+            if (std::find(retval.begin(), retval.end(), item) == retval.end()) retval.push_back(item);
+        }
+
+    } else if (operator_token.lexeme == "&&") { // Get common elements
+        for (auto& item : lhs_array) {
+            if (std::find(rhs_array.begin(), rhs_array.end(), item) != rhs_array.end()) retval.push_back(item);
+        }
+    }
+
+    // Convert the return array back into a string.
+    return combineArray(retval);
 }
 
 /**
@@ -395,4 +462,47 @@ const bool Expression::arrayEqualityComparison(const ps::vector<ps::string>& lhs
     return arrayMinQuantifierSearch(lhs_array, rhs_array, lhs_array.size());
 }
 
+ps::vector<ps::string> Expression::separateArray(const Token& token) {
+    #ifdef DEBUG_RULE_ENGINE
+    ESP_LOGD(TAG_RULE_ENGINE, "Separating Array...");
+    uint64_t start_time = esp_timer_get_time();
+    #endif
+
+    if (token.type != ARRAY) throw std::invalid_argument("Not an ARRAY type token.");
+    Lexer lexer(token.lexeme);
+    ps::queue<Token> array_tokens = lexer.tokenize();
+
+    ps::vector<ps::string> resultant_array;
+
+    TokenType token_type;
+    while (!array_tokens.empty())
+    {
+        token_type = array_tokens.front().type;
+
+        if(token_type == STRING_LITERAL) resultant_array.push_back(array_tokens.front().lexeme);
+        else if(token_type != SEPARATOR) throw std::invalid_argument("Only string literals are implemented in arrays at the moment.");
+        
+        array_tokens.pop();
+    }
+
+    #ifdef DEBUG_RULE_ENGINE
+    ESP_LOGD(TAG_RULE_ENGINE, "Array Separated. [Took %uus]", esp_timer_get_time() - start_time);
+    #endif
+
+    return resultant_array;
 }
+
+Token Expression::combineArray(ps::vector<ps::string>& array) {
+    Token ret;
+    ret.type = ARRAY;
+    ps::ostringstream output;
+    for (size_t i = 0; i < array.size(); i++) {
+        output << "\"" << array.at(i) << "\"";
+        if (i != array.size() - 1) output << ",";
+    }
+
+    ret.lexeme = output.str();
+    return ret;
+}
+
+} // namespace re

@@ -3,8 +3,9 @@
 #include "Module.h"
 
 
-std::function<bool(ps::vector<ps::string>&, re::VariableStorage*)> set_module_state = [](ps::vector<ps::string>& args, re::VariableStorage* vars){
-    bool new_state = vars->get_var<bool>(args.at(0));
+std::function<bool(ps::vector<ps::vector<Token>>&, re::VariableStorage*)> set_module_state = [](ps::vector<ps::vector<Token>>& args, re::VariableStorage* vars){
+    re::Expression expr(args.at(0), vars);
+    bool new_state = expr.evaluate();
 
     Module* module = (Module*) vars -> get_var<void*>(MODULE_CLASS);
     ESP_LOGI("ModuleCmd", "Setting state to: %d", new_state);

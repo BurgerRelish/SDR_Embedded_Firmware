@@ -13,8 +13,6 @@
 
 #include <ps_stl.h>
 
-#include "Semantics.h"
-
 #include "var_cast.h"
 
 namespace re {
@@ -69,11 +67,14 @@ class VariableStorage {
      * @param identifier 
      * @return VariableType 
      */
-    VariableType type(ps::string identifier);
-
+    VariableType get_type(ps::string identifier) {
+    auto result = storage.find(identifier);
+    if (result == storage.end()) return VAR_UNKNOWN;
+    return result -> second.first;
+}
 
     /**
-     * @brief Add a variable to the map with the provided type, identifier and value.
+     * @brief Add a new variable to the map with the provided type, identifier and value.
      * 
      * @tparam T type of variable to add.
      * @param type VariableType of variable to add.
@@ -81,7 +82,7 @@ class VariableStorage {
      * @param value value of the variable
      */
     template <typename T>
-    void set_var(VariableType type, ps::string identifier, const T value) {
+    void mk_var(VariableType type, ps::string identifier, const T value) {
         auto curr = storage.find(identifier);
 
         if (curr == storage.end()) { // Add a new variable
@@ -103,6 +104,27 @@ class VariableStorage {
     }
 
     /**
+     * @brief Set variable in the map with the provided identifier to the value.
+     * 
+     * @tparam T type of variable to set..
+     * @param identifier name of the variable.
+     * @param value value of the variable
+     * @return true if the variable was set, else false.
+     */
+    template <typename T>
+    bool set_var(ps::string identifier, const T value) {
+        auto curr = storage.find(identifier);
+
+        if (curr == storage.end())
+            return false;
+        
+        // Else update the existing variable.
+        storage[identifier] = std::make_pair(curr -> second.first, std::any(value));
+        ESP_LOGV("Update", "Id: %s, Tp: %d", identifier.c_str(), curr->second.first);
+        return true;
+    }
+
+    /**
      * @brief Fetches the value of an identifier string. Searches through own unordered_maps first. 
      * If no match is found, it attempts to cast the identifier string into the requested value.
      * 
@@ -116,6 +138,7 @@ class VariableStorage {
         if (var != storage.end()) {
             try { /* Execute lambda */
                 switch (var -> second.first) {
+
                         case (VAR_INT): {
                             int ret = 0;
                             try {
@@ -221,15 +244,12 @@ class VariableStorage {
     template <typename T>
     T get_direct(const ps::string identifier) {
         auto var = storage.find(identifier);
-        if (var != storage.end()) {
-            try {
-                return std::any_cast<T>(var->second.second);
-            } catch (const std::bad_any_cast& e) {
-                ESP_LOGE("Cast", "Fail: %e", e.what());
-            }
+        if (var == storage.end()) return T(nullptr);
+        try {
+            return std::any_cast<T>(var->second.second); 
+        } catch (...) {
+            return T(nullptr);
         }
-
-        return T(nullptr);
     }
 };
 

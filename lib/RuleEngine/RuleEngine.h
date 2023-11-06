@@ -8,6 +8,7 @@
 #include "Language.h"
 #include "Semantics.h"
 #include "Rule.h"
+#include "json_allocator.h"
 
 namespace re {
 struct RuleCompare {
@@ -15,6 +16,8 @@ struct RuleCompare {
                 return (a -> priority < b -> priority);
     }
 };
+
+extern std::function<bool(ps::vector<ps::vector<Token>>&, re::VariableStorage*)> set_variable;
 
 class RuleEngine : public VariableStorage {
     private:
@@ -25,10 +28,9 @@ class RuleEngine : public VariableStorage {
     uint64_t last_time = 0;
 
     void load_rule_engine_vars() {
-        VariableStorage::set_var(VAR_UINT64_T, LAST_EXECUTION_TIME, std::function<uint64_t()>([this]() { return this->last_time; }));
+        VariableStorage::mk_var(VAR_UINT64_T, LAST_EXECUTION_TIME, std::function<uint64_t()>([this]() { return this->last_time; }));
 
-        VariableStorage::set_var(VAR_UINT64_T, CURRENT_TIME, std::function<uint64_t()>([]() {
-                    time_t now;
+        VariableStorage::mk_var(VAR_UINT64_T, CURRENT_TIME, std::function<uint64_t()>([]() {
                     struct tm timeinfo;
                     if(!getLocalTime(&timeinfo)){
                         ESP_LOGE("Time", "Failed to get time.");
@@ -39,9 +41,13 @@ class RuleEngine : public VariableStorage {
                 }
             )
         );
+
+        VariableStorage::mk_var(VAR_BOOL, INITIALIZED, false);
+
+        functions -> add(SET_VAR, set_variable);
     }
 
-    void create_rule(int rule_priority, ps::string expression_str, ps::string command_str) {
+    void create_rule(int rule_priority, ps::string& expression_str, ps::string& command_str) {
         VariableStorage* vars = this;
         auto rule = ps::make_shared<Rule>(rule_priority, expression_str, command_str, vars, functions);
         
@@ -69,7 +75,7 @@ class RuleEngine : public VariableStorage {
      * @param expression_str Expression of rule.
      * @param command_str Commands of rule.
      */
-    void add_rule(const int rule_priority, const ps::string& expression_str, const ps::string& command_str) {
+    void add_rule(const int rule_priority, ps::string expression_str, ps::string command_str) {
         create_rule(rule_priority, expression_str, command_str);
     }
 

@@ -1,9 +1,62 @@
 #include <Arduino.h>
-#include <unity.h>
 #include <ps_stl.h>
-#include <functional>
+#include <esp_brotli.h>
+#include <WiFi.h>
+#include <AsyncTCP.h>
+#include <ESPAsyncWebServer.h>
+#include <ElegantOTA.h>
+#include <time.h>
+#include <LittleFS.h>
 
-#include "../lib/rule_engine/RuleEngineBase.h"
+#include "Config.h"
+#include "PinMap.h"
+#include "Display.h"
+#include "MQTTClient.h"
+#include "Persistence.h"
+#include "Scheduler.h"
+
+
+#include "webpage_setup.h"
+
+#include "App/Unit.h"
+#include "App/Functions.h"
+#include "SerializationHander.h"
+#include "CommandHandler.h"
+
+#include "RuleEngine.h"
+#include <unity.h>
+
+ps::string test_equality = "0 == 0";
+ps::string test_parenthesis = "(1 == 1)";
+ps::string test_inequality = "0 != 1";
+ps::string test_greater_than = "1 > 0";
+ps::string test_less_than = "0 < 1";
+ps::string test_greater_than_equal = "1 >= 0";
+ps::string test_less_than_equal = "0 <= 1";
+
+ps::string test_and = "1 == 1 && 0 == 0";
+ps::string test_or = "1 == 1 || 0 == 1";
+ps::string test_not = "!0";
+
+ps::string test_add = "(1 + 1) == 2";
+ps::string test_subtract = "(1 - 1) == 0";
+ps::string test_multiply = "(3 * 3) == 9";
+ps::string test_divide = "(2 / 1) == 2";
+ps::string test_modulo = "(3 % 2) == 1";
+ps::string test_power = "(3 ^ 2) == 9";
+
+ps::string test_string_equality = "\"a\" == \"a\"";
+ps::string test_string_inequality = "\"a\" != \"b\"";
+
+ps::string test_array_equality = "[\"a\", \"b\", \"c\"] == [\"a\", \"b\", \"c\"]";
+ps::string test_array_inequality = "[\"a\", \"b\", \"c\"] != [\"a\", \"b\"]";
+ps::string test_array_subset = "[\"a\"] |= [\"a\", \"b\"]";
+ps::string test_array_common = "([\"a\"] && [\"a\", \"b\"]) == [\"a\"]";
+ps::string test_array_unique = "([\"a\"] || [\"a\", \"b\"]) == [\"a\", \"b\"]";
+
+ps::string test_array_contains_string = "[\"a\", \"b\", \"c\"] |= \"a\"";
+ps::string test_array_string_equality = "[\"a\"] == \"a\"";
+
 
 void log_memory_usage() {
     static const size_t tot_psram = heap_caps_get_total_size(MALLOC_CAP_SPIRAM);
@@ -12,98 +65,111 @@ void log_memory_usage() {
     size_t free_psram = heap_caps_get_free_size(MALLOC_CAP_SPIRAM);
     size_t free_sram = heap_caps_get_free_size(MALLOC_CAP_INTERNAL);
 
-    log_printf("- PSRAM Usage: %.4f/%u KB (%f%%)\n", ((float)(tot_psram - free_psram)) / 1024, tot_psram / 1024, 100 *( 1 - ((float) free_psram) / ((float) tot_psram)));
-    log_printf("- SRAM Usage: %.4f/%u KB (%f%%)\n", ((float)(tot_sram - free_sram)) / 1024, tot_sram / 1024, 100 *( 1 - ((float) free_sram) / ((float) tot_sram)));
+    float used_psram = (float)(tot_psram - free_psram) / 1024;
+    float used_sram = (float)(tot_sram - free_sram) / 1024;
+    float psram_percentage = 100 *( 1 - ((float) free_psram) / ((float) tot_psram));
+    float sram_percentage = 100 *( 1 - ((float) free_sram) / ((float) tot_sram));
+
+
+    ESP_LOGI("RAM", "Usage: RAM - %u/%u KB [%f%%], PSRAM - %u/%u KB [%f%%]", (uint32_t) used_sram, (uint32_t) tot_sram/1024, sram_percentage, (uint32_t) used_psram, (uint32_t) tot_psram/1024, psram_percentage);
 }
 
-void load_test_functions(std::shared_ptr<re::FunctionStorage>& functions) {
-    std::function<bool(ps::vector<ps::string>&, re::VariableStorage*)> fn_0 = 
+void test_expressions() {
+    uint64_t start_tm = micros();
 
-    [](ps::vector<ps::string>& args, re::VariableStorage * vars) {
-        ps::stringstream arg_str;
-        for (auto& arg : args) {
-            arg_str << arg;
-            arg_str << ",";
-        }
-       // ESP_LOGI("fn_0", "Arg Val: %d, args: \'%s\'", vars->get_var<int>(args.at(0)), arg_str.str().c_str());
-        vars->set_var<int>(re::VAR_INT, "res0", 10);
-        return true;
-    };
+    re::VariableStorage* vars = new re::VariableStorage();
 
-    ps::string id = "fn_0";
-    functions -> add(id, fn_0);
+    re::Expression expr(test_equality, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
 
-    std::function<bool(ps::vector<ps::string>&, re::VariableStorage*)> fn_1 = [](ps::vector<ps::string>& args, re::VariableStorage * vars){
-        ESP_LOGI("fn_1", "%s - %d", args.at(0).c_str(), vars -> get_var<int>(args.at(0)));
-        vars->set_var<int>(re::VAR_INT, "res0", 45);
-        return true;
-    };
-    log_memory_usage();
+    expr = re::Expression(test_parenthesis, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
 
-    ps::string id_1 = "fn_1";
-    functions -> add(id_1, fn_1);
+    expr = re::Expression(test_inequality, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
 
-    log_memory_usage();
-}
+    expr = re::Expression(test_greater_than, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
 
-void load_test_rules(std::shared_ptr<re::RuleEngineBase> engine) {
-    /**
-     * @brief fn_0 runs first (higher priority) and sets res0 to 10. On the next execution, fn_0's expression
-     * will no longer evaluate true, thus fn_0 will no longer run, allowing fn_1 to run, setting to value of
-     * res0 to 45.
-     */
-    engine->set_var<int>(re::VAR_INT, "res0", 0);
+    expr = re::Expression(test_less_than, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
 
-    auto expr_0 = ps::string("(Val0 - 5) == 5 && res0 == 0"); // IF <this is true>
-    auto fn_0 = ps::string("fn_0(Val0);");       // THEN <do this>
+    expr = re::Expression(test_greater_than_equal, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
 
-    auto expr_1 = ps::string("res0 == 10");
-    auto fn_1 = ps::string("fn_1(res0);");
+    expr = re::Expression(test_less_than_equal, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
 
-    auto rule_0 = std::make_tuple(2, expr_0, fn_0); // Highest Priority runs first.
-    engine -> add_rule(rule_0);
-    auto rule_1 = std::make_tuple(1, expr_1, fn_1);
-    engine -> add_rule(rule_1);
+    expr = re::Expression(test_and, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
 
-    log_memory_usage();
-}
+    expr = re::Expression(test_or, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
 
-void load_test_vars(std::shared_ptr<re::RuleEngineBase> engine) {
-    engine -> set_var<int>(re::VAR_INT, "Val0", 10);
-    log_memory_usage();
-}
+    expr = re::Expression(test_not, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
 
-void test_separator() {
-    ps::string fn_0 = "fn_0(1, 2, 3, 4);";
-    re::CommandSeparator separator;
-    auto tokens = separator.separate(fn_0);
-    log_memory_usage();
-    TEST_ASSERT_EQUAL(1, tokens.size());
-    TEST_ASSERT_EQUAL(4, std::get<1>(tokens.at(0)).size());
-}
+    expr = re::Expression(test_add, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
 
-void test_rule_engine() {
-    auto functions = ps::make_shared<re::FunctionStorage>();
-    load_test_functions(functions);
-    auto rule_engine = ps::make_shared<re::RuleEngineBase>("UTL", functions);
-    load_test_vars(rule_engine);
-    load_test_rules(rule_engine);
+    expr = re::Expression(test_subtract, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
 
-    uint64_t start_tm = esp_timer_get_time();
-    rule_engine -> reason();
-    uint64_t end_tm = esp_timer_get_time();
-    log_memory_usage();
-    rule_engine -> reason();
+    expr = re::Expression(test_multiply, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
 
-    ESP_LOGD("Reason", "Took %u us", end_tm - start_tm);
-    TEST_ASSERT_EQUAL_INT(45, rule_engine -> get_var<int>("res0"));
+    expr = re::Expression(test_divide, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
+
+    expr = re::Expression(test_modulo, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
+
+    expr = re::Expression(test_power, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
+
+    expr = re::Expression(test_string_equality, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
+
+    expr = re::Expression(test_string_inequality, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
+
+    expr = re::Expression(test_array_equality, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
+
+    expr = re::Expression(test_array_inequality, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
+
+    expr = re::Expression(test_array_subset, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
+
+    expr = re::Expression(test_array_common, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
+
+    expr = re::Expression(test_array_unique, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
+
+    expr = re::Expression(test_array_contains_string, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
+
+    expr = re::Expression(test_array_string_equality, vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
+
+    ps::ostringstream test_all;
+    //Combine all the string tests to a single expression using AND.
+    test_all << test_equality << "&&" << test_parenthesis << "&&" << test_inequality << "&&" << test_greater_than << "&&" << test_less_than << "&&" << test_greater_than_equal << "&&" << test_less_than_equal << "&&" << test_and << "&&" << test_or << "&&" << test_not << "&&" << test_add << "&&" << test_subtract << "&&" << test_multiply << "&&" << test_divide << "&&" << test_modulo << "&&" << test_power << "&&" << test_string_equality << "&&" << test_string_inequality << "&&" << test_array_equality << "&&" << test_array_inequality << "&&" << test_array_subset << "&&" << test_array_common << "&&" << test_array_unique << "&&" << test_array_contains_string << "&&" << test_array_string_equality;
+    expr = re::Expression(test_all.str(), vars);
+    TEST_ASSERT_EQUAL(true, expr.evaluate());
+
+    ESP_LOGI("Expressions", "Complete. Took %uus", micros() - start_tm);
+    delete vars;
 }
 
 void setup() {
+    LittleFS.begin();
+    psramInit();
     delay(2000);
     UNITY_BEGIN();
-    RUN_TEST(test_separator);
-    RUN_TEST(test_rule_engine);
+    RUN_TEST(test_expressions);
     UNITY_END();
 }
 
